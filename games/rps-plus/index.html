@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>✊ 가위바위보+ — RPS+</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+      position: relative;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    canvas#particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Start Overlay */
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay h1 { font-size: 52px; margin-bottom: 4px; }
+    .start-overlay .subtitle { font-size: 20px; color: var(--energy-orange); font-weight: 700; }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+      line-height: 1.7;
+      max-width: 360px;
+    }
+    .start-overlay .mode-toggle {
+      margin-bottom: 12px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Countdown */
+    .countdown-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 140px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 60px rgba(255,59,59,0.6);
+      pointer-events: none;
+      animation: bounceIn 0.4s ease-out;
+      background: rgba(0,0,0,0.4);
+    }
+
+    /* HUD */
+    .game-hud {
+      text-align: center;
+      padding: 8px 16px;
+    }
+    .round-info {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .round-info strong { color: var(--white-pop); }
+    .record-bar {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .record-win { color: var(--success-green); }
+    .record-lose { color: var(--rage-red); }
+    .record-draw { color: var(--text-secondary); }
+    .streak-display {
+      font-size: 14px;
+      color: var(--relief-yellow);
+      margin-top: 4px;
+      min-height: 20px;
+    }
+
+    /* VS Arena */
+    .vs-arena {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px 0;
+      min-height: 200px;
+    }
+    .player-side, .ai-side {
+      flex: 1;
+      text-align: center;
+    }
+    .side-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .choice-emoji {
+      font-size: 80px;
+      display: block;
+      min-height: 100px;
+      line-height: 100px;
+      transition: transform 0.3s;
+    }
+    .choice-emoji.reveal {
+      animation: bounceIn 0.4s ease-out;
+    }
+    .vs-text {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 20px rgba(255,59,59,0.4);
+      flex-shrink: 0;
+    }
+
+    /* Round result text */
+    .round-result {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 900;
+      min-height: 44px;
+      line-height: 44px;
+      margin-bottom: 8px;
+    }
+    .round-result.win { color: var(--success-green); }
+    .round-result.lose { color: var(--rage-red); }
+    .round-result.draw { color: var(--text-secondary); }
+
+    /* Choice buttons */
+    .choice-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 8px 0 16px;
+    }
+    .choice-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 24px;
+      background: var(--dark-card);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      color: var(--white-pop);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .choice-btn:hover {
+      border-color: var(--energy-orange);
+      box-shadow: 0 0 20px rgba(255,140,0,0.3);
+      transform: translateY(-4px);
+    }
+    .choice-btn:active { transform: scale(0.93); }
+    .choice-btn .emoji { font-size: 40px; }
+    .choice-btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Extended mode: smaller buttons */
+    .choice-buttons.extended .choice-btn {
+      padding: 12px 16px;
+    }
+    .choice-buttons.extended .choice-btn .emoji {
+      font-size: 32px;
+    }
+
+    /* Score area */
+    .score-area {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .score-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--relief-yellow);
+    }
+    .score-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .best-score {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Funny lose texts */
+    @keyframes shakeText {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px) rotate(-1deg); }
+      40% { transform: translateX(6px) rotate(1deg); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .round-result.lose {
+      animation: shakeText 0.5s ease-out;
+    }
+
+    /* Emoji bounce on reveal */
+    @keyframes emojiPop {
+      0% { transform: scale(0) rotate(-20deg); }
+      60% { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .choice-emoji.pop {
+      animation: emojiPop 0.4s ease-out;
+    }
+
+    /* Countdown number pulse */
+    @keyframes countPulse {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      90% { transform: scale(0.95); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+    .countdown-overlay .count-num {
+      animation: countPulse 0.7s ease-out;
+    }
+
+    /* Mode toggle */
+    .mode-toggle-btn {
+      background: var(--dark-card);
+      border: 2px solid rgba(255,255,255,0.15);
+      color: var(--white-pop);
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      transition: border-color 0.2s;
+    }
+    .mode-toggle-btn:hover {
+      border-color: var(--energy-orange);
+    }
+    .mode-toggle-btn.active {
+      border-color: var(--energy-orange);
+      background: rgba(255,140,0,0.15);
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .choice-emoji { font-size: 56px; min-height: 72px; line-height: 72px; }
+      .vs-text { font-size: 24px; }
+      .choice-btn .emoji { font-size: 30px; }
+      .choice-btn { padding: 12px 16px; }
+      .vs-arena { gap: 8px; padding: 16px 0; }
+      .round-result { font-size: 22px; }
+      .score-value { font-size: 26px; }
+      .start-overlay h1 { font-size: 38px; }
+      .choice-buttons.extended .choice-btn { padding: 10px 12px; }
+      .choice-buttons.extended .choice-btn .emoji { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn" onclick="window.toggleSound()">🔊 소리</button>
+    </div>
+
+    <canvas id="particleCanvas" width="800" height="600"></canvas>
+
+    <!-- HUD -->
+    <div class="game-hud" id="gameHud">
+      <div class="round-info">라운드 <strong id="roundNum">1</strong> / <span id="totalRounds">5</span></div>
+      <div class="record-bar">
+        <span class="record-win">승 <span id="winCount">0</span></span>
+        <span class="record-lose">패 <span id="loseCount">0</span></span>
+        <span class="record-draw">무 <span id="drawCount">0</span></span>
+      </div>
+      <div class="streak-display" id="streakDisplay"></div>
+    </div>
+
+    <!-- Round Result -->
+    <div class="round-result" id="roundResult"></div>
+
+    <!-- VS Arena -->
+    <div class="vs-arena" id="vsArena">
+      <div class="player-side">
+        <div class="side-label">나</div>
+        <span class="choice-emoji" id="playerEmoji">❓</span>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="ai-side">
+        <div class="side-label">AI</div>
+        <span class="choice-emoji" id="aiEmoji">❓</span>
+      </div>
+    </div>
+
+    <!-- Choice Buttons -->
+    <div class="choice-buttons" id="choiceButtons">
+      <button class="choice-btn" data-choice="rock" onclick="playRound('rock')">
+        <span class="emoji">✊</span>바위
+      </button>
+      <button class="choice-btn" data-choice="scissors" onclick="playRound('scissors')">
+        <span class="emoji">✌️</span>가위
+      </button>
+      <button class="choice-btn" data-choice="paper" onclick="playRound('paper')">
+        <span class="emoji">✋</span>보
+      </button>
+      <button class="choice-btn extended-only hidden" data-choice="lizard" onclick="playRound('lizard')">
+        <span class="emoji">🦎</span>도마뱀
+      </button>
+      <button class="choice-btn extended-only hidden" data-choice="spock" onclick="playRound('spock')">
+        <span class="emoji">🖖</span>스팍
+      </button>
+    </div>
+
+    <!-- Score -->
+    <div class="score-area">
+      <div class="score-label">점수</div>
+      <div class="score-value" id="scoreValue">0</div>
+      <div class="best-score" id="bestScore"></div>
+    </div>
+  </div>
+
+  <!-- Start Overlay -->
+  <div class="start-overlay" id="startOverlay">
+    <h1>✊✌️✋</h1>
+    <div class="subtitle">가위바위보+</div>
+    <p>AI와의 진검승부!<br>5판 3선승제로 대결하세요.<br>연승할수록 AI가 강해집니다!</p>
+    <div class="mode-toggle">
+      <button class="mode-toggle-btn" id="modeToggleBtn" onclick="toggleExtendedMode()">
+        🦎🖖 확장 모드 (5지선다)
+      </button>
+    </div>
+    <button class="btn btn-primary" onclick="window._showLeaderboard = () => recordSystem.showLeaderboard(GAME_ID);
+    window.startGame()" style="margin-top:12px; font-size:18px; padding:16px 40px;">
+      🎮 시작!
+    </button>
+  </div>
+
+  <!-- Result Overlay -->
+  <div class="result-overlay hidden" id="resultOverlay">
+    <div class="result-card">
+      <div id="resultEmoji" style="font-size:56px;"></div>
+      <div class="result-score" id="resultScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats" id="resultStats"></div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="window.restartGame()">🔄 다시 하기</button>
+        <a href="../../index.html" class="btn btn-secondary">🏠 메인으로</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Countdown Overlay -->
+  <div class="countdown-overlay hidden" id="countdownOverlay">
+    <span class="count-num" id="countNum"></span>
+  </div>
+
+  <script type="module">
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    // ── Systems ──
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let soundEnabled = true;
+    let extendedMode = false;
+
+    // ── Game State ──
+    const GAME_ID = 'rps-plus';
+    const BEST_OF = 5;
+    const WIN_NEED = 3;
+
+    let gameState = 'start'; // start, playing, countdown, revealing, result
+    let currentRound = 0;
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    let winStreak = 0;
+    let bestStreak = 0;
+    let totalScore = 0;
+    let roundsPlayed = 0;
+    let playerHistory = [];
+    let aiHistory = [];
+    let isProcessing = false;
+
+    // ── Choices ──
+    const STANDARD_CHOICES = ['rock', 'scissors', 'paper'];
+    const EXTENDED_CHOICES = ['rock', 'scissors', 'paper', 'lizard', 'spock'];
+
+    const EMOJI_MAP = {
+      rock: '✊', scissors: '✌️', paper: '✋',
+      lizard: '🦎', spock: '🖖'
+    };
+
+    const NAME_MAP = {
+      rock: '바위', scissors: '가위', paper: '보',
+      lizard: '도마뱀', spock: '스팍'
+    };
+
+    // Standard: rock > scissors, scissors > paper, paper > rock
+    // Extended: rock > scissors,lizard | scissors > paper,lizard | paper > rock,spock
+    //           lizard > paper,spock | spock > rock,scissors
+    const WINS_AGAINST = {
+      rock: ['scissors', 'lizard'],
+      scissors: ['paper', 'lizard'],
+      paper: ['rock', 'spock'],
+      lizard: ['paper', 'spock'],
+      spock: ['rock', 'scissors']
+    };
+
+    function getChoices() {
+      return extendedMode ? EXTENDED_CHOICES : STANDARD_CHOICES;
+    }
+
+    function determineResult(player, ai) {
+      if (player === ai) return 'draw';
+      if (WINS_AGAINST[player].includes(ai)) return 'win';
+      return 'lose';
+    }
+
+    // ── AI Pattern Analysis ──
+    function aiChoose() {
+      const choices = getChoices();
+
+      // First 5 rounds or random baseline
+      if (playerHistory.length < 5 || Math.random() < 0.2) {
+        return choices[Math.floor(Math.random() * choices.length)];
+      }
+
+      // Difficulty escalation based on win streak
+      const analysisDepth = Math.min(playerHistory.length, 5 + winStreak * 2);
+      const recent = playerHistory.slice(-analysisDepth);
+
+      // Count frequency
+      const freq = {};
+      choices.forEach(c => freq[c] = 0);
+      recent.forEach(c => freq[c]++);
+
+      // Pattern detection: look for sequences
+      let predictedMove = null;
+      if (playerHistory.length >= 3) {
+        const last2 = playerHistory.slice(-2).join(',');
+        // Search for this pattern in history
+        let patternMatches = [];
+        for (let i = 0; i < playerHistory.length - 2; i++) {
+          const seq = playerHistory.slice(i, i + 2).join(',');
+          if (seq === last2 && i + 2 < playerHistory.length) {
+            patternMatches.push(playerHistory[i + 2]);
+          }
+        }
+        if (patternMatches.length > 0) {
+          // Predict most common follow-up
+          const matchFreq = {};
+          patternMatches.forEach(m => matchFreq[m] = (matchFreq[m] || 0) + 1);
+          predictedMove = Object.entries(matchFreq).sort((a, b) => b[1] - a[1])[0][0];
+        }
+      }
+
+      // Higher streak = smarter AI (more likely to use pattern analysis)
+      const smartness = Math.min(0.85, 0.4 + winStreak * 0.1);
+
+      if (predictedMove && Math.random() < smartness) {
+        // Counter the predicted move
+        return findCounter(predictedMove, choices);
+      }
+
+      // Counter the most frequent choice
+      const mostFrequent = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+      if (Math.random() < smartness) {
+        return findCounter(mostFrequent, choices);
+      }
+
+      return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    function findCounter(move, choices) {
+      // Find a choice that beats the given move
+      for (const c of choices) {
+        if (WINS_AGAINST[c].includes(move)) return c;
+      }
+      return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    // ── Funny lose texts ──
+    const LOSE_TEXTS = [
+      '억울하다 억울해... 😤',
+      'AI한테 지다니! 🤖',
+      '이건 버그야! 🐛',
+      '다음엔 읽어준다... 📖',
+      '손이 느렸어... ✋',
+      'AI가 치팅한 거 아냐? 🧐',
+      '전략적 패배입니다 📉',
+      '이겼... 아 아니구나 😅',
+    ];
+
+    const WIN_TEXTS = [
+      '승리! AI 박살! 💪',
+      '읽었다! 🔮',
+      '너무 쉬운데? 😎',
+      '가위바위보 천재! 🧠',
+      'AI 안녕~ 👋',
+      '승! 기분 좋다! 🎉',
+    ];
+
+    const DRAW_TEXTS = [
+      '찰떡호흡? 🤝',
+      '텔레파시인가... 📡',
+      '아깝다! 😐',
+      '거울 보고 있나? 🪞',
+    ];
+
+    function randomFrom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // ── DOM refs ──
+    const $roundNum = document.getElementById('roundNum');
+    const $totalRounds = document.getElementById('totalRounds');
+    const $winCount = document.getElementById('winCount');
+    const $loseCount = document.getElementById('loseCount');
+    const $drawCount = document.getElementById('drawCount');
+    const $streakDisplay = document.getElementById('streakDisplay');
+    const $roundResult = document.getElementById('roundResult');
+    const $playerEmoji = document.getElementById('playerEmoji');
+    const $aiEmoji = document.getElementById('aiEmoji');
+    const $scoreValue = document.getElementById('scoreValue');
+    const $bestScore = document.getElementById('bestScore');
+    const $startOverlay = document.getElementById('startOverlay');
+    const $resultOverlay = document.getElementById('resultOverlay');
+    const $countdownOverlay = document.getElementById('countdownOverlay');
+    const $countNum = document.getElementById('countNum');
+    const $choiceButtons = document.getElementById('choiceButtons');
+    const $modeToggleBtn = document.getElementById('modeToggleBtn');
+    const $gameHud = document.getElementById('gameHud');
+
+    function updateHUD() {
+      $roundNum.textContent = Math.min(currentRound + 1, BEST_OF);
+      $totalRounds.textContent = BEST_OF;
+      $winCount.textContent = wins;
+      $loseCount.textContent = losses;
+      $drawCount.textContent = draws;
+      $streakDisplay.textContent = winStreak > 1 ? `🔥 ${winStreak}연승!` : '';
+      $scoreValue.textContent = totalScore.toLocaleString();
+      const best = scoreManager.getBest(GAME_ID);
+      $bestScore.textContent = best > 0 ? `최고: ${best.toLocaleString()}` : '';
+    }
+
+    function setButtonsEnabled(enabled) {
+      document.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.disabled = !enabled;
+      });
+    }
+
+    function toggleExtendedMode() {
+      extendedMode = !extendedMode;
+      $modeToggleBtn.classList.toggle('active', extendedMode);
+      $modeToggleBtn.textContent = extendedMode
+        ? '✅ 확장 모드 (5지선다)'
+        : '🦎🖖 확장 모드 (5지선다)';
+    }
+
+    function applyModeToButtons() {
+      const extBtns = document.querySelectorAll('.extended-only');
+      extBtns.forEach(btn => btn.classList.toggle('hidden', !extendedMode));
+      $choiceButtons.classList.toggle('extended', extendedMode);
+    }
+
+    // ── Countdown ──
+    function showCountdown(num) {
+      return new Promise(resolve => {
+        $countdownOverlay.classList.remove('hidden');
+        $countNum.textContent = num;
+        // Re-trigger animation
+        $countNum.style.animation = 'none';
+        void $countNum.offsetHeight;
+        $countNum.style.animation = 'countPulse 0.7s ease-out';
+        if (soundEnabled) sound.playClick();
+        setTimeout(() => resolve(), 750);
+      });
+    }
+
+    async function runCountdown() {
+      gameState = 'countdown';
+      setButtonsEnabled(false);
+      for (let i = 3; i >= 1; i--) {
+        await showCountdown(i);
+      }
+      $countdownOverlay.classList.add('hidden');
+      setButtonsEnabled(true);
+      gameState = 'playing';
+    }
+
+    // ── Play Round ──
+    async function playRound(playerChoice) {
+      if (gameState !== 'playing' || isProcessing) return;
+      isProcessing = true;
+      setButtonsEnabled(false);
+
+      if (soundEnabled) sound.playClick();
+
+      const aiChoice = aiChoose();
+      playerHistory.push(playerChoice);
+      aiHistory.push(aiChoice);
+
+      // Show player choice immediately
+      $playerEmoji.textContent = EMOJI_MAP[playerChoice];
+      $playerEmoji.className = 'choice-emoji pop';
+      $aiEmoji.textContent = '🤔';
+
+      // Short suspense delay
+      await delay(600);
+
+      // Reveal AI
+      $aiEmoji.textContent = EMOJI_MAP[aiChoice];
+      $aiEmoji.className = 'choice-emoji pop';
+
+      await delay(300);
+
+      const result = determineResult(playerChoice, aiChoice);
+
+      if (result === 'win') {
+        wins++;
+        winStreak++;
+        if (winStreak > bestStreak) bestStreak = winStreak;
+        const roundScore = winStreak * 100;
+        totalScore += roundScore;
+
+        $roundResult.textContent = randomFrom(WIN_TEXTS);
+        $roundResult.className = 'round-result win';
+
+        if (soundEnabled) sound.playVictory();
+        emitFireworks();
+      } else if (result === 'lose') {
+        losses++;
+        winStreak = 0;
+
+        $roundResult.textContent = randomFrom(LOSE_TEXTS);
+        $roundResult.className = 'round-result lose';
+
+        if (soundEnabled) sound.playHit();
+        shake.trigger(12, 0.4);
+      } else {
+        draws++;
+
+        $roundResult.textContent = randomFrom(DRAW_TEXTS);
+        $roundResult.className = 'round-result draw';
+
+        if (soundEnabled) sound.playPop();
+      }
+
+      currentRound++;
+      roundsPlayed++;
+      updateHUD();
+
+      await delay(1200);
+
+      // Check if match is over
+      if (wins >= WIN_NEED || losses >= WIN_NEED || currentRound >= BEST_OF) {
+        showResult();
+      } else {
+        // Next round
+        $roundResult.textContent = '';
+        $playerEmoji.textContent = '❓';
+        $playerEmoji.className = 'choice-emoji';
+        $aiEmoji.textContent = '❓';
+        $aiEmoji.className = 'choice-emoji';
+        setButtonsEnabled(true);
+      }
+
+      isProcessing = false;
+    }
+    window.playRound = playRound;
+
+    // ── Fireworks ──
+    function emitFireworks() {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const x = cx + (Math.random() - 0.5) * 400;
+          const y = cy * 0.5 + Math.random() * cy * 0.5;
+          particles.emit(x, y, 30, {
+            colors: ['#FF3B3B', '#FF8C00', '#FFD700', '#00C853', '#40C4FF', '#E040FB'],
+            speed: 3 + Math.random() * 3,
+            gravity: 0.1,
+            decay: 0.012,
+            shape: 'circle'
+          });
+        }, i * 150);
+      }
+    }
+
+    // ── Result Screen ──
+    function showResult() {
+      gameState = 'result';
+      setButtonsEnabled(false);
+
+      const matchResult = wins >= WIN_NEED ? 'win' : (losses >= WIN_NEED ? 'lose' : (wins > losses ? 'win' : (wins < losses ? 'lose' : 'draw')));
+
+      const $resultEmoji = document.getElementById('resultEmoji');
+      const $resultScore = document.getElementById('resultScore');
+      const $resultMessage = document.getElementById('resultMessage');
+      const $resultStats = document.getElementById('resultStats');
+
+      if (matchResult === 'win') {
+        $resultEmoji.textContent = '🏆';
+        $resultMessage.textContent = `AI를 이겼습니다! ${bestStreak > 1 ? bestStreak + '연승 달성!' : ''}`;
+        if (soundEnabled) {
+          sound.playVictory();
+          setTimeout(() => sound.playCombo(3), 500);
+        }
+        emitFireworks();
+        setTimeout(() => emitFireworks(), 600);
+      } else if (matchResult === 'lose') {
+        $resultEmoji.textContent = '😭';
+        $resultMessage.textContent = 'AI의 승리... 다음엔 꼭 이기자!';
+        if (soundEnabled) sound.playExplosion();
+        shake.trigger(15, 0.5);
+      } else {
+        $resultEmoji.textContent = '🤝';
+        $resultMessage.textContent = '비겼습니다! 실력이 비슷하네요.';
+        if (soundEnabled) sound.playPop();
+      }
+
+      $resultScore.textContent = totalScore.toLocaleString();
+
+      $resultStats.innerHTML = `
+        <div class="result-stat">
+          <div class="result-stat-value">${wins}</div>
+          <div class="result-stat-label">승</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value">${losses}</div>
+          <div class="result-stat-label">패</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value">${draws}</div>
+          <div class="result-stat-label">무</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value">${bestStreak}</div>
+          <div class="result-stat-label">최대 연승</div>
+        </div>
+      `;
+
+      scoreManager.addScore(GAME_ID, totalScore);
+      recordSystem.showSubmitFlow(GAME_ID, totalScore);
+      $resultOverlay.classList.remove('hidden');
+    }
+
+    // ── Start / Restart ──
+    async function startGame() {
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+      }
+
+      // Reset state
+      currentRound = 0;
+      wins = 0;
+      losses = 0;
+      draws = 0;
+      winStreak = 0;
+      bestStreak = 0;
+      totalScore = 0;
+      roundsPlayed = 0;
+      playerHistory = [];
+      aiHistory = [];
+      isProcessing = false;
+
+      $startOverlay.classList.add('hidden');
+      $resultOverlay.classList.add('hidden');
+
+      applyModeToButtons();
+
+      // Reset display
+      $roundResult.textContent = '';
+      $playerEmoji.textContent = '❓';
+      $playerEmoji.className = 'choice-emoji';
+      $aiEmoji.textContent = '❓';
+      $aiEmoji.className = 'choice-emoji';
+      particles.clear();
+
+      updateHUD();
+
+      await runCountdown();
+    }
+
+    function restartGame() {
+      $resultOverlay.classList.add('hidden');
+      startGame();
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.querySelector('.sound-btn').textContent = soundEnabled ? '🔊 소리' : '🔇 소리';
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+      }
+    }
+
+    // Expose globals
+    window.startGame = startGame;
+    window.restartGame = restartGame;
+    window.toggleSound = toggleSound;
+    window.toggleExtendedMode = toggleExtendedMode;
+    window.playRound = playRound;
+
+    // ── Render Loop ──
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      shake.update(dt);
+      shake.apply(ctx);
+
+      particles.update(dt);
+      particles.draw(ctx);
+
+      ctx.restore();
+
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    // ── Resize canvas ──
+    function resizeCanvas() {
+      const wrapper = document.querySelector('.game-wrapper');
+      const w = Math.min(800, wrapper.clientWidth);
+      const ratio = w / 800;
+      canvas.style.width = w + 'px';
+      canvas.style.height = (600 * ratio) + 'px';
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ── Utility ──
+    function delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    // Initial HUD
+    updateHUD();
+  </script>
+</body>
+</html>

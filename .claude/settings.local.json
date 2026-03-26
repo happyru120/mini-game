@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(/dev/null cat:*)",
+      "Bash(head -5 grep -n \"import\\\\|type.*module\" /Users/leelulee/Touch/바이브코딩/mini-game/games/dish-smash/index.html)"
+    ]
+  }
+}

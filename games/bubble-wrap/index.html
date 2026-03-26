@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>버블랩 터뜨리기 — Bubble Wrap Pop</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay h1 { font-size: 56px; margin-bottom: 8px; }
+    .start-overlay h2 { font-size: 28px; font-weight: 900; }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .bubble-counter {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--relief-yellow);
+      text-align: center;
+      padding: 4px 0;
+    }
+    .sheet-counter {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 2px;
+    }
+    .end-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .end-btn:hover {
+      border-color: rgba(255,255,255,0.4);
+      color: var(--white-pop);
+    }
+
+    @keyframes newSheet {
+      0% { transform: scale(0.9); opacity: 0; }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .canvas-new-sheet {
+      animation: newSheet 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startScreen">
+    <h1>&#x1F4A7;</h1>
+    <h2>&#xBC84;&#xBE14;&#xB7A9; &#xD130;&#xB728;&#xB9AC;&#xAE30;</h2>
+    <p>
+      &#xD074;&#xB9AD; &#xB610;&#xB294; &#xD130;&#xCE58;&#xB85C; &#xBC84;&#xBE14;&#xC744; &#xD130;&#xB728;&#xB9AC;&#xC138;&#xC694;<br>
+      &#xB4DC;&#xB798;&#xADF8;&#xD558;&#xBA74; &#xC5EC;&#xB7EC; &#xAC1C;&#xB97C; &#xD55C;&#xBC88;&#xC5D0;!<br>
+      <span style="color:#FFD700;">&#x2728; &#xAE08;&#xC0C9; &#xBC84;&#xBE14;</span>&#xC740; &#xD2B9;&#xBCC4;&#xD55C; &#xBC18;&#xC9DD;&#xC784;&#xACFC; &#xD568;&#xAED8;<br>
+      <span style="color:#FF8C00;">&#x1F4A5; &#xC288;&#xD37C; &#xBC84;&#xBE14;</span>&#xC740; &#xC8FC;&#xBCC0; 5&#xAC1C;&#xB97C; &#xD568;&#xAED8; &#xD130;&#xB728;&#xB824;&#xC694;
+    </p>
+    <button class="btn btn-primary" onclick="startGame()" style="font-size:20px; padding:18px 48px;">
+      &#x1F6C1; &#xC2DC;&#xC791;&#xD558;&#xAE30;
+    </button>
+  </div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn">&larr; &#xB3CC;&#xC544;&#xAC00;&#xAE30;</a>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="end-btn" id="endBtn" onclick="endGame()" style="display:none;">&#xADF8;&#xB9CC;&#xD558;&#xAE30;</button>
+        <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#x1F50A; &#xC0AC;&#xC6B4;&#xB4DC; ON</button>
+      </div>
+    </div>
+    <div class="bubble-counter" id="bubbleCounter" style="display:none;">
+      &#xC624;&#xB298; &#xD130;&#xB728;&#xB9B0; &#xBC84;&#xBE14;: <span id="popCount">0</span>&#xAC1C;
+    </div>
+    <div class="sheet-counter" id="sheetCounter" style="display:none;">
+      &#xBC84;&#xBE14;&#xB7A9; <span id="sheetNum">1</span>&#xBC88;&#xC9F8; &#xC7A5;
+    </div>
+    <canvas class="game-canvas" id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultScreen" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:48px; margin-bottom:8px;">&#x1F6C1;&#x2728;</div>
+      <div style="font-size:16px; color:var(--text-secondary);">&#xC624;&#xB298;&#xC758; &#xD78C;&#xB9C1; &#xAE30;&#xB85D;</div>
+      <div class="result-score" id="finalCount">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="statPopped">0</div>
+          <div class="result-stat-label">&#xD130;&#xB728;&#xB9B0; &#xBC84;&#xBE14;</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statSheets">0</div>
+          <div class="result-stat-label">&#xC644;&#xC131;&#xD55C; &#xC7A5;</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statGolden">0</div>
+          <div class="result-stat-label">&#xAE08;&#xC0C9; &#xBC84;&#xBE14;</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">&#x1F6C1; &#xB2E4;&#xC2DC; &#xD558;&#xAE30;</button>
+        <a href="../../index.html" class="btn btn-secondary">&#x1F3E0; &#xB2E4;&#xB978; &#xAC8C;&#xC784;</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { InputManager } from '../../shared/engine/InputManager.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    // --- Constants ---
+    const COLS = 10;
+    const ROWS = 8;
+    const CANVAS_W = 800;
+    const CANVAS_H = 600;
+    const PADDING_X = 20;
+    const PADDING_Y = 20;
+    const BUBBLE_W = (CANVAS_W - PADDING_X * 2) / COLS;
+    const BUBBLE_H = (CANVAS_H - PADDING_Y * 2) / ROWS;
+    const BUBBLE_R = Math.min(BUBBLE_W, BUBBLE_H) * 0.42;
+    const GOLDEN_CHANCE = 0.06;
+    const SUPER_CHANCE = 0.04;
+
+    // --- Systems ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particles = new ParticleSystem();
+    const screenShake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+    const input = new InputManager(canvas);
+
+    // --- State ---
+    let bubbles = [];
+    let totalPopped = 0;
+    let sheetsCompleted = 0;
+    let goldenPopped = 0;
+    let gameActive = false;
+    let soundEnabled = true;
+    let isDragging = false;
+    let gameLoop = null;
+    let newSheetTimer = 0;
+
+    // --- Bubble class ---
+    class Bubble {
+      constructor(col, row) {
+        this.col = col;
+        this.row = row;
+        this.x = PADDING_X + col * BUBBLE_W + BUBBLE_W / 2;
+        this.y = PADDING_Y + row * BUBBLE_H + BUBBLE_H / 2;
+        this.r = BUBBLE_R;
+        this.popped = false;
+        this.popAnim = 0;
+        this.isGolden = Math.random() < GOLDEN_CHANCE;
+        this.isSuper = !this.isGolden && Math.random() < SUPER_CHANCE;
+        this.wobble = 0;
+        this.wobbleSpeed = 0;
+        // subtle color variation
+        const hue = this.isGolden ? 45 : (this.isSuper ? 25 : 200 + Math.random() * 30);
+        const sat = this.isGolden ? 90 : (this.isSuper ? 100 : 50 + Math.random() * 20);
+        const light = this.isGolden ? 55 : (this.isSuper ? 50 : 55 + Math.random() * 10);
+        this.baseColor = `hsl(${hue}, ${sat}%, ${light}%)`;
+        this.highlightColor = `hsl(${hue}, ${sat}%, ${light + 20}%)`;
+        this.shadowColor = `hsl(${hue}, ${sat}%, ${light - 15}%)`;
+      }
+
+      draw(ctx) {
+        if (this.popped && this.popAnim >= 1) return;
+
+        const scale = this.popped ? Math.max(0, 1 - this.popAnim * 2) : 1;
+        const wobbleOffset = Math.sin(this.wobble) * 2;
+
+        ctx.save();
+        ctx.translate(this.x + wobbleOffset, this.y);
+        ctx.scale(scale, scale);
+
+        // Shadow underneath
+        ctx.beginPath();
+        ctx.arc(2, 3, this.r * 0.9, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fill();
+
+        // Main bubble body
+        const grad = ctx.createRadialGradient(-this.r * 0.3, -this.r * 0.3, this.r * 0.1, 0, 0, this.r);
+        grad.addColorStop(0, this.highlightColor);
+        grad.addColorStop(0.6, this.baseColor);
+        grad.addColorStop(1, this.shadowColor);
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Specular highlight
+        ctx.beginPath();
+        ctx.arc(-this.r * 0.25, -this.r * 0.3, this.r * 0.25, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fill();
+
+        // Small secondary highlight
+        ctx.beginPath();
+        ctx.arc(this.r * 0.15, this.r * 0.2, this.r * 0.1, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fill();
+
+        // Golden shimmer
+        if (this.isGolden) {
+          ctx.beginPath();
+          ctx.arc(0, 0, this.r + 2, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 215, 0, ${0.4 + Math.sin(Date.now() * 0.005) * 0.3})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Super bubble indicator
+        if (this.isSuper) {
+          ctx.beginPath();
+          ctx.arc(0, 0, this.r + 2, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 140, 0, ${0.4 + Math.sin(Date.now() * 0.006) * 0.3})`;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+
+          // Small star icon
+          ctx.fillStyle = 'rgba(255,140,0,0.8)';
+          ctx.font = `${this.r * 0.5}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('\u2605', 0, 0);
+        }
+
+        ctx.restore();
+      }
+
+      contains(px, py) {
+        const dx = px - this.x;
+        const dy = py - this.y;
+        return dx * dx + dy * dy <= this.r * this.r;
+      }
+
+      pop() {
+        if (this.popped) return false;
+        this.popped = true;
+        this.popAnim = 0;
+        return true;
+      }
+    }
+
+    // --- Grid creation ---
+    function createBubbleSheet() {
+      bubbles = [];
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          bubbles.push(new Bubble(col, row));
+        }
+      }
+    }
+
+    // --- Pop logic ---
+    function popBubbleAt(x, y) {
+      for (const b of bubbles) {
+        if (!b.popped && b.contains(x, y)) {
+          performPop(b);
+          return;
+        }
+      }
+    }
+
+    function performPop(b) {
+      if (!b.pop()) return;
+
+      totalPopped++;
+      updateCounter();
+
+      if (soundEnabled) {
+        if (b.isGolden) {
+          sound.playCombo(3);
+        } else if (b.isSuper) {
+          sound.playExplosion();
+        } else {
+          sound.playPop();
+        }
+      }
+
+      // Particles
+      if (b.isGolden) {
+        goldenPopped++;
+        particles.emit(b.x, b.y, 25, {
+          colors: ['#FFD700', '#FFA500', '#FFFFFF', '#FFFACD'],
+          speed: 4,
+          decay: 0.02,
+          shape: 'circle',
+          gravity: 0.08,
+          size: 4,
+        });
+        screenShake.trigger(4, 0.15);
+      } else if (b.isSuper) {
+        particles.emit(b.x, b.y, 15, {
+          colors: ['#FF8C00', '#FF4500', '#FFD700'],
+          speed: 5,
+          decay: 0.018,
+          shape: 'circle',
+          gravity: 0.1,
+        });
+        screenShake.trigger(6, 0.2);
+        // Chain pop surrounding bubbles
+        chainPop(b);
+      } else {
+        particles.emit(b.x, b.y, 8, {
+          colors: ['rgba(150,200,255,0.8)', 'rgba(200,220,255,0.6)', '#FFFFFF'],
+          speed: 2,
+          decay: 0.03,
+          shape: 'circle',
+          size: 3,
+          gravity: 0.05,
+        });
+        screenShake.trigger(1.5, 0.08);
+      }
+
+      // Check sheet completion
+      checkSheetComplete();
+    }
+
+    function chainPop(superBubble) {
+      const neighbors = bubbles.filter(b => {
+        if (b.popped || b === superBubble) return false;
+        const dc = Math.abs(b.col - superBubble.col);
+        const dr = Math.abs(b.row - superBubble.row);
+        return dc <= 1 && dr <= 1;
+      });
+
+      // Pop up to 5 neighbors with slight delay effect
+      const toPop = neighbors.slice(0, 5);
+      toPop.forEach((b, i) => {
+        setTimeout(() => {
+          if (!b.popped) {
+            b.pop();
+            totalPopped++;
+            updateCounter();
+            particles.emit(b.x, b.y, 6, {
+              colors: ['#FF8C00', '#FFD700', '#FFF'],
+              speed: 2.5,
+              decay: 0.025,
+              shape: 'circle',
+              size: 3,
+              gravity: 0.06,
+            });
+            if (soundEnabled) sound.playPop();
+            checkSheetComplete();
+          }
+        }, (i + 1) * 60);
+      });
+    }
+
+    function checkSheetComplete() {
+      const remaining = bubbles.filter(b => !b.popped).length;
+      if (remaining === 0) {
+        sheetsCompleted++;
+        document.getElementById('sheetNum').textContent = sheetsCompleted + 1;
+
+        if (soundEnabled) sound.playVictory();
+        screenShake.trigger(8, 0.3);
+
+        // Celebration particles
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const cx = Math.random() * CANVAS_W;
+            const cy = Math.random() * CANVAS_H;
+            particles.emit(cx, cy, 15, {
+              colors: ['#FFD700', '#FF3B3B', '#00C853', '#FF8C00', '#FFFFFF'],
+              speed: 5,
+              decay: 0.015,
+              shape: 'circle',
+              gravity: 0.1,
+            });
+          }, i * 100);
+        }
+
+        // New sheet after brief pause
+        newSheetTimer = 1.0;
+      }
+    }
+
+    function updateCounter() {
+      document.getElementById('popCount').textContent = totalPopped;
+    }
+
+    // --- Input handling ---
+    input.on('pointerdown', ({ x, y }) => {
+      if (!gameActive) return;
+      isDragging = true;
+      sound.resume();
+      popBubbleAt(x, y);
+    });
+
+    input.on('pointermove', ({ x, y }) => {
+      if (!gameActive || !isDragging) return;
+      popBubbleAt(x, y);
+
+      // Wobble nearby unpopped bubbles
+      for (const b of bubbles) {
+        if (b.popped) continue;
+        const dx = x - b.x;
+        const dy = y - b.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < BUBBLE_R * 3) {
+          b.wobbleSpeed = (BUBBLE_R * 3 - dist) / (BUBBLE_R * 3) * 0.4;
+        }
+      }
+    });
+
+    input.on('pointerup', () => {
+      isDragging = false;
+    });
+
+    // --- Game loop ---
+    function update(dt) {
+      if (!gameActive) return;
+
+      particles.update(dt);
+      screenShake.update(dt);
+
+      // Wobble decay
+      for (const b of bubbles) {
+        b.wobble += b.wobbleSpeed;
+        b.wobbleSpeed *= 0.92;
+        if (b.popped) {
+          b.popAnim = Math.min(1, b.popAnim + dt * 4);
+        }
+      }
+
+      // New sheet timer
+      if (newSheetTimer > 0) {
+        newSheetTimer -= dt;
+        if (newSheetTimer <= 0) {
+          createBubbleSheet();
+          canvas.classList.add('canvas-new-sheet');
+          setTimeout(() => canvas.classList.remove('canvas-new-sheet'), 500);
+        }
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.save();
+      screenShake.apply(ctx);
+
+      // Background - subtle grid feel
+      ctx.fillStyle = '#0F1020';
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Subtle bubble wrap plastic background
+      ctx.fillStyle = 'rgba(100, 140, 200, 0.03)';
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const x = PADDING_X + col * BUBBLE_W + BUBBLE_W / 2;
+          const y = PADDING_Y + row * BUBBLE_H + BUBBLE_H / 2;
+          ctx.beginPath();
+          ctx.arc(x, y, BUBBLE_R + 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Draw bubbles
+      for (const b of bubbles) {
+        b.draw(ctx);
+      }
+
+      // Draw popped indentations
+      for (const b of bubbles) {
+        if (b.popped && b.popAnim >= 1) {
+          ctx.save();
+          ctx.translate(b.x, b.y);
+          ctx.beginPath();
+          ctx.arc(0, 0, BUBBLE_R * 0.6, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, 0, BUBBLE_R * 0.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(60,70,100,0.1)';
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // Particles on top
+      particles.draw(ctx);
+
+      ctx.restore();
+    }
+
+    // --- Game control ---
+    function startGameInternal() {
+      totalPopped = 0;
+      sheetsCompleted = 0;
+      goldenPopped = 0;
+      newSheetTimer = 0;
+      gameActive = true;
+
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('resultScreen').style.display = 'none';
+      document.getElementById('bubbleCounter').style.display = 'block';
+      document.getElementById('sheetCounter').style.display = 'block';
+      document.getElementById('endBtn').style.display = 'inline-block';
+      document.getElementById('sheetNum').textContent = '1';
+      updateCounter();
+
+      createBubbleSheet();
+      particles.clear();
+
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+      }
+
+      if (!gameLoop) {
+        gameLoop = new GameLoop({ update, render });
+        gameLoop.start();
+      } else {
+        gameLoop.start();
+      }
+    }
+
+    function endGameInternal() {
+      gameActive = false;
+      if (gameLoop) gameLoop.stop();
+
+      // Save stats
+      scoreManager.addStat('bubblesPopped', totalPopped);
+      recordSystem.showSubmitFlow('bubble-wrap', totalPopped * 100);
+
+      // Show result
+      document.getElementById('finalCount').textContent = `${totalPopped}\uAC1C`;
+      document.getElementById('statPopped').textContent = totalPopped;
+      document.getElementById('statSheets').textContent = sheetsCompleted;
+      document.getElementById('statGolden').textContent = goldenPopped;
+
+      const msg = getHealingMessage(totalPopped);
+      document.getElementById('resultMessage').textContent = msg;
+
+      document.getElementById('resultScreen').style.display = 'flex';
+      document.getElementById('endBtn').style.display = 'none';
+
+      if (soundEnabled) sound.playVictory();
+    }
+
+    function getHealingMessage(count) {
+      if (count >= 500) return '\uD83D\uDCA7 \uBC84\uBE14\uB7A9 \uB9C8\uC2A4\uD130! \uC624\uB298\uC758 \uC2A4\uD2B8\uB808\uC2A4\uB294 \uC644\uC804\uD788 \uB0A0\uB838\uC5B4\uC694!';
+      if (count >= 200) return '\uD83C\uDF3F \uCC29\uCC29\uD788 \uD558\uB098\uC529, \uC815\uB9D0 \uB9CE\uC774 \uD130\uB728\uB838\uB124\uC694. \uD3B8\uC548\uD574\uC84C\uC8E0?';
+      if (count >= 80) return '\uD83D\uDE0C \uD1A1\uD1A1\uD1A1... \uC2DC\uC6D0\uD55C \uC18C\uB9AC\uC640 \uD568\uAED8 \uB9C8\uC74C\uC774 \uAC00\uBCBC\uC6CC\uC84C\uC5B4\uC694.';
+      if (count >= 20) return '\uD83E\uDEE7 \uC870\uAE08\uC529 \uB9C8\uC74C\uC774 \uD480\uB838\uB098\uC694? \uB610 \uC624\uC138\uC694!';
+      return '\uD83C\uDF38 \uC798\uD588\uC5B4\uC694! \uC5B8\uC81C\uB4E0 \uD3B8\uD558\uAC8C \uD130\uB728\uB9AC\uB7EC \uC624\uC138\uC694.';
+    }
+
+    function toggleSoundInternal() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('soundBtn');
+      btn.textContent = soundEnabled ? '\uD83D\uDD0A \uC0AC\uC6B4\uB4DC ON' : '\uD83D\uDD07 \uC0AC\uC6B4\uB4DC OFF';
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+        sound.masterGain.gain.value = 1;
+      } else if (sound.masterGain) {
+        sound.masterGain.gain.value = 0;
+      }
+    }
+
+    // --- Expose globals ---
+    window._showLeaderboard = () => recordSystem.showLeaderboard('bubble-wrap');
+    window.startGame = startGameInternal;
+    window.restartGame = () => {
+      document.getElementById('resultScreen').style.display = 'none';
+      startGameInternal();
+    };
+    window.toggleSound = toggleSoundInternal;
+    window.endGame = endGameInternal;
+
+    // Initial render of empty canvas
+    ctx.fillStyle = '#0F1020';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  </script>
+</body>
+</html>

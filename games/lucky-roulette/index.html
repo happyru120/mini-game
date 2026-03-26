@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🎰 행운의 룰렛 — Lucky Roulette</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0A0A1E; }
+    .game-wrapper {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    /* Start overlay */
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 12px;
+    }
+    .start-overlay h1 {
+      font-size: 48px;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #FFD700, #FF8C00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .start-overlay .subtitle {
+      font-size: 20px;
+      color: var(--relief-yellow);
+      margin-bottom: 4px;
+    }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 16px;
+      text-align: center;
+      line-height: 1.7;
+      max-width: 380px;
+    }
+    .start-overlay .segment-legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 20px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .segment-legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .segment-legend .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Canvas area */
+    .canvas-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Pointer triangle */
+    .wheel-pointer {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 36px solid #FFD700;
+      z-index: 10;
+      filter: drop-shadow(0 2px 6px rgba(255,215,0,0.6));
+    }
+
+    /* Spin instruction */
+    .spin-instruction {
+      text-align: center;
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      transition: opacity 0.3s;
+    }
+    .spin-instruction.hidden { opacity: 0; }
+
+    /* Center overlay text */
+    .center-result {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: 900;
+      pointer-events: none;
+      text-shadow: 0 0 20px rgba(0,0,0,0.8);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 5;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .center-result.show { opacity: 1; }
+
+    /* Flash effect */
+    .flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .flash-overlay.active {
+      opacity: 0.6;
+    }
+
+    /* Score reset animation */
+    @keyframes resetZoom {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      30% { transform: translate(-50%, -50%) scale(2); opacity: 1; color: #FF3B3B; }
+      100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+    }
+    .reset-anim {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      font-size: 80px;
+      font-weight: 900;
+      z-index: 60;
+      pointer-events: none;
+      animation: resetZoom 1.2s ease-out forwards;
+    }
+
+    @media (max-width: 480px) {
+      .start-overlay h1 { font-size: 32px; }
+      .start-overlay .subtitle { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startOverlay">
+    <h1>🎰 행운의 룰렛</h1>
+    <div class="subtitle">Lucky Roulette</div>
+    <p>룰렛을 돌려 점수를 모으세요!<br>총 5번의 스핀 기회가 주어집니다.</p>
+    <div class="segment-legend">
+      <span><span class="dot" style="background:#FF4444"></span>100점</span>
+      <span><span class="dot" style="background:#FF8C00"></span>200점</span>
+      <span><span class="dot" style="background:#FFDD00"></span>500점</span>
+      <span><span class="dot" style="background:#00CC66"></span>1000점</span>
+      <span><span class="dot" style="background:#3399FF"></span>점수 2배</span>
+      <span><span class="dot" style="background:#AA44FF"></span>점수 리셋</span>
+      <span><span class="dot" style="background:#FF69B4"></span>보너스 스핀</span>
+      <span><span class="dot" style="background:#FFD700"></span>잭팟!</span>
+    </div>
+    <button class="btn btn-primary" onclick="window._showLeaderboard = () => recordSystem.showLeaderboard('lucky-roulette');
+    window.startGame()" style="font-size:20px; padding:16px 40px;">
+      🎰 게임 시작
+    </button>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultOverlay" style="display:none;">
+    <div class="result-card">
+      <h2 style="font-size:24px; margin-bottom:8px;">🎰 게임 종료!</h2>
+      <div class="result-score" id="resultScore">0점</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats" id="resultStats"></div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="window.restartGame()">🔄 다시 하기</button>
+        <a href="../../index.html" class="btn btn-secondary">🏠 메인으로</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flash overlay -->
+  <div class="flash-overlay" id="flashOverlay"></div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn" id="soundBtn" onclick="window.toggleSound()">🔊 소리 ON</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-score">점수: <span id="scoreDisplay">0</span></div>
+      <div class="hud-time">스핀: <span id="spinDisplay">5</span>회 남음</div>
+    </div>
+    <div class="canvas-container">
+      <div class="wheel-pointer"></div>
+      <canvas id="gameCanvas" class="game-canvas" width="800" height="600"></canvas>
+      <div class="center-result" id="centerResult"></div>
+    </div>
+    <div class="spin-instruction" id="spinInstruction">클릭하거나 드래그하여 룰렛을 돌리세요!</div>
+  </div>
+
+  <script type="module">
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    // ── Systems ──
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+
+    // ── Canvas ──
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const CX = W / 2;
+    const CY = H / 2 + 10;
+    const WHEEL_R = 230;
+
+    // ── Segments ──
+    const SEGMENTS = [
+      { label: '100점',     value: 100,    type: 'score',  color: '#FF4444' },
+      { label: '200점',     value: 200,    type: 'score',  color: '#FF8C00' },
+      { label: '500점',     value: 500,    type: 'score',  color: '#FFDD00' },
+      { label: '1000점',    value: 1000,   type: 'score',  color: '#00CC66' },
+      { label: '점수2배',   value: 0,      type: 'double', color: '#3399FF' },
+      { label: '점수리셋',  value: 0,      type: 'reset',  color: '#AA44FF' },
+      { label: '보너스스핀', value: 0,     type: 'bonus',  color: '#FF69B4' },
+      { label: '🎉잭팟',    value: 5000,   type: 'jackpot',color: '#FFD700' },
+    ];
+    const SEG_COUNT = SEGMENTS.length;
+    const SEG_ANGLE = (Math.PI * 2) / SEG_COUNT;
+
+    // ── State ──
+    let gameStarted = false;
+    let score = 0;
+    let spinsLeft = 5;
+    let spinning = false;
+    let angle = 0;           // current wheel rotation
+    let angularVel = 0;      // rad/frame
+    let lastSegIndex = -1;   // for tick sound
+    let soundEnabled = true;
+    let showResult = false;
+    let resultTimer = 0;
+    let ledPhase = 0;
+
+    // Drag spin
+    let dragStart = null;
+    let dragAngleStart = 0;
+    let isDragging = false;
+    let dragVelocity = 0;
+    let lastDragAngle = 0;
+    let lastDragTime = 0;
+
+    // ── DOM Refs ──
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const spinDisplay = document.getElementById('spinDisplay');
+    const startOverlay = document.getElementById('startOverlay');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const resultScore = document.getElementById('resultScore');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultStats = document.getElementById('resultStats');
+    const centerResult = document.getElementById('centerResult');
+    const spinInstruction = document.getElementById('spinInstruction');
+    const flashOverlay = document.getElementById('flashOverlay');
+    const soundBtn = document.getElementById('soundBtn');
+
+    // ── Helpers ──
+    function updateHUD() {
+      scoreDisplay.textContent = score.toLocaleString();
+      spinDisplay.textContent = spinsLeft;
+    }
+
+    function getSegmentAtPointer() {
+      // Pointer is at top (angle 0 = top). Wheel rotates by `angle`.
+      // Normalize so we find which segment is at top.
+      let a = (-angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      return Math.floor(a / SEG_ANGLE) % SEG_COUNT;
+    }
+
+    function flash() {
+      flashOverlay.classList.add('active');
+      setTimeout(() => flashOverlay.classList.remove('active'), 120);
+    }
+
+    function showCenterText(text, color = '#FFD700') {
+      centerResult.textContent = text;
+      centerResult.style.color = color;
+      centerResult.classList.add('show');
+      setTimeout(() => centerResult.classList.remove('show'), 2000);
+    }
+
+    function playTick() {
+      if (!soundEnabled) return;
+      sound.init();
+      sound._tone(1200 + Math.random() * 300, 0.03, 'square', 0.15);
+    }
+
+    function playJackpot() {
+      if (!soundEnabled) return;
+      sound.playVictory();
+      setTimeout(() => sound.playExplosion(), 200);
+    }
+
+    // ── Spin logic ──
+    function startSpin(power) {
+      if (spinning || spinsLeft <= 0 || !gameStarted) return;
+      spinning = true;
+      spinsLeft--;
+      updateHUD();
+      spinInstruction.classList.add('hidden');
+      // min 3 full rotations + random
+      const minVel = 0.25;
+      const maxVel = 0.55;
+      angularVel = minVel + (maxVel - minVel) * Math.min(power, 1);
+      lastSegIndex = -1;
+      if (soundEnabled) sound.playClick();
+    }
+
+    // ── Apply segment result ──
+    function applyResult(seg) {
+      switch (seg.type) {
+        case 'score':
+          score += seg.value;
+          showCenterText(`+${seg.value}점!`, seg.color);
+          if (soundEnabled) sound.playCombo(seg.value / 200);
+          particles.emit(CX, CY, 15, {
+            colors: [seg.color, '#FFFFFF', '#FFD700'],
+            speed: 4, decay: 0.02
+          });
+          break;
+
+        case 'double':
+          if (score > 0) {
+            const old = score;
+            score *= 2;
+            showCenterText(`${old} → ${score}점!`, '#3399FF');
+            flash();
+            if (soundEnabled) sound.playCombo(3);
+            particles.emit(CX, CY, 25, {
+              colors: ['#3399FF', '#66BBFF', '#FFFFFF'],
+              speed: 5, decay: 0.018
+            });
+          } else {
+            showCenterText('점수 2배! (0점)', '#3399FF');
+            if (soundEnabled) sound.playPop();
+          }
+          break;
+
+        case 'reset':
+          score = 0;
+          showCenterText('점수 리셋!', '#FF3B3B');
+          shake.trigger(15, 0.6);
+          if (soundEnabled) sound.playExplosion();
+          // Dramatic 0 animation
+          const resetEl = document.createElement('div');
+          resetEl.className = 'reset-anim';
+          resetEl.textContent = '0';
+          document.body.appendChild(resetEl);
+          setTimeout(() => resetEl.remove(), 1300);
+          break;
+
+        case 'bonus':
+          spinsLeft++;
+          showCenterText('보너스 스핀 +1!', '#FF69B4');
+          if (soundEnabled) sound.playCombo(2);
+          particles.emit(CX, CY, 20, {
+            colors: ['#FF69B4', '#FF99CC', '#FFFFFF'],
+            speed: 4, decay: 0.02
+          });
+          break;
+
+        case 'jackpot':
+          score += seg.value;
+          showCenterText('🎉 잭팟! +5000점!', '#FFD700');
+          shake.trigger(20, 1.0);
+          playJackpot();
+          flash();
+          // Huge gold explosion
+          for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+              particles.emit(CX, CY, 30, {
+                colors: ['#FFD700', '#FFA500', '#FFEE88', '#FFFFFF'],
+                speed: 6 + i, decay: 0.012, size: 5 + Math.random() * 4,
+                shape: 'circle'
+              });
+            }, i * 100);
+          }
+          break;
+      }
+      updateHUD();
+
+      // Check game over
+      setTimeout(() => {
+        if (spinsLeft <= 0) {
+          endGame();
+        } else {
+          spinInstruction.classList.remove('hidden');
+        }
+      }, 1500);
+    }
+
+    // ── End game ──
+    function endGame() {
+      gameStarted = false;
+      scoreManager.addScore('lucky-roulette', score);
+      recordSystem.showSubmitFlow('lucky-roulette', score);
+      const best = scoreManager.getBest('lucky-roulette');
+
+      resultScore.textContent = `${score.toLocaleString()}점`;
+
+      let msg = '';
+      if (score >= 10000) msg = '대박! 행운의 여신이 함께했네요!';
+      else if (score >= 5000) msg = '훌륭해요! 운이 좋은 편이었어요!';
+      else if (score >= 2000) msg = '괜찮은 결과네요!';
+      else if (score >= 500) msg = '다음엔 더 잘 될 거예요!';
+      else msg = '이런... 다시 도전해보세요!';
+      resultMessage.textContent = msg;
+
+      resultStats.innerHTML = `
+        <div class="result-stat">
+          <div class="result-stat-value">${score.toLocaleString()}</div>
+          <div class="result-stat-label">최종 점수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value">${best.toLocaleString()}</div>
+          <div class="result-stat-label">최고 기록</div>
+        </div>
+      `;
+
+      resultOverlay.style.display = 'flex';
+      if (soundEnabled) {
+        if (score >= 5000) sound.playVictory();
+        else sound.playPop();
+      }
+    }
+
+    // ── Drawing ──
+    function drawWheel() {
+      ctx.save();
+      ctx.translate(CX, CY);
+      ctx.rotate(angle);
+
+      // Draw segments
+      for (let i = 0; i < SEG_COUNT; i++) {
+        const startA = i * SEG_ANGLE - Math.PI / 2;
+        const endA = startA + SEG_ANGLE;
+        const seg = SEGMENTS[i];
+
+        // Segment fill
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, WHEEL_R, startA, endA);
+        ctx.closePath();
+
+        // Gradient for depth
+        const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, WHEEL_R);
+        grad.addColorStop(0, lightenColor(seg.color, 30));
+        grad.addColorStop(1, seg.color);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Segment border
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label
+        ctx.save();
+        ctx.rotate(startA + SEG_ANGLE / 2);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Shadow for readability
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.font = 'bold 18px "Noto Sans KR", sans-serif';
+        ctx.fillText(seg.label, WHEEL_R * 0.62 + 1, 1);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 18px "Noto Sans KR", sans-serif';
+        ctx.fillText(seg.label, WHEEL_R * 0.62, 0);
+        ctx.restore();
+      }
+
+      // Center circle
+      ctx.beginPath();
+      ctx.arc(0, 0, 35, 0, Math.PI * 2);
+      const cGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, 35);
+      cGrad.addColorStop(0, '#FFD700');
+      cGrad.addColorStop(1, '#B8860B');
+      ctx.fillStyle = cGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Center text
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 14px "Noto Sans KR", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SPIN', 0, 0);
+
+      ctx.restore();
+    }
+
+    function drawLEDs() {
+      const ledCount = 24;
+      const ledR = WHEEL_R + 20;
+      ledPhase += 0.05;
+
+      for (let i = 0; i < ledCount; i++) {
+        const a = (i / ledCount) * Math.PI * 2 - Math.PI / 2;
+        const x = CX + Math.cos(a) * ledR;
+        const y = CY + Math.sin(a) * ledR;
+
+        // Alternate pattern with animation
+        const bright = spinning
+          ? Math.sin(ledPhase * 3 + i * 0.8) > 0
+          : Math.sin(ledPhase + i * 0.5) > 0;
+
+        const ledColors = ['#FF4444', '#FFD700', '#00CC66', '#3399FF'];
+        const color = ledColors[i % ledColors.length];
+
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+
+        if (bright) {
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 12;
+        } else {
+          ctx.fillStyle = darkenColor(color, 60);
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function drawOuterRing() {
+      ctx.beginPath();
+      ctx.arc(CX, CY, WHEEL_R + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(CX, CY, WHEEL_R + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Color utils
+    function lightenColor(hex, pct) {
+      const num = parseInt(hex.slice(1), 16);
+      const r = Math.min(255, (num >> 16) + pct);
+      const g = Math.min(255, ((num >> 8) & 0xFF) + pct);
+      const b = Math.min(255, (num & 0xFF) + pct);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function darkenColor(hex, pct) {
+      const num = parseInt(hex.slice(1), 16);
+      const r = Math.max(0, (num >> 16) - pct);
+      const g = Math.max(0, ((num >> 8) & 0xFF) - pct);
+      const b = Math.max(0, (num & 0xFF) - pct);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // ── Game loop ──
+    let lastTime = 0;
+
+    function gameLoop(timestamp) {
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+
+      // Clear
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.save();
+      shake.update(dt);
+      shake.apply(ctx);
+
+      // Background glow
+      const bgGrad = ctx.createRadialGradient(CX, CY, 50, CX, CY, 400);
+      bgGrad.addColorStop(0, 'rgba(30, 20, 60, 1)');
+      bgGrad.addColorStop(1, 'rgba(10, 10, 30, 1)');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(-20, -20, W + 40, H + 40);
+
+      // LEDs
+      drawLEDs();
+
+      // Outer ring
+      drawOuterRing();
+
+      // Wheel
+      drawWheel();
+
+      // Spinning physics
+      if (spinning) {
+        angle += angularVel;
+
+        // Deceleration (friction)
+        angularVel *= 0.988;
+
+        // Tick sound when passing segment boundary
+        const curSeg = getSegmentAtPointer();
+        if (curSeg !== lastSegIndex) {
+          lastSegIndex = curSeg;
+          playTick();
+        }
+
+        // Stop condition
+        if (angularVel < 0.002) {
+          angularVel = 0;
+          spinning = false;
+          const finalSeg = getSegmentAtPointer();
+          applyResult(SEGMENTS[finalSeg]);
+        }
+      }
+
+      // Particles
+      particles.update(dt);
+      particles.draw(ctx);
+
+      ctx.restore();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ── Input handling ──
+    function getAngleFromCenter(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const scaleY = H / rect.height;
+      const px = (x - rect.left) * scaleX;
+      const py = (y - rect.top) * scaleY;
+      return Math.atan2(py - CY, px - CX);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (spinning || !gameStarted || spinsLeft <= 0) return;
+      isDragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      lastDragAngle = getAngleFromCenter(e.clientX, e.clientY);
+      lastDragTime = performance.now();
+      dragVelocity = 0;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const curAngle = getAngleFromCenter(e.clientX, e.clientY);
+      const now = performance.now();
+      const timeDelta = (now - lastDragTime) / 1000;
+      if (timeDelta > 0) {
+        let diff = curAngle - lastDragAngle;
+        // Normalize
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        dragVelocity = diff / timeDelta;
+      }
+      lastDragAngle = curAngle;
+      lastDragTime = now;
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 10) {
+        // Simple click - random power
+        startSpin(0.4 + Math.random() * 0.6);
+      } else {
+        // Drag spin - use velocity
+        const power = Math.min(Math.abs(dragVelocity) / 15, 1);
+        if (power > 0.05) {
+          startSpin(power);
+        }
+      }
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (spinning || !gameStarted || spinsLeft <= 0) return;
+      const t = e.touches[0];
+      isDragging = true;
+      dragStart = { x: t.clientX, y: t.clientY };
+      lastDragAngle = getAngleFromCenter(t.clientX, t.clientY);
+      lastDragTime = performance.now();
+      dragVelocity = 0;
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!isDragging) return;
+      const t = e.touches[0];
+      const curAngle = getAngleFromCenter(t.clientX, t.clientY);
+      const now = performance.now();
+      const timeDelta = (now - lastDragTime) / 1000;
+      if (timeDelta > 0) {
+        let diff = curAngle - lastDragAngle;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        dragVelocity = diff / timeDelta;
+      }
+      lastDragAngle = curAngle;
+      lastDragTime = now;
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (!isDragging) return;
+      isDragging = false;
+
+      const t = e.changedTouches[0];
+      const dx = t.clientX - dragStart.x;
+      const dy = t.clientY - dragStart.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 10) {
+        startSpin(0.4 + Math.random() * 0.6);
+      } else {
+        const power = Math.min(Math.abs(dragVelocity) / 15, 1);
+        if (power > 0.05) {
+          startSpin(power);
+        }
+      }
+    }, { passive: false });
+
+    // ── Global functions ──
+    window.startGame = function() {
+      startOverlay.style.display = 'none';
+      resultOverlay.style.display = 'none';
+      gameStarted = true;
+      score = 0;
+      spinsLeft = 5;
+      angle = Math.random() * Math.PI * 2;
+      angularVel = 0;
+      spinning = false;
+      particles.clear();
+      updateHUD();
+      spinInstruction.classList.remove('hidden');
+      sound.init();
+      sound.resume();
+    };
+
+    window.restartGame = function() {
+      window.startGame();
+    };
+
+    window.toggleSound = function() {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? '🔊 소리 ON' : '🔇 소리 OFF';
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+      }
+    };
+
+    // ── Init ──
+    updateHUD();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

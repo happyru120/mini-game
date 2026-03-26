@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>분노의 타이핑 — Rage Type</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+      position: relative;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      line-height: 1.6;
+      max-width: 400px;
+    }
+    .start-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 120px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 40px rgba(255,59,59,0.5);
+      pointer-events: none;
+      animation: bounceIn 0.5s ease-out;
+    }
+
+    /* Typing area */
+    .typing-area {
+      position: relative;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .target-text-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+      width: 90%;
+    }
+    .target-text {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      min-height: 60px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+    .target-text .char {
+      display: inline-block;
+      transition: transform 0.1s, color 0.1s;
+    }
+    .target-text .char.typed {
+      color: var(--success-green);
+      text-shadow: 0 0 15px rgba(0,200,83,0.5);
+      transform: scale(1.15);
+    }
+    .target-text .char.current {
+      color: var(--relief-yellow);
+      text-shadow: 0 0 20px rgba(255,215,0,0.6);
+      animation: pulseChar 0.8s ease-in-out infinite;
+    }
+    .target-text .char.untyped {
+      color: rgba(255,255,255,0.4);
+    }
+    .target-text .char.wrong {
+      color: var(--rage-red);
+      animation: shake 0.3s ease-in-out;
+    }
+    @keyframes pulseChar {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    .typing-hint {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    .mobile-input {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      width: 80%;
+      max-width: 400px;
+      padding: 14px 20px;
+      font-size: 18px;
+      font-family: inherit;
+      font-weight: 700;
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      color: var(--white-pop);
+      text-align: center;
+      outline: none;
+      display: none;
+    }
+    .mobile-input:focus {
+      border-color: var(--rage-red);
+      box-shadow: 0 0 20px rgba(255,59,59,0.3);
+    }
+    .mobile-input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* WPM / Combo bar */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      padding: 8px 0;
+      margin-bottom: 4px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--energy-orange);
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .combo-fire {
+      color: var(--rage-red) !important;
+      animation: pulseChar 0.5s ease-in-out infinite;
+    }
+
+    /* Free mode indicator */
+    .free-mode-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #7C4DFF, #FF3B3B);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 30;
+      display: none;
+      animation: bounceIn 0.4s ease-out;
+    }
+
+    /* Encouragement text */
+    .encouragement {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 50;
+      animation: bounceIn 0.4s ease-out forwards;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    /* Canvas container */
+    .canvas-container {
+      position: relative;
+    }
+
+    @media (max-width: 600px) {
+      .target-text { font-size: 28px; }
+      .mobile-input { display: block; }
+      .stats-bar { gap: 12px; }
+      .stat-value { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+    <div class="start-overlay" id="startScreen">
+    <div style="font-size:64px;">⌨️💥</div>
+    <h2 style="font-size:28px; font-weight:900;">🔥 분노의 타이핑</h2>
+    <p style="font-size:18px; font-weight:700; color:#FF8C00; margin:0 0 8px;">키보드를 마구 두들겨!</p>
+    <p>아무 글자나 막 쳐도 OK!<br>빠를수록, 많이 칠수록 점수 UP! 💥<br><span style="font-size:13px; color:var(--text-secondary);">30초 타이머</span></p>
+    <div class="start-buttons">
+      <button class="btn btn-primary" onclick="startGame(true)" style="font-size:22px; padding:20px 56px;">
+        💥 두들기기 시작!
+      </button>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn">&larr; &#xB3CC;&#xC544;&#xAC00;&#xAE30;</a>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#x1F50A; &#xC0AC;&#xC6B4;&#xB4DC; ON</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-score">&#x1F525; <span id="score">0</span></div>
+      <div class="hud-combo" id="comboDisplay"></div>
+      <div class="hud-time">&#x23F1;&#xFE0F; <span id="timer">30</span></div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value" id="wpmDisplay">0</div>
+        <div class="stat-label">WPM</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="accuracyDisplay">100%</div>
+        <div class="stat-label">연타수</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="comboValue">0</div>
+        <div class="stat-label">&#xCF64;&#xBCF4;</div>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <canvas class="game-canvas" id="gameCanvas" width="800" height="600"></canvas>
+      <div class="target-text-container" id="targetContainer">
+        <div class="target-text" id="targetText"></div>
+        <div class="typing-hint" id="typingHint">&#xD0A4;&#xBCF4;&#xB4DC;&#xB85C; &#xC785;&#xB825;&#xD558;&#xC138;&#xC694;</div>
+      </div>
+      <div class="free-mode-badge" id="freeModeBadge">&#x1F4A5; &#xC790;&#xC720; &#xBAA8;&#xB4DC;</div>
+      <input type="text" class="mobile-input" id="mobileInput" placeholder="&#xC5EC;&#xAE30;&#xC5D0; &#xD0C0;&#xC774;&#xD551;&#xD558;&#xC138;&#xC694;..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultScreen" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:48px; margin-bottom:8px;">&#x2328;&#xFE0F;&#x1F4A5;</div>
+      <div style="font-size:16px; color:var(--text-secondary);">&#xBD84;&#xB178; &#xD0C0;&#xC774;&#xD551; &#xC810;&#xC218;</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="statWPM">0</div>
+          <div class="result-stat-label">총 타수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statAccuracy">0%</div>
+          <div class="result-stat-label">초당 타수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statCombo">0</div>
+          <div class="result-stat-label">최고 콤보</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statWords">0</div>
+          <div class="result-stat-label">분당 타수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statBest">0</div>
+          <div class="result-stat-label">&#xC5ED;&#xB300; &#xCD5C;&#xACE0;</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">&#x1F525; &#xB2E4;&#xC2DC; &#xD558;&#xAE30;</button>
+        <a href="../../index.html" class="btn btn-secondary">&#x1F3E0; &#xB2E4;&#xB978; &#xAC8C;&#xC784;</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { InputManager } from '../../shared/engine/InputManager.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+    const input = new InputManager(canvas);
+
+    // ---- Korean angry texts ----
+    const angryTexts = [
+      '열받아!',
+      '왜 나한테 이래!',
+      '퇴직하고 싶다',
+      '아 진짜!',
+      '야근하기 싫다',
+      '그 회의는 왜 한 거야',
+      '왜 틀렸어 나',
+      '공부 싫다',
+      '아!!!!',
+      '왜!!!!',
+      '진짜!!!!',
+      '미치겠다',
+      '어이없어',
+      '하기 싫어',
+      '답답해',
+      '짜증나',
+      '왜 이러는 건데',
+      '집에 가고 싶다',
+      '오늘도 야근이야?',
+      '월요일 싫다',
+    ];
+
+    // ---- Game State ----
+    let gameRunning = false;
+    let freeMode = false;
+    let soundEnabled = true;
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let wordsCompleted = 0;
+    let totalCorrectChars = 0;
+    let totalTypedChars = 0;
+    let timeLeft = 30;
+    let timerInterval = null;
+    let currentText = '';
+    let typedIndex = 0;
+    let scorePopups = [];
+    let popFlash = 0;
+    let wrongFlash = 0;
+    let gameStartTime = 0;
+    let lastCharTime = 0;
+    let charExplosions = []; // floating completed chars
+
+    const encourageMessages = [
+      { threshold: 3, text: '좋아! 계속!', color: '#FFD700' },
+      { threshold: 7, text: '미쳤어! 빨라!', color: '#FF8C00' },
+      { threshold: 12, text: '타자의 신!', color: '#FF3B3B' },
+      { threshold: 20, text: '전설의 타이피스트!!', color: '#FFD700' },
+    ];
+
+    // ---- Pick next text ----
+    let lastTextIndex = -1;
+    function pickNextText() {
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * angryTexts.length);
+      } while (idx === lastTextIndex && angryTexts.length > 1);
+      lastTextIndex = idx;
+      currentText = angryTexts[idx];
+      typedIndex = 0;
+      renderTargetText();
+    }
+
+    // ---- Render target text with character spans ----
+    function renderTargetText() {
+      const container = document.getElementById('targetText');
+      if (freeMode) {
+        container.innerHTML = '<span style="color:var(--text-secondary); font-size:24px;">아무 키나 눌러서 폭발시켜!</span>';
+        return;
+      }
+      let html = '';
+      for (let i = 0; i < currentText.length; i++) {
+        let cls = 'untyped';
+        if (i < typedIndex) cls = 'typed';
+        else if (i === typedIndex) cls = 'current';
+        const ch = currentText[i] === ' ' ? '&nbsp;' : currentText[i];
+        html += `<span class="char ${cls}" data-idx="${i}">${ch}</span>`;
+      }
+      container.innerHTML = html;
+    }
+
+    // ---- Calculate WPM ----
+    function getWPM() {
+      if (!gameStartTime) return 0;
+      const elapsed = (Date.now() - gameStartTime) / 1000 / 60; // minutes
+      if (elapsed < 0.01) return 0;
+      // WPM based on correct characters (5 chars = 1 word)
+      return Math.round((totalCorrectChars / 5) / elapsed);
+    }
+
+    function getAccuracy() {
+      if (totalTypedChars === 0) return 100;
+      return Math.round((totalCorrectChars / totalTypedChars) * 100);
+    }
+
+    // ---- Update HUD ----
+    function updateHUD() {
+      document.getElementById('score').textContent = score.toLocaleString();
+      document.getElementById('wpmDisplay').textContent = getWPM();
+      document.getElementById('accuracyDisplay').textContent = freeMode ? totalTypedChars : (getAccuracy() + '%');
+      document.getElementById('comboValue').textContent = combo;
+      const comboEl = document.getElementById('comboValue');
+      if (combo >= 5) {
+        comboEl.classList.add('combo-fire');
+      } else {
+        comboEl.classList.remove('combo-fire');
+      }
+      const hudCombo = document.getElementById('comboDisplay');
+      if (combo >= 2) {
+        hudCombo.textContent = `${combo}x 콤보!`;
+        hudCombo.classList.add('active');
+      } else {
+        hudCombo.textContent = '';
+        hudCombo.classList.remove('active');
+      }
+    }
+
+    // ---- Explode a character position ----
+    function explodeChar(charIndex) {
+      const container = document.getElementById('targetText');
+      const charEl = container.querySelector(`[data-idx="${charIndex}"]`);
+      if (!charEl) return;
+
+      const rect = charEl.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+
+      const cx = (rect.left + rect.width / 2 - canvasRect.left) * scaleX;
+      const cy = (rect.top + rect.height / 2 - canvasRect.top) * scaleY;
+
+      // Small burst per character
+      const colors = ['#00C853', '#FFD700', '#FFFFFF', '#76FF03'];
+      particles.emit(cx, cy, 6, {
+        colors,
+        speed: 2 + Math.random() * 2,
+        gravity: 0.08,
+        size: 2 + Math.random() * 3,
+        shape: Math.random() > 0.5 ? 'circle' : 'rect',
+        decay: 0.03,
+      });
+
+      // Floating char effect
+      charExplosions.push({
+        char: currentText[charIndex],
+        x: cx,
+        y: cy,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -2 - Math.random() * 3,
+        life: 1,
+        size: 28 + Math.random() * 10,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: (Math.random() - 0.5) * 0.5,
+      });
+    }
+
+    // ---- Explode entire word completion ----
+    function explodeWord() {
+      const canvasRect = canvas.getBoundingClientRect();
+      const containerRect = document.getElementById('targetContainer').getBoundingClientRect();
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+
+      const cx = (containerRect.left + containerRect.width / 2 - canvasRect.left) * scaleX;
+      const cy = (containerRect.top + containerRect.height / 2 - canvasRect.top) * scaleY;
+
+      // Big explosion
+      const burstColors = ['#FF3B3B', '#FF8C00', '#FFD700', '#FF6B6B', '#FFFFFF'];
+      particles.emit(cx, cy, 40 + combo * 5, {
+        colors: burstColors,
+        speed: 5 + combo * 0.5,
+        gravity: 0.15,
+        size: 4 + Math.random() * 6,
+        shape: 'rect',
+      });
+      // Sparkle ring
+      for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        particles.emit(cx + Math.cos(angle) * 60, cy + Math.sin(angle) * 60, 3, {
+          colors: ['#FFFFFF', '#FFD700'],
+          speed: 1.5,
+          gravity: 0.02,
+          size: 2,
+          shape: 'circle',
+          decay: 0.025,
+          angle,
+        });
+      }
+
+      shake.trigger(8 + Math.min(combo, 10) * 1.5, 0.35);
+      popFlash = 1;
+
+      if (soundEnabled) {
+        sound.playExplosion();
+        if (combo >= 3) sound.playCombo(Math.min(combo, 10));
+      }
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+
+    // ---- Free mode: smash any key ----
+    function freeExplosion(key) {
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      totalTypedChars++;
+
+      // Explosion position: center-ish with randomness
+      const cx = 180 + Math.random() * 440;
+      const cy = 120 + Math.random() * 340;
+
+      // Color escalates with combo
+      const palettes = [
+        ['#FF3B3B', '#FF8C00', '#FFD700', '#FFFFFF'],
+        ['#7C4DFF', '#B388FF', '#E040FB', '#FFFFFF'],
+        ['#FF3B3B', '#FF1744', '#D50000', '#FFD600'],
+        ['#00C853', '#69F0AE', '#FFD700', '#FFFFFF'],
+        ['#FF3B3B', '#FF8C00', '#FF6B6B', '#FFFFFF'],
+      ];
+      const paletteIdx = Math.min(Math.floor(combo / 10), palettes.length - 1);
+      const colors = palettes[paletteIdx];
+
+      const particleCount = Math.min(15 + combo * 2, 60);
+      particles.emit(cx, cy, particleCount, {
+        colors,
+        speed: 3 + Math.min(combo * 0.2, 6),
+        gravity: 0.08 + Math.random() * 0.12,
+        size: 3 + Math.random() * 6,
+        shape: Math.random() > 0.5 ? 'circle' : 'rect',
+      });
+
+      shake.trigger(2 + Math.min(combo * 0.3, 10), 0.15);
+      popFlash = 0.5 + Math.min(combo * 0.02, 0.5);
+
+      // Show the ACTUAL typed character flying up
+      const displayChar = key && key.length === 1 ? key : '★';
+      charExplosions.push({
+        char: displayChar,
+        x: cx,
+        y: cy,
+        vx: (Math.random() - 0.5) * 6,
+        vy: -4 - Math.random() * 5,
+        life: 1,
+        size: 28 + Math.min(combo, 20) * 1.5,
+        color: colors[0],
+        rotation: (Math.random() - 0.5) * 0.5,
+      });
+
+      // Score: 50 base + combo bonus
+      const pts = 50 + Math.floor(combo * 5);
+      score += pts;
+
+      // Score popup
+      scorePopups.push({
+        x: cx,
+        y: cy - 30,
+        text: `+${pts}`,
+        life: 0.8,
+        big: combo >= 10,
+      });
+
+      updateHUD();
+
+      if (soundEnabled) {
+        if (combo % 20 === 0 && combo > 0) {
+          sound.playExplosion();
+          sound.playCombo(Math.min(Math.floor(combo / 10), 10));
+        } else if (combo % 5 === 0) {
+          sound.playCombo(1);
+        } else {
+          const sounds = ['playPop', 'playHit', 'playBreak'];
+          sound[sounds[Math.floor(Math.random() * sounds.length)]]();
+        }
+      }
+      lastKeyTime = Date.now();
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    // ---- Keyboard Input ----
+    function handleKeyInput(key) {
+      if (!gameRunning) return;
+      sound.resume();
+
+      if (freeMode) {
+        freeExplosion(key);
+        return;
+      }
+
+      if (!currentText) return;
+
+      totalTypedChars++;
+
+      const expected = currentText[typedIndex];
+      if (key === expected) {
+        // Correct!
+        totalCorrectChars++;
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+
+        explodeChar(typedIndex);
+        if (soundEnabled) {
+          sound.playClick();
+          if (combo > 0 && combo % 5 === 0) sound.playCombo(Math.min(combo, 10));
+        }
+
+        // Small shake per char
+        shake.trigger(2 + Math.min(combo, 10) * 0.3, 0.1);
+
+        typedIndex++;
+        lastCharTime = Date.now();
+
+        // Points per character
+        const charPoints = Math.round(10 * (1 + combo * 0.1));
+        score += charPoints;
+
+        // Score popup (only every few chars to avoid clutter)
+        if (typedIndex % 3 === 0 || typedIndex === currentText.length) {
+          const canvasRect = canvas.getBoundingClientRect();
+          const containerRect = document.getElementById('targetContainer').getBoundingClientRect();
+          const scaleX = canvas.width / canvasRect.width;
+          const scaleY = canvas.height / canvasRect.height;
+          const px = (containerRect.left + Math.random() * containerRect.width - canvasRect.left) * scaleX;
+          const py = (containerRect.top - canvasRect.top) * scaleY - 20;
+          scorePopups.push({ x: px, y: py, text: `+${charPoints}`, life: 1, big: combo >= 5 });
+        }
+
+        if (typedIndex >= currentText.length) {
+          // Word completed!
+          wordsCompleted++;
+          explodeWord();
+
+          // Bonus points for completing word
+          const wordBonus = Math.round(50 * (1 + combo * 0.2));
+          score += wordBonus;
+          scorePopups.push({
+            x: 400,
+            y: 250,
+            text: `+${wordBonus} 완성!`,
+            life: 1.5,
+            big: true,
+          });
+
+          // Check encouragement
+          const msg = encourageMessages.findLast(m => wordsCompleted === m.threshold);
+          if (msg) showEncouragement(msg.text, msg.color);
+
+          // Pick next after short delay
+          setTimeout(() => {
+            if (gameRunning) {
+              pickNextText();
+            }
+          }, 400);
+          currentText = '';
+        } else {
+          renderTargetText();
+        }
+
+        updateHUD();
+      } else {
+        // Wrong key
+        totalTypedChars++; // extra penalty
+        combo = 0;
+        wrongFlash = 1;
+
+        // Mark current char as wrong briefly
+        const charEl = document.getElementById('targetText').querySelector(`[data-idx="${typedIndex}"]`);
+        if (charEl) {
+          charEl.classList.add('wrong');
+          setTimeout(() => charEl.classList.remove('wrong'), 300);
+        }
+
+        // Small red particles
+        const canvasRect = canvas.getBoundingClientRect();
+        const containerRect = document.getElementById('targetContainer').getBoundingClientRect();
+        const scaleX = canvas.width / canvasRect.width;
+        const scaleY = canvas.height / canvasRect.height;
+        const px = (containerRect.left + containerRect.width / 2 - canvasRect.left) * scaleX;
+        const py = (containerRect.top + containerRect.height / 2 - canvasRect.top) * scaleY;
+        particles.emit(px, py, 5, {
+          colors: ['#FF3B3B', '#880000'],
+          speed: 1.5,
+          gravity: 0.1,
+          size: 2,
+          shape: 'rect',
+          decay: 0.04,
+        });
+
+        if (soundEnabled) sound.playHit();
+        shake.trigger(3, 0.15);
+
+        updateHUD();
+      }
+    }
+
+    // Desktop keyboard
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) return;
+      // Ignore modifier-only keys, tab, etc.
+      if (e.key.length > 1 && !['Backspace', 'Enter'].includes(e.key)) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      e.preventDefault();
+
+      if (e.key === 'Backspace' || e.key === 'Enter') return;
+
+      handleKeyInput(e.key);
+    });
+
+    // Mobile input
+    const mobileInput = document.getElementById('mobileInput');
+    let lastMobileValue = '';
+    mobileInput.addEventListener('input', (e) => {
+      if (!gameRunning) return;
+      const val = e.target.value;
+      if (val.length > lastMobileValue.length) {
+        // New character typed
+        const newChar = val[val.length - 1];
+        handleKeyInput(newChar);
+      }
+      lastMobileValue = val;
+      // Keep input short to avoid issues
+      if (val.length > 20) {
+        mobileInput.value = val.slice(-5);
+        lastMobileValue = mobileInput.value;
+      }
+    });
+
+    // ---- Show encouragement ----
+    function showEncouragement(text, color) {
+      const el = document.createElement('div');
+      el.className = 'encouragement';
+      el.textContent = text;
+      el.style.color = color;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }
+
+    // ---- Game Loop ----
+    const loop = new GameLoop({
+      update(dt) {
+        particles.update(dt);
+        shake.update(dt);
+
+        if (popFlash > 0) popFlash -= dt * 4;
+        if (wrongFlash > 0) wrongFlash -= dt * 5;
+
+        // Char explosions (floating text)
+        for (let i = charExplosions.length - 1; i >= 0; i--) {
+          const ce = charExplosions[i];
+          ce.x += ce.vx;
+          ce.y += ce.vy;
+          ce.vy += 0.08;
+          ce.life -= dt * 1.2;
+          ce.rotation += dt * ce.vx * 0.1;
+          if (ce.life <= 0) charExplosions.splice(i, 1);
+        }
+
+        // Score popups
+        scorePopups.forEach(p => { p.life -= dt * 1.5; p.y -= 35 * dt; });
+        scorePopups = scorePopups.filter(p => p.life > 0);
+      },
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        shake.apply(ctx);
+
+        // Background gradient
+        const rageAmount = Math.min(30, combo * 3);
+        const bg = ctx.createRadialGradient(400, 300, 0, 400, 300, 500);
+        bg.addColorStop(0, `rgb(${15 + rageAmount}, ${10}, ${35 + rageAmount * 0.5})`);
+        bg.addColorStop(1, '#0A0A15');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+        // Pop flash (white)
+        if (popFlash > 0) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${popFlash * 0.2})`;
+          ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+        }
+        // Wrong flash (red)
+        if (wrongFlash > 0) {
+          ctx.fillStyle = `rgba(255, 0, 0, ${wrongFlash * 0.1})`;
+          ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+        }
+
+        // Rage pulse rings when combo is high
+        if (combo >= 5) {
+          const pulse = Math.sin(performance.now() * 0.004) * 0.5 + 0.5;
+          ctx.strokeStyle = `rgba(255, 59, 59, ${pulse * 0.12})`;
+          ctx.lineWidth = 2;
+          for (let r = 80; r < 500; r += 70) {
+            ctx.beginPath();
+            ctx.arc(400, 300, r, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        // Particles
+        particles.draw(ctx);
+
+        // Floating char explosions
+        for (const ce of charExplosions) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ce.life);
+          ctx.translate(ce.x, ce.y);
+          ctx.rotate(ce.rotation);
+          ctx.fillStyle = ce.color;
+          ctx.font = `900 ${ce.size}px "Noto Sans KR", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(ce.char, 0, 0);
+          ctx.restore();
+        }
+
+        // Score popups
+        scorePopups.forEach(p => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.big ? '#FF3B3B' : '#FFD700';
+          ctx.font = `${p.big ? '900' : '700'} ${p.big ? 28 : 20}px "Noto Sans KR", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
+          ctx.restore();
+        });
+
+        ctx.restore();
+      }
+    });
+
+    // ---- Timer ----
+    let lastKeyTime = 0;
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 10) {
+          document.getElementById('timer').style.color = 'var(--rage-red)';
+        }
+        // Free mode: decay combo if no key for 2s
+        if (freeMode && Date.now() - lastKeyTime > 2000 && combo > 0) {
+          combo = Math.max(0, combo - 5);
+          updateHUD();
+        }
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    // ---- End Game ----
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+
+      const wpm = getWPM();
+      const accuracy = getAccuracy();
+
+      // Free mode: no accuracy penalty (any key counts)
+      const accuracyBonus = freeMode ? 1 : (accuracy / 100);
+      const finalScore = Math.round(score * accuracyBonus);
+
+      if (soundEnabled) sound.playVictory();
+      scoreManager.addScore('rage-type', finalScore);
+      recordSystem.showSubmitFlow('rage-type', finalScore);
+
+      document.getElementById('finalScore').textContent = finalScore.toLocaleString();
+      document.getElementById('resultMessage').textContent = getResultMessage(finalScore, wpm);
+      if (freeMode) {
+        document.getElementById('statWPM').textContent = totalTypedChars;
+        document.getElementById('statAccuracy').textContent = Math.round(totalTypedChars / 30 * 10) / 10 + '/s';
+        document.getElementById('statCombo').textContent = maxCombo + 'x';
+        document.getElementById('statWords').textContent = Math.round(totalTypedChars / 30 * 60);
+      } else {
+        document.getElementById('statWPM').textContent = wpm;
+        document.getElementById('statAccuracy').textContent = accuracy + '%';
+        document.getElementById('statCombo').textContent = maxCombo + 'x';
+        document.getElementById('statWords').textContent = wordsCompleted;
+      }
+      document.getElementById('statBest').textContent = scoreManager.getBest('rage-type').toLocaleString();
+      document.getElementById('resultScreen').style.display = 'flex';
+    }
+
+    function getResultMessage(score, wpm) {
+      if (freeMode) {
+        const kps = Math.round(totalTypedChars / 90);
+        if (kps >= 10) return '🔥 키보드가 녹을 것 같아... 분노 완전 해소!';
+        if (kps >= 6) return '💥 엄청난 분노! 시원하게 풀렸죠?';
+        if (kps >= 3) return '😤 꽤 열 받으셨군요. 그래도 풀었어요!';
+        return '🌱 조금 쳤지만 좋아요. 다음엔 더 세게!';
+      }
+      if (wpm >= 80) return '미친 속도! 키보드가 불쌍해...';
+      if (wpm >= 50) return '꽤 빠르다! 분노를 잘 풀었어!';
+      if (score >= 5000) return '스트레스가 좀 풀렸나요?';
+      if (wordsCompleted >= 10) return '많이 쳤네! 시원하죠?';
+      return '천천히 해도 괜찮아요. 다시 해볼까요?';
+    }
+
+    // ---- Start Game ----
+    window._showLeaderboard = () => recordSystem.showLeaderboard('rage-type');
+    window.startGame = function(isFreeMode = false) {
+      freeMode = isFreeMode === true;
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('freeModeBadge').style.display = freeMode ? 'block' : 'none';
+
+      sound.init();
+      sound.resume();
+      if (soundEnabled) sound.playClick();
+
+      let count = 3;
+      const cdEl = document.createElement('div');
+      cdEl.className = 'countdown';
+      cdEl.textContent = count;
+      document.body.appendChild(cdEl);
+
+      const cdInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          cdEl.textContent = count;
+          cdEl.style.animation = 'none';
+          cdEl.offsetHeight; // reflow
+          cdEl.style.animation = 'bounceIn 0.5s ease-out';
+          if (soundEnabled) sound.playClick();
+        } else {
+          cdEl.textContent = '타이핑!';
+          cdEl.style.color = 'var(--relief-yellow)';
+          cdEl.style.fontSize = '72px';
+          if (soundEnabled) sound.playExplosion();
+          setTimeout(() => {
+            cdEl.remove();
+            gameRunning = true;
+            gameStartTime = Date.now();
+            if (!freeMode) {
+              pickNextText();
+            } else {
+              renderTargetText();
+            }
+            startTimer();
+            // Focus mobile input
+            if (window.innerWidth <= 600) {
+              mobileInput.style.display = 'block';
+              mobileInput.focus();
+            }
+          }, 600);
+          clearInterval(cdInterval);
+        }
+      }, 800);
+
+      loop.start();
+    };
+
+    // ---- Restart ----
+    window.restartGame = function() {
+      document.getElementById('resultScreen').style.display = 'none';
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      wordsCompleted = 0;
+      totalCorrectChars = 0;
+      totalTypedChars = 0;
+      timeLeft = 90;
+      currentText = '';
+      typedIndex = 0;
+      scorePopups = [];
+      charExplosions = [];
+      popFlash = 0;
+      wrongFlash = 0;
+      particles.clear();
+      document.getElementById('timer').textContent = '90';
+      document.getElementById('timer').style.color = '';
+      document.getElementById('targetText').innerHTML = '';
+      mobileInput.value = '';
+      lastMobileValue = '';
+      updateHUD();
+
+      gameRunning = true;
+      gameStartTime = Date.now();
+      if (!freeMode) {
+        pickNextText();
+      } else {
+        renderTargetText();
+      }
+      startTimer();
+
+      if (window.innerWidth <= 600) {
+        mobileInput.style.display = 'block';
+        mobileInput.focus();
+      }
+    };
+
+    // ---- Toggle Sound ----
+    window.toggleSound = function() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundBtn').textContent = soundEnabled ? '\uD83D\uDD0A 사운드 ON' : '\uD83D\uDD07 사운드 OFF';
+    };
+
+    // ---- Resize ----
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const maxW = Math.min(container.clientWidth - 20, 800);
+      const ratio = maxW / 800;
+      canvas.style.width = `${800 * ratio}px`;
+      canvas.style.height = `${600 * ratio}px`;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Show mobile input if on small screen
+    if (window.innerWidth <= 600) {
+      mobileInput.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

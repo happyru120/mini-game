@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🔴 스트레스볼 연타! — Stress Ball Smash</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .rage-meter {
+      width: 100%;
+      max-width: 760px;
+      height: 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      margin: 0 auto 8px;
+      overflow: hidden;
+    }
+    .rage-meter-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.15s;
+      background: linear-gradient(90deg, var(--energy-orange), var(--rage-red));
+    }
+    .rage-meter-label {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .encouragement {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 50;
+      animation: bounceIn 0.4s ease-out forwards;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 120px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 40px rgba(255,59,59,0.5);
+      pointer-events: none;
+      animation: bounceIn 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startScreen">
+    <div style="font-size:64px;">🔴</div>
+    <h2 style="font-size:28px; font-weight:900;">스트레스볼 연타!</h2>
+    <p>스트레스볼이 나타나면 클릭/터치해서 터뜨려!<br>30초 안에 최대한 많이 터뜨려! 빠를수록 콤보 UP!</p>
+    <button class="btn btn-primary" onclick="startGame()" style="font-size:20px; padding:18px 48px;">
+      🔥 시작하기
+    </button>
+  </div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊 사운드 ON</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-score">🔥 <span id="score">0</span></div>
+      <div class="hud-combo" id="comboDisplay"></div>
+      <div class="hud-time">⏱️ <span id="timer">30</span></div>
+    </div>
+    <div class="rage-meter-label">분노 게이지 <span id="ragePct">0</span>%</div>
+    <div class="rage-meter"><div class="rage-meter-fill" id="rageFill" style="width:0%"></div></div>
+    <canvas class="game-canvas" id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultScreen" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:48px; margin-bottom:8px;">🔴💥</div>
+      <div style="font-size:16px; color:var(--text-secondary);">연타 카타르시스 지수</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="statPops">0</div>
+          <div class="result-stat-label">터뜨린 수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statCombo">0</div>
+          <div class="result-stat-label">최고 콤보</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statCPS">0</div>
+          <div class="result-stat-label">초당 클릭</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statBest">0</div>
+          <div class="result-stat-label">역대 최고</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">🔥 다시 하기</button>
+        <a href="../../index.html" class="btn btn-secondary">🏠 다른 게임</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { InputManager } from '../../shared/engine/InputManager.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+    const input = new InputManager(canvas);
+
+    let ball = null;
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let totalPops = 0;
+    let gameRunning = false;
+    let soundEnabled = true;
+    let scorePopups = [];
+    let lastClickTime = 0;
+    let rageLevel = 0;
+    let timeLeft = 30;
+    let timerInterval = null;
+    let ballAppearAnim = 0; // 0-1 for pop-in animation
+    let ballSquish = 0;
+    let popFlash = 0; // screen flash on pop
+    let clickTimes = [];
+
+    const ballColors = [
+      { base: '#FF3B3B', light: '#FF6B6B', dark: '#CC0000', scoreMul: 1 },
+      { base: '#FF8C00', light: '#FFB347', dark: '#CC7000', scoreMul: 1.2 },
+      { base: '#FFD700', light: '#FFE44D', dark: '#CCB000', scoreMul: 2 },
+      { base: '#00C853', light: '#69F0AE', dark: '#009624', scoreMul: 1.5 },
+      { base: '#7C4DFF', light: '#B388FF', dark: '#651FFF', scoreMul: 3 },
+    ];
+
+    const encourageMessages = [
+      { threshold: 5, text: '좋아! 계속!', color: '#FFD700' },
+      { threshold: 10, text: '더 빠르게!', color: '#FF8C00' },
+      { threshold: 20, text: '미쳤어! 🔥', color: '#FF3B3B' },
+      { threshold: 30, text: '역대급 연타!!', color: '#FF3B3B' },
+      { threshold: 50, text: '🔥🔥 전설 🔥🔥', color: '#FFD700' },
+    ];
+
+    function spawnBall() {
+      // Random position within center area
+      const x = 200 + Math.random() * 400;
+      const y = 150 + Math.random() * 300;
+      // Random color (rare colors less frequent)
+      const r = Math.random();
+      const colorIdx = r < 0.03 ? 4 : r < 0.1 ? 3 : r < 0.2 ? 2 : r < 0.6 ? 1 : 0;
+      const c = ballColors[colorIdx];
+
+      ball = {
+        x, y,
+        radius: 65 + Math.random() * 15,
+        ...c,
+        pulse: 0,
+      };
+      ballAppearAnim = 0;
+      ballSquish = 0;
+    }
+
+    function drawBall(ctx) {
+      if (!ball) return;
+
+      const scale = Math.min(1, ballAppearAnim * 1.2);
+      const bounceScale = scale > 1 ? 1 : scale;
+      const squishX = 1 + ballSquish * 0.35;
+      const squishY = 1 - ballSquish * 0.25;
+      const r = ball.radius;
+      const bobY = Math.sin(ball.pulse) * 5;
+
+      ctx.save();
+      ctx.translate(ball.x, ball.y + bobY);
+      ctx.scale(bounceScale * squishX, bounceScale * squishY);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(5, r * 0.2, r * 0.75, r * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main ball
+      const grad = ctx.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r);
+      grad.addColorStop(0, ball.light);
+      grad.addColorStop(0.5, ball.base);
+      grad.addColorStop(1, ball.dark);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.22, -r * 0.32, r * 0.32, r * 0.18, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Score multiplier badge
+      if (ball.scoreMul > 1) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.font = `bold ${Math.round(r * 0.28)}px "Noto Sans KR", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`×${ball.scoreMul}`, 0, 0);
+      }
+
+      // "터뜨려!" text underneath
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '600 14px "Noto Sans KR", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('터뜨려!', 0, r + 20);
+
+      ctx.restore();
+    }
+
+    function popBall(px, py) {
+      if (!ball) return;
+
+      const now = performance.now();
+      const timeSinceLast = now - lastClickTime;
+      lastClickTime = now;
+      clickTimes.push(now);
+      clickTimes = clickTimes.filter(t => now - t < 3000);
+
+      // Combo
+      if (timeSinceLast < 600) {
+        combo++;
+      } else {
+        combo = 1;
+      }
+      if (combo > maxCombo) maxCombo = combo;
+
+      totalPops++;
+      const comboMul = Math.min(combo, 10);
+      const points = Math.round(10 * ball.scoreMul * comboMul);
+      score += points;
+
+      // Rage meter - fills fast with combos
+      rageLevel = Math.min(100, rageLevel + 8 + comboMul * 2);
+      updateRageMeter();
+
+      // Burst particles
+      const burstColors = [ball.light, ball.base, ball.dark, '#FFD700', '#FFFFFF'];
+      particles.emit(ball.x, ball.y, 30 + comboMul * 5, {
+        colors: burstColors,
+        speed: 4 + comboMul * 0.8,
+        gravity: 0.2,
+        size: 4 + Math.random() * 5,
+        shape: 'circle',
+      });
+
+      // Extra sparks
+      particles.emit(ball.x, ball.y, 10, {
+        colors: ['#FFFFFF', '#FFD700'],
+        speed: 2,
+        gravity: 0.05,
+        size: 1.5,
+        shape: 'circle',
+        decay: 0.04,
+      });
+
+      shake.trigger(5 + comboMul * 1.2, 0.25);
+      popFlash = 1;
+
+      // Sound
+      if (soundEnabled) {
+        sound.playPop();
+        if (combo >= 3) sound.playCombo(combo);
+        if (combo >= 10 && combo % 10 === 0) sound.playExplosion();
+      }
+
+      // Haptic
+      if (navigator.vibrate) navigator.vibrate(30);
+
+      // Score popup
+      scorePopups.push({ x: ball.x, y: ball.y - 30, text: `+${points}`, life: 1, big: comboMul >= 5 });
+
+      // Encouragement
+      const msg = encourageMessages.findLast(m => totalPops === m.threshold);
+      if (msg) showEncouragement(msg.text, msg.color);
+
+      updateHUD();
+
+      // Spawn new ball after short delay
+      ball = null;
+      setTimeout(() => {
+        if (gameRunning) spawnBall();
+      }, 150 + Math.random() * 150);
+    }
+
+    function showEncouragement(text, color) {
+      const el = document.createElement('div');
+      el.className = 'encouragement';
+      el.textContent = text;
+      el.style.color = color;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }
+
+    function updateHUD() {
+      document.getElementById('score').textContent = score.toLocaleString();
+      document.getElementById('popCount')?.textContent;
+      const el = document.getElementById('comboDisplay');
+      if (combo >= 2) {
+        el.textContent = `${combo}x 콤보!`;
+        el.classList.add('active');
+      } else {
+        el.textContent = '';
+        el.classList.remove('active');
+      }
+    }
+
+    function updateRageMeter() {
+      rageLevel = Math.max(0, Math.min(100, rageLevel));
+      document.getElementById('rageFill').style.width = `${rageLevel}%`;
+      document.getElementById('ragePct').textContent = Math.round(rageLevel);
+      if (rageLevel >= 80) {
+        document.getElementById('rageFill').style.background = 'linear-gradient(90deg, #FF3B3B, #FF0000)';
+      } else {
+        document.getElementById('rageFill').style.background = 'linear-gradient(90deg, var(--energy-orange), var(--rage-red))';
+      }
+    }
+
+    function ballHitTest(px, py) {
+      if (!ball) return false;
+      const dx = px - ball.x;
+      const dy = py - ball.y;
+      return dx * dx + dy * dy <= ball.radius * ball.radius;
+    }
+
+    // Input
+    input.on('pointerdown', ({ x, y }) => {
+      if (!gameRunning) return;
+      sound.resume();
+
+      if (ballHitTest(x, y)) {
+        popBall(x, y);
+      } else {
+        // Miss
+        combo = 0;
+        rageLevel = Math.max(0, rageLevel - 5);
+        updateRageMeter();
+        updateHUD();
+        particles.emit(x, y, 3, { colors: ['#333'], speed: 1, gravity: 0.1, size: 2 });
+      }
+    });
+
+    // Game loop
+    const loop = new GameLoop({
+      update(dt) {
+        if (!gameRunning) return;
+
+        // Ball appear animation
+        if (ball) {
+          ballAppearAnim = Math.min(1, ballAppearAnim + dt * 6);
+          ball.pulse += dt * 2;
+        }
+
+        // Ball squish decay
+        if (ballSquish > 0) {
+          ballSquish -= dt * 8;
+          if (ballSquish < 0) ballSquish = 0;
+        }
+
+        // Pop flash decay
+        if (popFlash > 0) popFlash -= dt * 5;
+
+        particles.update(dt);
+        shake.update(dt);
+
+        // Rage decay (slow drain so it stays filled)
+        rageLevel = Math.max(0, rageLevel - dt * 1.5);
+        updateRageMeter();
+
+        // Score popups
+        scorePopups.forEach(p => { p.life -= dt * 1.8; p.y -= 40 * dt; });
+        scorePopups = scorePopups.filter(p => p.life > 0);
+      },
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        shake.apply(ctx);
+
+        // Background with rage tint
+        const rageColor = Math.min(40, Math.round(rageLevel * 0.4));
+        const bg = ctx.createRadialGradient(400, 300, 0, 400, 300, 500);
+        bg.addColorStop(0, `rgb(${15 + rageColor}, ${10}, ${30 + rageColor})`);
+        bg.addColorStop(1, '#0A0A15');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+        // Pop flash
+        if (popFlash > 0) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${popFlash * 0.15})`;
+          ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+        }
+
+        // Pulse rings when rage is high
+        if (rageLevel > 50) {
+          const pulse = Math.sin(performance.now() * 0.003) * 0.5 + 0.5;
+          ctx.strokeStyle = `rgba(255, 59, 59, ${pulse * 0.1})`;
+          ctx.lineWidth = 2;
+          for (let r = 100; r < 500; r += 80) {
+            ctx.beginPath();
+            ctx.arc(400, 300, r, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        // Ball
+        drawBall(ctx);
+
+        // Particles
+        particles.draw(ctx);
+
+        // Score popups
+        scorePopups.forEach(p => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.big ? '#FF3B3B' : '#FFD700';
+          ctx.font = `${p.big ? '900' : '700'} ${p.big ? 30 : 22}px "Noto Sans KR", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
+          if (p.big) {
+            ctx.fillStyle = '#FF8C00';
+            ctx.font = '600 14px "Noto Sans KR", sans-serif';
+            ctx.fillText(`${combo}x 콤보!`, p.x, p.y + 24);
+          }
+          ctx.restore();
+        });
+
+        // CPS display
+        const now = performance.now();
+        const recentClicks = clickTimes.filter(t => now - t < 1000).length;
+        if (recentClicks > 0 && gameRunning) {
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.font = '600 14px "Noto Sans KR", sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(`${recentClicks} CPS`, canvas.width - 20, 30);
+        }
+
+        // "waiting" indicator when no ball
+        if (!ball && gameRunning) {
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.font = '600 18px "Noto Sans KR", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('...', 400, 300);
+        }
+
+        ctx.restore();
+      }
+    });
+
+    // Timer
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 10) {
+          document.getElementById('timer').style.color = 'var(--rage-red)';
+        }
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+
+      const elapsed = 30;
+      const cps = (totalPops / elapsed).toFixed(1);
+
+      if (soundEnabled) sound.playVictory();
+      scoreManager.addScore('stress-ball', score);
+      recordSystem.showSubmitFlow('stress-ball', score);
+      scoreManager.addStat('ballsSmashed', totalPops);
+
+      document.getElementById('finalScore').textContent = score.toLocaleString();
+      document.getElementById('resultMessage').textContent = scoreManager.getAngerMessage(score);
+      document.getElementById('statPops').textContent = totalPops;
+      document.getElementById('statCombo').textContent = maxCombo + 'x';
+      document.getElementById('statCPS').textContent = cps;
+      document.getElementById('statBest').textContent = scoreManager.getBest('stress-ball').toLocaleString();
+      document.getElementById('resultScreen').style.display = 'flex';
+    }
+
+    window._showLeaderboard = () => recordSystem.showLeaderboard('stress-ball');
+    window.startGame = function() {
+      document.getElementById('startScreen').style.display = 'none';
+      sound.init();
+      sound.resume();
+      if (soundEnabled) sound.playClick();
+
+      let count = 3;
+      const cdEl = document.createElement('div');
+      cdEl.className = 'countdown';
+      cdEl.textContent = count;
+      document.body.appendChild(cdEl);
+
+      const cdInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          cdEl.textContent = count;
+          cdEl.style.animation = 'none';
+          cdEl.offsetHeight;
+          cdEl.style.animation = 'bounceIn 0.5s ease-out';
+          if (soundEnabled) sound.playClick();
+        } else {
+          cdEl.textContent = '터뜨려!';
+          cdEl.style.color = 'var(--relief-yellow)';
+          if (soundEnabled) sound.playExplosion();
+          setTimeout(() => {
+            cdEl.remove();
+            gameRunning = true;
+            spawnBall();
+            startTimer();
+          }, 600);
+          clearInterval(cdInterval);
+        }
+      }, 800);
+
+      loop.start();
+    };
+
+    window.restartGame = function() {
+      document.getElementById('resultScreen').style.display = 'none';
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      totalPops = 0;
+      rageLevel = 0;
+      timeLeft = 30;
+      scorePopups = [];
+      clickTimes = [];
+      popFlash = 0;
+      particles.clear();
+      ball = null;
+      document.getElementById('timer').textContent = '30';
+      document.getElementById('timer').style.color = '';
+      updateHUD();
+      updateRageMeter();
+      gameRunning = true;
+      spawnBall();
+      startTimer();
+    };
+
+    window.toggleSound = function() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundBtn').textContent = soundEnabled ? '🔊 사운드 ON' : '🔇 사운드 OFF';
+    };
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const maxW = Math.min(container.clientWidth - 20, 800);
+      const ratio = maxW / 800;
+      canvas.style.width = `${800 * ratio}px`;
+      canvas.style.height = `${600 * ratio}px`;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>

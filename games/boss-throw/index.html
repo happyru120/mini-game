@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>상사한테 던지기 — Boss Throw</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay h1 { font-size: 42px; margin-bottom: 8px; }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .start-overlay .disclaimer {
+      color: var(--relief-yellow);
+      font-size: 14px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 120px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 40px rgba(255,59,59,0.5);
+      pointer-events: none;
+      animation: bounceIn 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <div class="top-bar">
+    <a href="../../index.html" class="back-btn">← 돌아가기</a>
+    <button class="sound-btn" onclick="window.toggleSound()">🔊 소리 ON</button>
+  </div>
+  <div class="game-hud">
+    <div class="hud-score">점수: <span id="score-display">0</span></div>
+    <div class="hud-time" id="round-display">라운드 1/3</div>
+    <div class="hud-combo" id="throw-display">던지기 5/5</div>
+  </div>
+  <canvas id="gameCanvas" class="game-canvas" width="800" height="600"></canvas>
+</div>
+
+<!-- Start Overlay -->
+<div class="start-overlay" id="startOverlay">
+  <h1>상사한테 던지기</h1>
+  <p class="disclaimer">이건 상상 속 이야기입니다 :)</p>
+  <p>새총을 <strong style="color:#FFD700;">왼쪽·아래로 당겨</strong> 놓으면 발사! 🎯<br>머리=3배 / 몸통=2배 점수</p>
+  <p style="font-size:13px; color: var(--text-secondary);">5번 던지기 × 3라운드</p>
+  <button class="btn btn-primary" onclick="window._showLeaderboard = () => recordSystem.showLeaderboard('boss-throw');
+    window.startGame()">게임 시작</button>
+</div>
+
+<!-- Result Overlay (hidden) -->
+<div class="result-overlay" id="resultOverlay" style="display:none;">
+  <div class="result-card">
+    <h2>결과</h2>
+    <div class="result-score" id="resultScore">0</div>
+    <div class="result-message" id="resultMessage"></div>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="result-buttons">
+      <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+      <button class="btn btn-primary" onclick="window.restartGame()">다시 하기</button>
+      <a href="../../index.html" class="btn btn-secondary">돌아가기</a>
+    </div>
+  </div>
+</div>
+
+<div class="countdown" id="countdownEl" style="display:none;"></div>
+
+<script type="module">
+import { GameLoop } from '../../shared/engine/GameLoop.js';
+import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+import { InputManager } from '../../shared/engine/InputManager.js';
+import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+import { SoundManager } from '../../shared/engine/SoundManager.js';
+import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 600;
+
+const particles = new ParticleSystem();
+const input = new InputManager(canvas);
+const shake = new ScreenShake();
+const sound = new SoundManager();
+const scoreManager = new ScoreManager();
+
+let soundEnabled = true;
+let gameState = 'start'; // start, countdown, playing, throwing, hit, roundEnd, result
+
+// Game state
+let totalScore = 0;
+let currentRound = 1;
+let throwsLeft = 5;
+const MAX_ROUNDS = 3;
+const MAX_THROWS = 5;
+let currentObjectIndex = 0;
+
+// Stats tracking
+let stats = { headHits: 0, bodyHits: 0, misses: 0, totalThrows: 0, bestThrow: 0 };
+
+// Slingshot
+const slingshot = { x: 120, y: 450, armLen: 60 };
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragCurrent = { x: 0, y: 0 };
+let dragOffset = { x: 0, y: 0 };
+
+// Projectile
+let projectile = null;
+const GRAVITY = 320;
+
+// Target (boss silhouette)
+const target = {
+  x: 620, y: 300,
+  width: 80, height: 180,
+  headY: 230, headR: 28,
+  bodyTop: 260, bodyBottom: 420,
+  knockback: 0, knockbackVel: 0,
+  hitFlash: 0,
+  stars: [],
+  visible: true
+};
+
+// Throwable objects
+const throwables = [
+  { name: '볼펜', weight: 1.0, color: '#3498DB', draw: drawPen },
+  { name: '커피컵', weight: 1.5, color: '#8B4513', draw: drawCoffee },
+  { name: '스테이플러', weight: 2.0, color: '#E74C3C', draw: drawStapler },
+  { name: '두꺼운 보고서', weight: 2.5, color: '#ECF0F1', draw: drawReport },
+  { name: '노트북', weight: 3.0, color: '#2C3E50', draw: drawLaptop }
+];
+
+// Score popups
+let scorePopups = [];
+
+// Trajectory preview
+let trajectoryDots = [];
+
+// ---- Drawing functions for throwables ----
+function drawPen(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#3498DB';
+  ctx.fillRect(-size * 2, -size * 0.3, size * 4, size * 0.6);
+  ctx.fillStyle = '#2C3E50';
+  ctx.beginPath();
+  ctx.moveTo(size * 2, -size * 0.3);
+  ctx.lineTo(size * 2.8, 0);
+  ctx.lineTo(size * 2, size * 0.3);
+  ctx.fill();
+  ctx.fillStyle = '#E74C3C';
+  ctx.fillRect(-size * 2, -size * 0.3, size * 0.6, size * 0.6);
+  ctx.restore();
+}
+
+function drawCoffee(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#F5F5DC';
+  ctx.fillRect(-size, -size * 1.2, size * 2, size * 2.4);
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(-size * 0.7, -size * 0.8, size * 1.4, size * 1.6);
+  // handle
+  ctx.strokeStyle = '#F5F5DC';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(size * 1.2, 0, size * 0.5, -Math.PI * 0.5, Math.PI * 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawStapler(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#E74C3C';
+  ctx.fillRect(-size * 1.5, -size * 0.6, size * 3, size * 0.6);
+  ctx.fillStyle = '#C0392B';
+  ctx.fillRect(-size * 1.5, 0, size * 3, size * 0.4);
+  ctx.fillStyle = '#7F8C8D';
+  ctx.fillRect(size * 1.0, -size * 0.3, size * 0.5, size * 0.3);
+  ctx.restore();
+}
+
+function drawReport(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  // stack of papers
+  ctx.fillStyle = '#BDC3C7';
+  ctx.fillRect(-size * 1.2, -size * 1.6, size * 2.4, size * 3.2);
+  ctx.fillStyle = '#ECF0F1';
+  ctx.fillRect(-size * 1.1, -size * 1.5, size * 2.2, size * 3);
+  // text lines
+  ctx.fillStyle = '#7F8C8D';
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(-size * 0.7, -size * 1.0 + i * size * 0.6, size * 1.4, size * 0.15);
+  }
+  ctx.restore();
+}
+
+function drawLaptop(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  // screen
+  ctx.fillStyle = '#2C3E50';
+  ctx.fillRect(-size * 1.5, -size * 1.4, size * 3, size * 2);
+  ctx.fillStyle = '#3498DB';
+  ctx.fillRect(-size * 1.3, -size * 1.2, size * 2.6, size * 1.6);
+  // base
+  ctx.fillStyle = '#7F8C8D';
+  ctx.fillRect(-size * 1.7, size * 0.6, size * 3.4, size * 0.4);
+  ctx.restore();
+}
+
+// ---- Draw boss silhouette ----
+function drawBoss(ctx) {
+  const bx = target.x + target.knockback;
+  const flash = target.hitFlash > 0;
+
+  ctx.save();
+  if (flash) {
+    ctx.globalAlpha = 0.5 + Math.sin(target.hitFlash * 20) * 0.5;
+  }
+
+  const baseColor = flash ? '#FF6B6B' : '#2C2C3E';
+  const suitColor = flash ? '#FF4444' : '#1A1A2E';
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(bx, target.bodyBottom + 10, 35, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = suitColor;
+  ctx.fillRect(bx - 18, target.bodyBottom - 30, 14, 55);
+  ctx.fillRect(bx + 4, target.bodyBottom - 30, 14, 55);
+
+  // Shoes
+  ctx.fillStyle = '#111';
+  ctx.fillRect(bx - 20, target.bodyBottom + 22, 18, 8);
+  ctx.fillRect(bx + 2, target.bodyBottom + 22, 18, 8);
+
+  // Body (suit jacket)
+  ctx.fillStyle = suitColor;
+  ctx.beginPath();
+  ctx.moveTo(bx - 30, target.bodyTop);
+  ctx.lineTo(bx + 30, target.bodyTop);
+  ctx.lineTo(bx + 35, target.bodyBottom - 30);
+  ctx.lineTo(bx - 35, target.bodyBottom - 30);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tie
+  ctx.fillStyle = '#C0392B';
+  ctx.beginPath();
+  ctx.moveTo(bx - 5, target.bodyTop + 5);
+  ctx.lineTo(bx + 5, target.bodyTop + 5);
+  ctx.lineTo(bx + 3, target.bodyTop + 50);
+  ctx.lineTo(bx, target.bodyTop + 58);
+  ctx.lineTo(bx - 3, target.bodyTop + 50);
+  ctx.closePath();
+  ctx.fill();
+
+  // Shirt collar
+  ctx.fillStyle = '#ECF0F1';
+  ctx.beginPath();
+  ctx.moveTo(bx - 12, target.bodyTop);
+  ctx.lineTo(bx, target.bodyTop + 15);
+  ctx.lineTo(bx + 12, target.bodyTop);
+  ctx.closePath();
+  ctx.fill();
+
+  // Arms
+  ctx.fillStyle = suitColor;
+  ctx.save();
+  ctx.translate(bx - 30, target.bodyTop + 10);
+  ctx.rotate(-0.15);
+  ctx.fillRect(-8, 0, 16, 60);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(bx + 30, target.bodyTop + 10);
+  ctx.rotate(0.15);
+  ctx.fillRect(-8, 0, 16, 60);
+  ctx.restore();
+
+  // Head
+  ctx.fillStyle = baseColor;
+  ctx.beginPath();
+  ctx.arc(bx, target.headY, target.headR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hair
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(bx, target.headY - 8, target.headR, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes (small dots - generic)
+  ctx.fillStyle = '#FFF';
+  ctx.beginPath();
+  ctx.arc(bx - 9, target.headY - 2, 3, 0, Math.PI * 2);
+  ctx.arc(bx + 9, target.headY - 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(bx - 9, target.headY - 2, 1.5, 0, Math.PI * 2);
+  ctx.arc(bx + 9, target.headY - 2, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth (stern line)
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bx - 7, target.headY + 10);
+  ctx.lineTo(bx + 7, target.headY + 10);
+  ctx.stroke();
+
+  // Hit stars
+  for (const star of target.stars) {
+    drawStar(ctx, bx + star.ox, target.headY + star.oy, star.size, star.rot);
+  }
+
+  ctx.restore();
+}
+
+function drawStar(ctx, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+    const r = i === 0 ? size : size;
+    ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+    const a2 = a + (2 * Math.PI) / 10;
+    ctx.lineTo(Math.cos(a2) * size * 0.4, Math.sin(a2) * size * 0.4);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ---- Slingshot drawing ----
+function drawSlingshot(ctx) {
+  const sx = slingshot.x;
+  const sy = slingshot.y;
+
+  // Fork posts
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(sx - 20, sy - 40, 8, 80);
+  ctx.fillRect(sx + 12, sy - 40, 8, 80);
+
+  // Base
+  ctx.fillStyle = '#6B3410';
+  ctx.fillRect(sx - 24, sy + 30, 48, 15);
+
+  // Fork tips
+  ctx.fillStyle = '#A0522D';
+  ctx.beginPath();
+  ctx.arc(sx - 16, sy - 40, 6, 0, Math.PI * 2);
+  ctx.arc(sx + 16, sy - 40, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (isDragging) {
+    // Elastic bands
+    ctx.strokeStyle = '#E74C3C';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(sx - 16, sy - 40);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.moveTo(sx + 16, sy - 40);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.stroke();
+
+    // Object in slingshot
+    const obj = throwables[currentObjectIndex];
+    obj.draw(ctx, dragCurrent.x, dragCurrent.y, 8, 0);
+  } else if (gameState === 'playing') {
+    // Resting bands
+    ctx.strokeStyle = '#E74C3C';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(sx - 16, sy - 40);
+    ctx.lineTo(sx, sy - 20);
+    ctx.moveTo(sx + 16, sy - 40);
+    ctx.lineTo(sx, sy - 20);
+    ctx.stroke();
+
+    // Object waiting
+    const obj = throwables[currentObjectIndex];
+    obj.draw(ctx, sx, sy - 20, 8, 0);
+  }
+}
+
+// ---- Trajectory preview ----
+function computeTrajectory(ox, oy, vx, vy) {
+  const dots = [];
+  let px = ox, py = oy;
+  let tvx = vx, tvy = vy;
+  for (let i = 0; i < 45; i++) {
+    px += tvx * 0.05;
+    tvy += GRAVITY * 0.05;
+    py += tvy * 0.05;
+    if (py > H || px > W || px < 0) break;
+    dots.push({ x: px, y: py });
+  }
+  return dots;
+}
+
+// ---- Input handling ----
+input.on('pointerdown', (e) => {
+  if (gameState !== 'playing') return;
+  const dist = Math.hypot(e.x - slingshot.x, e.y - slingshot.y);
+  if (dist < 120) {
+    isDragging = true;
+    dragStart = { x: slingshot.x, y: slingshot.y - 20 };
+    dragCurrent = { x: e.x, y: e.y };
+    sound.init();
+    sound.resume();
+  }
+});
+
+input.on('pointermove', (e) => {
+  if (!isDragging) return;
+  dragCurrent = { x: e.x, y: e.y };
+  // Limit drag distance
+  const dx = dragCurrent.x - dragStart.x;
+  const dy = dragCurrent.y - dragStart.y;
+  const maxDrag = 120;
+  const dist = Math.hypot(dx, dy);
+  if (dist > maxDrag) {
+    dragCurrent.x = dragStart.x + (dx / dist) * maxDrag;
+    dragCurrent.y = dragStart.y + (dy / dist) * maxDrag;
+  }
+
+  // Compute trajectory preview
+  const power = 6.0;
+  const vx = (dragStart.x - dragCurrent.x) * power;
+  const vy = (dragStart.y - dragCurrent.y) * power;
+  trajectoryDots = computeTrajectory(dragStart.x, dragStart.y, vx, vy);
+});
+
+input.on('pointerup', (e) => {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const dx = dragStart.x - dragCurrent.x;
+  const dy = dragStart.y - dragCurrent.y;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist < 15) {
+    trajectoryDots = [];
+    return;
+  }
+
+  const power = 3.5;
+  const vx = dx * power;
+  const vy = dy * power;
+
+  projectile = {
+    x: dragStart.x,
+    y: dragStart.y,
+    vx, vy,
+    rotation: 0,
+    rotSpeed: (Math.random() - 0.5) * 8,
+    objectIndex: currentObjectIndex,
+    size: 8,
+    alive: true
+  };
+
+  gameState = 'throwing';
+  trajectoryDots = [];
+  if (soundEnabled) sound.playClick();
+});
+
+// ---- Hit detection ----
+function checkHit(proj) {
+  const bx = target.x + target.knockback;
+  const px = proj.x;
+  const py = proj.y;
+
+  // Head check
+  const headDist = Math.hypot(px - bx, py - target.headY);
+  if (headDist < target.headR + 10) {
+    return 'head';
+  }
+
+  // Body check
+  if (px > bx - 38 && px < bx + 38 && py > target.bodyTop - 5 && py < target.bodyBottom + 5) {
+    return 'body';
+  }
+
+  return null;
+}
+
+function onHit(zone) {
+  const obj = throwables[projectile.objectIndex];
+  const multiplier = zone === 'head' ? 3 : 2;
+  const distBonus = Math.max(1, Math.floor(Math.hypot(projectile.x - slingshot.x, projectile.y - slingshot.y) / 100));
+  const points = Math.floor(100 * multiplier * obj.weight * distBonus);
+
+  totalScore += points;
+  stats.totalThrows++;
+  stats.bestThrow = Math.max(stats.bestThrow, points);
+  if (zone === 'head') stats.headHits++;
+  else stats.bodyHits++;
+
+  // Knockback
+  target.knockbackVel = 15 + multiplier * 5;
+  target.hitFlash = 1.0;
+
+  // Stars
+  if (zone === 'head') {
+    target.stars = [];
+    for (let i = 0; i < 3; i++) {
+      target.stars.push({
+        ox: (Math.random() - 0.5) * 60,
+        oy: -30 - Math.random() * 20,
+        size: 6 + Math.random() * 4,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 4,
+        life: 2.0
+      });
+    }
+  }
+
+  // Particles
+  const colors = zone === 'head'
+    ? ['#FFD700', '#FF3B3B', '#FF8C00', '#FFFFFF']
+    : ['#FF3B3B', '#FF8C00', '#E74C3C'];
+  particles.emit(projectile.x, projectile.y, zone === 'head' ? 35 : 20, {
+    colors,
+    speed: zone === 'head' ? 6 : 4,
+    gravity: 0.2
+  });
+
+  // Shake
+  shake.trigger(zone === 'head' ? 12 : 6, 0.4);
+
+  // Sound
+  if (soundEnabled) {
+    if (zone === 'head') sound.playExplosion();
+    else sound.playHit();
+  }
+
+  // Score popup
+  const zoneLabel = zone === 'head' ? '헤드샷!' : '명중!';
+  scorePopups.push({
+    x: projectile.x,
+    y: projectile.y - 20,
+    text: `${zoneLabel} +${points}`,
+    life: 1.5,
+    color: zone === 'head' ? '#FFD700' : '#FF8C00'
+  });
+
+  gameState = 'hit';
+  projectile.alive = false;
+}
+
+function onMiss() {
+  stats.totalThrows++;
+  stats.misses++;
+
+  scorePopups.push({
+    x: projectile.x,
+    y: Math.min(projectile.y, H - 40),
+    text: '빗나감!',
+    life: 1.0,
+    color: '#7F8C8D'
+  });
+
+  if (soundEnabled) sound.playPop();
+  projectile.alive = false;
+  nextThrow();
+}
+
+// ---- Turn management ----
+let hitTimer = 0;
+
+function nextThrow() {
+  throwsLeft--;
+  projectile = null;
+
+  if (throwsLeft <= 0) {
+    if (currentRound >= MAX_ROUNDS) {
+      setTimeout(() => showResult(), 800);
+    } else {
+      setTimeout(() => nextRound(), 1000);
+    }
+    return;
+  }
+
+  currentObjectIndex = (currentObjectIndex + 1) % throwables.length;
+  target.knockback = 0;
+  target.knockbackVel = 0;
+  target.stars = [];
+  gameState = 'playing';
+  updateHUD();
+}
+
+function nextRound() {
+  currentRound++;
+  throwsLeft = MAX_THROWS;
+  currentObjectIndex = 0;
+  target.knockback = 0;
+  target.knockbackVel = 0;
+  target.hitFlash = 0;
+  target.stars = [];
+  gameState = 'playing';
+  updateHUD();
+
+  if (soundEnabled) sound.playCombo(currentRound);
+}
+
+// ---- HUD ----
+function updateHUD() {
+  document.getElementById('score-display').textContent = totalScore.toLocaleString();
+  document.getElementById('round-display').textContent = `라운드 ${currentRound}/${MAX_ROUNDS}`;
+  document.getElementById('throw-display').textContent = `던지기 ${throwsLeft}/${MAX_THROWS}`;
+}
+
+// ---- Background ----
+function drawBackground(ctx) {
+  // Office wall
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#1a1a2e');
+  grad.addColorStop(0.7, '#16213e');
+  grad.addColorStop(1, '#0f3460');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Floor
+  ctx.fillStyle = '#0D0D1A';
+  ctx.fillRect(0, H - 80, W, 80);
+  ctx.strokeStyle = '#1A1A2E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 80);
+  ctx.lineTo(W, H - 80);
+  ctx.stroke();
+
+  // Window on wall
+  ctx.fillStyle = '#0a1628';
+  ctx.fillRect(400, 60, 120, 100);
+  ctx.strokeStyle = '#2C3E50';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(400, 60, 120, 100);
+  ctx.beginPath();
+  ctx.moveTo(460, 60);
+  ctx.lineTo(460, 160);
+  ctx.moveTo(400, 110);
+  ctx.lineTo(520, 110);
+  ctx.stroke();
+
+  // Night sky through window
+  ctx.fillStyle = '#87CEEB20';
+  ctx.fillRect(402, 62, 56, 46);
+  ctx.fillRect(462, 62, 56, 46);
+
+  // Desk
+  ctx.fillStyle = '#3E2723';
+  ctx.fillRect(540, 400, 200, 12);
+  ctx.fillStyle = '#2E1F18';
+  ctx.fillRect(560, 412, 10, 60);
+  ctx.fillRect(710, 412, 10, 60);
+
+  // Object name display
+  if (gameState === 'playing' || isDragging) {
+    const obj = throwables[currentObjectIndex];
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '14px "Noto Sans KR", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`현재: ${obj.name} (무게 x${obj.weight})`, slingshot.x, slingshot.y + 70);
+  }
+}
+
+// ---- Main update ----
+function update(dt) {
+  if (gameState === 'start' || gameState === 'countdown' || gameState === 'result') return;
+
+  // Projectile physics
+  if (projectile && projectile.alive) {
+    projectile.vy += GRAVITY * dt;
+    projectile.x += projectile.vx * dt;
+    projectile.y += projectile.vy * dt;
+    projectile.rotation += projectile.rotSpeed * dt;
+
+    // Hit check
+    const hitZone = checkHit(projectile);
+    if (hitZone) {
+      onHit(hitZone);
+    }
+
+    // Out of bounds
+    if (projectile.y > H + 50 || projectile.x > W + 50 || projectile.x < -50) {
+      onMiss();
+    }
+  }
+
+  // Hit animation timer
+  if (gameState === 'hit') {
+    hitTimer += dt;
+    target.knockback += target.knockbackVel * dt * 60;
+    target.knockbackVel *= 0.92;
+    target.hitFlash -= dt * 2;
+
+    // Stars spin
+    for (const star of target.stars) {
+      star.rot += star.rotSpeed * dt;
+      star.life -= dt;
+    }
+    target.stars = target.stars.filter(s => s.life > 0);
+
+    if (hitTimer > 1.2) {
+      hitTimer = 0;
+      nextThrow();
+    }
+  }
+
+  // Target knockback recovery
+  if (target.knockback > 0.5) {
+    target.knockback *= 0.95;
+  } else {
+    target.knockback = 0;
+  }
+
+  // Score popups
+  for (const popup of scorePopups) {
+    popup.y -= 40 * dt;
+    popup.life -= dt;
+  }
+  scorePopups = scorePopups.filter(p => p.life > 0);
+
+  // Particles & shake
+  particles.update(dt);
+  shake.update(dt);
+}
+
+// ---- Main render ----
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  shake.apply(ctx);
+
+  drawBackground(ctx);
+
+  // Trajectory dots
+  if (isDragging && trajectoryDots.length > 0) {
+    for (let i = 0; i < trajectoryDots.length; i++) {
+      const alpha = 1 - i / trajectoryDots.length;
+      ctx.fillStyle = `rgba(255, 200, 50, ${alpha * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(trajectoryDots[i].x, trajectoryDots[i].y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Draw boss
+  drawBoss(ctx);
+
+  // Draw slingshot
+  drawSlingshot(ctx);
+
+  // Draw projectile in flight
+  if (projectile && projectile.alive) {
+    const obj = throwables[projectile.objectIndex];
+    obj.draw(ctx, projectile.x, projectile.y, projectile.size, projectile.rotation);
+  }
+
+  // Particles
+  particles.draw(ctx);
+
+  // Score popups
+  for (const popup of scorePopups) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, popup.life * 2);
+    ctx.font = 'bold 22px "Noto Sans KR", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = popup.color;
+    ctx.shadowColor = popup.color;
+    ctx.shadowBlur = 10;
+    ctx.fillText(popup.text, popup.x, popup.y);
+    ctx.restore();
+  }
+
+  // Drag power indicator
+  if (isDragging) {
+    const dx = dragStart.x - dragCurrent.x;
+    const dy = dragStart.y - dragCurrent.y;
+    const dist = Math.hypot(dx, dy);
+    const pct = Math.min(dist / 150, 1);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(20, H - 30, 100, 12);
+    const barColor = pct > 0.7 ? '#FF3B3B' : pct > 0.4 ? '#FF8C00' : '#FFD700';
+    ctx.fillStyle = barColor;
+    ctx.fillRect(20, H - 30, 100 * pct, 12);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.strokeRect(20, H - 30, 100, 12);
+    ctx.fillStyle = '#FFF';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('파워', 70, H - 18);
+  }
+
+  ctx.restore();
+}
+
+// ---- Game loop ----
+const loop = new GameLoop({ update, render });
+loop.start();
+
+// ---- Start / Restart ----
+function countdown(cb) {
+  const el = document.getElementById('countdownEl');
+  let count = 3;
+  gameState = 'countdown';
+  el.style.display = 'flex';
+  el.textContent = count;
+  if (soundEnabled) sound.playClick();
+
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      el.textContent = count;
+      el.style.animation = 'none';
+      el.offsetHeight; // reflow
+      el.style.animation = 'bounceIn 0.5s ease-out';
+      if (soundEnabled) sound.playClick();
+    } else {
+      el.textContent = '던져!';
+      if (soundEnabled) sound.playCombo(1);
+      setTimeout(() => {
+        el.style.display = 'none';
+        cb();
+      }, 500);
+      clearInterval(interval);
+    }
+  }, 800);
+}
+
+window.startGame = function () {
+  document.getElementById('startOverlay').style.display = 'none';
+  sound.init();
+  sound.resume();
+
+  totalScore = 0;
+  currentRound = 1;
+  throwsLeft = MAX_THROWS;
+  currentObjectIndex = 0;
+  stats = { headHits: 0, bodyHits: 0, misses: 0, totalThrows: 0, bestThrow: 0 };
+  target.knockback = 0;
+  target.knockbackVel = 0;
+  target.hitFlash = 0;
+  target.stars = [];
+  projectile = null;
+  scorePopups = [];
+  particles.clear();
+
+  updateHUD();
+
+  countdown(() => {
+    gameState = 'playing';
+  });
+};
+
+window.restartGame = function () {
+  document.getElementById('resultOverlay').style.display = 'none';
+  window.startGame();
+};
+
+window.toggleSound = function () {
+  soundEnabled = !soundEnabled;
+  const btn = document.querySelector('.sound-btn');
+  btn.textContent = soundEnabled ? '🔊 소리 ON' : '🔇 소리 OFF';
+  if (soundEnabled) {
+    sound.init();
+    sound.resume();
+  }
+};
+
+function showResult() {
+  gameState = 'result';
+
+  scoreManager.addScore('boss-throw', totalScore);
+      recordSystem.showSubmitFlow('boss-throw', totalScore);
+
+  document.getElementById('resultScore').textContent = totalScore.toLocaleString();
+  document.getElementById('resultMessage').textContent = getResultMessage(totalScore);
+
+  const accuracy = stats.totalThrows > 0
+    ? Math.round(((stats.headHits + stats.bodyHits) / stats.totalThrows) * 100)
+    : 0;
+
+  document.getElementById('resultStats').innerHTML = `
+    <div class="result-stat">
+      <div class="result-stat-value">${stats.headHits}</div>
+      <div class="result-stat-label">헤드샷</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-value">${stats.bodyHits}</div>
+      <div class="result-stat-label">몸통 명중</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-value">${accuracy}%</div>
+      <div class="result-stat-label">명중률</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-value">${stats.bestThrow.toLocaleString()}</div>
+      <div class="result-stat-label">최고 점수 던지기</div>
+    </div>
+  `;
+
+  document.getElementById('resultOverlay').style.display = 'flex';
+
+  if (soundEnabled) sound.playVictory();
+}
+
+function getResultMessage(score) {
+  if (score >= 10000) return '전설의 투수! 상사가 도망갔습니다!';
+  if (score >= 6000) return '직장 스트레스가 잘 풀렸네요!';
+  if (score >= 3000) return '꽤 잘 던지셨어요!';
+  if (score >= 1000) return '연습이 좀 더 필요해요!';
+  return '다음에는 더 잘 던져봐요!';
+}
+
+// Initial HUD
+updateHUD();
+</script>
+</body>
+</html>

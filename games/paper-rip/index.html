@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>종이 찢기 - Paper Rip</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay h1 { font-size: 48px; margin-bottom: 8px; }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 120px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 40px rgba(255,59,59,0.5);
+      pointer-events: none;
+      animation: bounceIn 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startScreen">
+    <h1>📄✋</h1>
+    <h2 style="font-size:28px; font-weight:900;">종이 찢기</h2>
+    <p>스트레스 주는 서류를 시원하게 찢어버리자!<br>드래그해서 종이를 찢으면 스트레스 해소!<br>빠르게 찢을수록 높은 점수!</p>
+    <button class="btn btn-primary" onclick="startGame()" style="font-size:20px; padding:18px 48px;">
+      찢어버리자!
+    </button>
+  </div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn" style="cursor:pointer;">← 돌아가기</a>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">사운드 ON</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-score">점수 <span id="score">0</span></div>
+      <div class="hud-combo" id="comboDisplay"></div>
+      <div class="hud-time">남은 시간 <span id="timer">60</span></div>
+    </div>
+    <canvas class="game-canvas" id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultScreen" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:48px; margin-bottom:8px;">📄💥</div>
+      <div style="font-size:16px; color:var(--text-secondary);">오늘의 분노 지수</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="statPapers">0</div>
+          <div class="result-stat-label">찢은 종이</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statMaxSpeed">0</div>
+          <div class="result-stat-label">최고 속도 보너스</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statBest">0</div>
+          <div class="result-stat-label">역대 최고</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">다시 찢기</button>
+        <a href="../../index.html" class="btn btn-secondary">다른 게임</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { InputManager } from '../../shared/engine/InputManager.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+    const input = new InputManager(canvas);
+
+    // ============ STATE ============
+    let score = 0;
+    let papersRipped = 0;
+    let maxSpeedBonus = 0;
+    let timeLeft = 60;
+    let gameRunning = false;
+    let soundEnabled = true;
+    let timerInterval = null;
+    let scorePopups = [];
+    let currentPaper = null;
+    let tearTrail = [];
+    let isDragging = false;
+    let lastDragPos = null;
+    let tornPieces = [];
+    let paperFragments = [];
+    let nextPaperDelay = 0;
+    let comboCount = 0;
+    let tearProgress = 0; // how much of the paper has been torn (0 to 1)
+
+    // ============ PAPER TYPES ============
+    const paperTypes = [
+      { title: '야근 보고서', subtitle: '제출 기한: 어제', color: '#F5F5DC', multiplier: 1.0 },
+      { title: '청구서', subtitle: '총액: ₩999,999,999', color: '#FFE4E1', multiplier: 1.2 },
+      { title: '말도 안 되는 지시문', subtitle: '"내일까지 불가능을 가능하게"', color: '#E6E6FA', multiplier: 1.5 },
+      { title: '불합격 통보', subtitle: '귀하의 지원에 감사드리며...', color: '#FFDAB9', multiplier: 1.3 },
+      { title: '야근 지시서', subtitle: '금요일 저녁 6시 발송', color: '#E0FFFF', multiplier: 1.4 },
+      { title: '회의록', subtitle: '회의 시간: 3시간 (결론 없음)', color: '#F0FFF0', multiplier: 1.1 },
+    ];
+
+    // ============ PAPER CLASS ============
+    class Paper {
+      constructor() {
+        const type = paperTypes[Math.floor(Math.random() * paperTypes.length)];
+        this.title = type.title;
+        this.subtitle = type.subtitle;
+        this.color = type.color;
+        this.multiplier = type.multiplier;
+        this.x = 200;
+        this.y = 100;
+        this.width = 400;
+        this.height = 480;
+        this.torn = false;
+        this.tearPoints = []; // points along the tear line
+        this.enterAnim = 0; // 0 to 1 for slide-in
+        this.wobble = 0;
+        this.opacity = 1;
+        // lines of fake text
+        this.textLines = this._generateLines();
+      }
+
+      _generateLines() {
+        const lines = [];
+        const lineCount = 12 + Math.floor(Math.random() * 6);
+        for (let i = 0; i < lineCount; i++) {
+          // random width "text" bars
+          lines.push({
+            width: 0.3 + Math.random() * 0.6,
+            y: 130 + i * 24,
+          });
+        }
+        return lines;
+      }
+
+      update(dt) {
+        if (this.enterAnim < 1) {
+          this.enterAnim = Math.min(1, this.enterAnim + dt * 3);
+        }
+        this.wobble += dt * 2;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        const slideOffset = (1 - this._easeOut(this.enterAnim)) * 600;
+        const wobbleX = Math.sin(this.wobble) * 2;
+
+        ctx.translate(this.x + this.width / 2 + wobbleX, this.y + this.height / 2 + slideOffset);
+        ctx.globalAlpha = this.opacity;
+
+        const hw = this.width / 2;
+        const hh = this.height / 2;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.roundRect(-hw + 8, -hh + 8, this.width, this.height, 4);
+        ctx.fill();
+
+        // Paper body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.roundRect(-hw, -hh, this.width, this.height, 4);
+        ctx.fill();
+
+        // Paper border
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-hw, -hh, this.width, this.height, 4);
+        ctx.stroke();
+
+        // Title
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 26px "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.title, 0, -hh + 55);
+
+        // Subtitle
+        ctx.fillStyle = '#888';
+        ctx.font = '15px "Noto Sans KR", sans-serif';
+        ctx.fillText(this.subtitle, 0, -hh + 85);
+
+        // Horizontal divider
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-hw + 30, -hh + 105);
+        ctx.lineTo(hw - 30, -hh + 105);
+        ctx.stroke();
+
+        // Fake text lines
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        for (const line of this.textLines) {
+          const lw = (this.width - 60) * line.width;
+          const lx = -hw + 30;
+          const ly = -hh + line.y;
+          ctx.beginPath();
+          ctx.roundRect(lx, ly, lw, 8, 2);
+          ctx.fill();
+        }
+
+        // Stamp/seal in corner
+        ctx.save();
+        ctx.translate(hw - 65, hh - 75);
+        ctx.rotate(-0.2);
+        ctx.strokeStyle = 'rgba(200,50,50,0.4)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 30, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(200,50,50,0.3)';
+        ctx.font = 'bold 14px "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('결재', 0, 0);
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      _easeOut(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      hitTest(px, py) {
+        return px >= this.x && px <= this.x + this.width &&
+               py >= this.y && py <= this.y + this.height;
+      }
+    }
+
+    // ============ TORN PIECE CLASS ============
+    class TornPiece {
+      constructor(x, y, w, h, color, side) {
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.color = color;
+        this.rotation = 0;
+        this.rotSpeed = (Math.random() - 0.5) * 0.1;
+        this.vx = side === 'left' ? -(3 + Math.random() * 4) : (3 + Math.random() * 4);
+        this.vy = -2 + Math.random() * 4;
+        this.gravity = 0.2;
+        this.life = 1;
+        this.decay = 0.008 + Math.random() * 0.008;
+        this.tearEdge = this._generateTearEdge();
+      }
+
+      _generateTearEdge() {
+        const points = [];
+        const steps = 10;
+        for (let i = 0; i <= steps; i++) {
+          points.push({
+            x: (Math.random() - 0.5) * 15,
+            y: (i / steps) * this.height,
+          });
+        }
+        return points;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.vy += this.gravity;
+        this.y += this.vy;
+        this.vx *= 0.98;
+        this.rotation += this.rotSpeed;
+        this.life -= this.decay;
+      }
+
+      get dead() { return this.life <= 0 || this.y > 700; }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = Math.max(0, this.life);
+
+        // Torn piece body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 2, -this.height / 2);
+        ctx.lineTo(this.width / 2 - 5, -this.height / 2);
+        // Jagged tear edge on right side
+        for (const p of this.tearEdge) {
+          ctx.lineTo(this.width / 2 + p.x, -this.height / 2 + p.y);
+        }
+        ctx.lineTo(-this.width / 2, this.height / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Shadow on tear edge
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < this.tearEdge.length; i++) {
+          const p = this.tearEdge[i];
+          if (i === 0) ctx.moveTo(this.width / 2 + p.x, -this.height / 2 + p.y);
+          else ctx.lineTo(this.width / 2 + p.x, -this.height / 2 + p.y);
+        }
+        ctx.stroke();
+
+        // Fake text lines on piece
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        for (let i = 0; i < 4; i++) {
+          const lw = 20 + Math.random() * (this.width - 40);
+          ctx.fillRect(-this.width / 2 + 8, -this.height / 2 + 15 + i * 18, lw, 5);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    // ============ PAPER FRAGMENT (small rip particles) ============
+    class PaperFragment {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 5;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed - 2;
+        this.gravity = 0.15;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.3;
+        this.life = 1;
+        this.decay = 0.012 + Math.random() * 0.015;
+        this.width = 3 + Math.random() * 10;
+        this.height = 3 + Math.random() * 8;
+        this.color = color;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.vy += this.gravity;
+        this.y += this.vy;
+        this.vx *= 0.99;
+        this.rotation += this.rotSpeed;
+        this.life -= this.decay;
+      }
+
+      get dead() { return this.life <= 0 || this.y > 700; }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        // Subtle edge
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        ctx.restore();
+      }
+    }
+
+    // ============ TEAR TRAIL RENDERING ============
+    function drawTearTrail(ctx) {
+      if (tearTrail.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 100, 50, 0.6)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(255, 150, 50, 0.4)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(tearTrail[0].x, tearTrail[0].y);
+      for (let i = 1; i < tearTrail.length; i++) {
+        ctx.lineTo(tearTrail[i].x, tearTrail[i].y);
+      }
+      ctx.stroke();
+
+      // Glow dots along trail
+      ctx.shadowBlur = 0;
+      for (let i = 0; i < tearTrail.length; i += 3) {
+        const p = tearTrail[i];
+        const alpha = 0.3 + (i / tearTrail.length) * 0.7;
+        ctx.fillStyle = `rgba(255, 200, 100, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ============ INSTRUCTIONS OVERLAY ON PAPER ============
+    function drawTearInstruction(ctx) {
+      if (!currentPaper || currentPaper.enterAnim < 1 || tearProgress > 0.1) return;
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 500) * 0.3;
+      ctx.fillStyle = '#FF6B35';
+      ctx.font = 'bold 18px "Noto Sans KR", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('드래그해서 찢어!', currentPaper.x + currentPaper.width / 2, currentPaper.y + currentPaper.height + 30);
+
+      // Draw arrow icon
+      const cx = currentPaper.x + currentPaper.width / 2;
+      const cy = currentPaper.y + currentPaper.height / 2;
+      ctx.strokeStyle = 'rgba(255, 107, 53, 0.4)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(cx - 80, cy - 40);
+      ctx.lineTo(cx + 80, cy + 40);
+      ctx.stroke();
+      // Arrowhead
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(cx + 80, cy + 40);
+      ctx.lineTo(cx + 65, cy + 30);
+      ctx.moveTo(cx + 80, cy + 40);
+      ctx.lineTo(cx + 70, cy + 50);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // ============ SPAWN PAPER ============
+    function spawnPaper() {
+      currentPaper = new Paper();
+      tearTrail = [];
+      tearProgress = 0;
+    }
+
+    // ============ TEAR PAPER ============
+    function tearPaper(swipeSpeed) {
+      if (!currentPaper) return;
+
+      currentPaper.torn = true;
+      papersRipped++;
+      comboCount++;
+
+      // Speed bonus: faster swipe = bigger bonus
+      const speedBonus = Math.min(Math.floor(swipeSpeed / 2), 10);
+      if (speedBonus > maxSpeedBonus) maxSpeedBonus = speedBonus;
+
+      // Score calculation
+      const baseScore = 100;
+      const speedMul = 1 + speedBonus * 0.3;
+      const typeMul = currentPaper.multiplier;
+      const comboMul = 1 + Math.min(comboCount - 1, 9) * 0.2;
+      const points = Math.round(baseScore * speedMul * typeMul * comboMul);
+      score += points;
+
+      // Spawn torn pieces flying away
+      const paper = currentPaper;
+      const cx = paper.x + paper.width / 2;
+      const cy = paper.y + paper.height / 2;
+
+      // Left half
+      tornPieces.push(new TornPiece(
+        cx - paper.width / 4, cy,
+        paper.width / 2, paper.height * 0.8,
+        paper.color, 'left'
+      ));
+      // Right half
+      tornPieces.push(new TornPiece(
+        cx + paper.width / 4, cy,
+        paper.width / 2, paper.height * 0.8,
+        paper.color, 'right'
+      ));
+
+      // Paper fragments along tear trail
+      const fragColors = [paper.color, '#FFFFFF', '#F0F0F0', '#E8E0D0'];
+      const fragCount = 15 + speedBonus * 5;
+      for (let i = 0; i < fragCount; i++) {
+        const trailPt = tearTrail.length > 0
+          ? tearTrail[Math.floor(Math.random() * tearTrail.length)]
+          : { x: cx, y: cy };
+        paperFragments.push(new PaperFragment(
+          trailPt.x + (Math.random() - 0.5) * 30,
+          trailPt.y + (Math.random() - 0.5) * 30,
+          fragColors[Math.floor(Math.random() * fragColors.length)]
+        ));
+      }
+
+      // Additional sparkle particles
+      particles.emit(cx, cy, 20 + speedBonus * 3, {
+        colors: ['#FFD700', '#FF8C00', '#FFFFFF', '#FF6347'],
+        speed: 3 + speedBonus * 0.5,
+        gravity: 0.1,
+        size: 2 + Math.random() * 3,
+        shape: 'rect',
+        decay: 0.02,
+      });
+
+      // Screen shake - more intense with speed
+      shake.trigger(6 + speedBonus * 2, 0.3 + speedBonus * 0.05);
+
+      // Sound
+      if (soundEnabled) {
+        sound.playBreak();
+        if (comboCount >= 3) sound.playCombo(comboCount);
+        if (speedBonus >= 5) sound.playExplosion();
+      }
+
+      // Score popup
+      let popText = `+${points}`;
+      if (speedBonus >= 3) popText += ` (x${speedMul.toFixed(1)})`;
+      scorePopups.push({
+        x: cx,
+        y: cy - 30,
+        text: popText,
+        life: 1,
+        big: speedBonus >= 5,
+        combo: comboCount >= 3,
+      });
+
+      // Update HUD
+      updateHUD();
+      updateComboDisplay();
+      scoreManager.addStat('papersRipped');
+
+      // Clear current paper, spawn new one after delay
+      currentPaper = null;
+      tearTrail = [];
+      nextPaperDelay = 0.8;
+    }
+
+    // ============ CALCULATE SWIPE SPEED ============
+    function calcSwipeSpeed() {
+      if (tearTrail.length < 2) return 0;
+      let totalDist = 0;
+      for (let i = 1; i < tearTrail.length; i++) {
+        const dx = tearTrail[i].x - tearTrail[i - 1].x;
+        const dy = tearTrail[i].y - tearTrail[i - 1].y;
+        totalDist += Math.sqrt(dx * dx + dy * dy);
+      }
+      // Speed = distance covered per trail point (more distance = faster)
+      return totalDist / tearTrail.length;
+    }
+
+    // ============ HUD ============
+    function updateHUD() {
+      document.getElementById('score').textContent = score.toLocaleString();
+    }
+
+    function updateComboDisplay() {
+      const el = document.getElementById('comboDisplay');
+      if (comboCount >= 2) {
+        el.textContent = `${comboCount}x 연속 찢기!`;
+        el.classList.add('active');
+      } else {
+        el.textContent = '';
+        el.classList.remove('active');
+      }
+    }
+
+    // ============ INPUT HANDLING ============
+    input.on('pointerdown', ({ x, y }) => {
+      if (!gameRunning) return;
+      sound.resume();
+
+      if (currentPaper && currentPaper.hitTest(x, y)) {
+        isDragging = true;
+        tearTrail = [{ x, y }];
+        lastDragPos = { x, y };
+        tearProgress = 0;
+      }
+    });
+
+    input.on('pointermove', ({ x, y }) => {
+      if (!gameRunning || !isDragging || !currentPaper) return;
+
+      // Calculate distance from last point
+      const dx = x - lastDragPos.x;
+      const dy = y - lastDragPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > 2) { // min distance threshold
+        tearTrail.push({ x, y });
+        lastDragPos = { x, y };
+
+        // Calculate tear progress based on trail distance across paper
+        const totalTrailDist = calcTotalTrailDist();
+        const paperDiag = Math.sqrt(
+          currentPaper.width * currentPaper.width +
+          currentPaper.height * currentPaper.height
+        );
+        tearProgress = Math.min(1, totalTrailDist / (paperDiag * 0.22));
+
+        // Emit small particles along drag path
+        if (Math.random() < 0.6 && currentPaper.hitTest(x, y)) {
+          const fragColors = [currentPaper.color, '#F5F5F5', '#E8E0D0'];
+          paperFragments.push(new PaperFragment(
+            x + (Math.random() - 0.5) * 10,
+            y + (Math.random() - 0.5) * 10,
+            fragColors[Math.floor(Math.random() * fragColors.length)]
+          ));
+        }
+
+        // If tear progress is enough, tear the paper
+        if (tearProgress >= 0.30) {
+          const swipeSpeed = calcSwipeSpeed();
+          tearPaper(swipeSpeed);
+          isDragging = false;
+        }
+      }
+    });
+
+    input.on('pointerup', ({ x, y }) => {
+      if (!gameRunning) return;
+
+      if (isDragging && currentPaper) {
+        // If trail was long enough but didn't auto-tear
+        if (tearProgress >= 0.18) {
+          const swipeSpeed = calcSwipeSpeed();
+          tearPaper(swipeSpeed);
+        } else {
+          // Not enough swipe, reset
+          tearTrail = [];
+          tearProgress = 0;
+          comboCount = 0;
+          updateComboDisplay();
+        }
+      }
+      isDragging = false;
+    });
+
+    function calcTotalTrailDist() {
+      let total = 0;
+      for (let i = 1; i < tearTrail.length; i++) {
+        const dx = tearTrail[i].x - tearTrail[i - 1].x;
+        const dy = tearTrail[i].y - tearTrail[i - 1].y;
+        total += Math.sqrt(dx * dx + dy * dy);
+      }
+      return total;
+    }
+
+    // ============ GAME LOOP ============
+    const loop = new GameLoop({
+      update(dt) {
+        if (!gameRunning) return;
+
+        // Update current paper
+        if (currentPaper) {
+          currentPaper.update(dt);
+        }
+
+        // Spawn new paper after delay
+        if (!currentPaper && nextPaperDelay > 0) {
+          nextPaperDelay -= dt;
+          if (nextPaperDelay <= 0) {
+            spawnPaper();
+          }
+        }
+
+        // Update torn pieces
+        for (let i = tornPieces.length - 1; i >= 0; i--) {
+          tornPieces[i].update();
+          if (tornPieces[i].dead) tornPieces.splice(i, 1);
+        }
+
+        // Update paper fragments
+        for (let i = paperFragments.length - 1; i >= 0; i--) {
+          paperFragments[i].update();
+          if (paperFragments[i].dead) paperFragments.splice(i, 1);
+        }
+
+        // Update particles
+        particles.update(dt);
+        shake.update(dt);
+
+        // Score popups
+        scorePopups.forEach(p => { p.life -= dt * 1.5; p.y -= 40 * dt; });
+        scorePopups = scorePopups.filter(p => p.life > 0);
+      },
+
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        shake.apply(ctx);
+
+        // Background
+        const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bg.addColorStop(0, '#0D0D1A');
+        bg.addColorStop(1, '#1A1025');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+        // Desk surface (subtle)
+        ctx.fillStyle = 'rgba(40, 30, 50, 0.5)';
+        ctx.beginPath();
+        ctx.roundRect(50, 50, 700, 520, 12);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(50, 50, 700, 520, 12);
+        ctx.stroke();
+
+        // Wood grain texture lines
+        ctx.strokeStyle = 'rgba(60, 45, 70, 0.3)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 15; i++) {
+          const y = 70 + i * 34;
+          ctx.beginPath();
+          ctx.moveTo(60, y);
+          ctx.bezierCurveTo(250, y + (Math.sin(i) * 3), 550, y - (Math.cos(i) * 3), 740, y);
+          ctx.stroke();
+        }
+
+        // Torn pieces (behind current paper)
+        for (const piece of tornPieces) {
+          piece.draw(ctx);
+        }
+
+        // Current paper
+        if (currentPaper && !currentPaper.torn) {
+          // Draw tear progress indicator on paper
+          if (tearProgress > 0 && tearProgress < 1) {
+            // Overlay a tearing effect
+            ctx.save();
+            const alpha = tearProgress * 0.3;
+            ctx.fillStyle = `rgba(255, 100, 50, ${alpha})`;
+            ctx.beginPath();
+            ctx.roundRect(currentPaper.x, currentPaper.y, currentPaper.width, currentPaper.height, 4);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          currentPaper.draw(ctx);
+
+          // Tear progress bar
+          if (tearProgress > 0) {
+            const barW = currentPaper.width * 0.6;
+            const barH = 6;
+            const barX = currentPaper.x + (currentPaper.width - barW) / 2;
+            const barY = currentPaper.y - 20;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, barW, barH, 3);
+            ctx.fill();
+
+            const fillColor = tearProgress >= 0.6 ? '#00C853' : tearProgress >= 0.35 ? '#FFD700' : '#FF3B3B';
+            ctx.fillStyle = fillColor;
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, barW * tearProgress, barH, 3);
+            ctx.fill();
+          }
+        }
+
+        // Tear trail (drag path)
+        drawTearTrail(ctx);
+
+        // Tear instruction
+        drawTearInstruction(ctx);
+
+        // Paper fragments
+        for (const frag of paperFragments) {
+          frag.draw(ctx);
+        }
+
+        // Sparkle particles
+        particles.draw(ctx);
+
+        // Score popups
+        scorePopups.forEach(p => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.big ? '#FF3B3B' : '#FFD700';
+          ctx.font = `${p.big ? '900' : '700'} ${p.big ? 32 : 24}px "Noto Sans KR", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(p.text, p.x, p.y);
+          if (p.combo) {
+            ctx.fillStyle = '#FF8C00';
+            ctx.font = '600 14px "Noto Sans KR", sans-serif';
+            ctx.fillText(`${comboCount}x 연속!`, p.x, p.y + 24);
+          }
+          ctx.restore();
+        });
+
+        ctx.restore();
+      }
+    });
+
+    // ============ TIMER ============
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 10) {
+          document.getElementById('timer').style.color = 'var(--rage-red)';
+        }
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    // ============ END GAME ============
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+
+      if (soundEnabled) sound.playVictory();
+      scoreManager.addScore('paper-rip', score);
+      recordSystem.showSubmitFlow('paper-rip', score);
+
+      document.getElementById('finalScore').textContent = score.toLocaleString();
+      document.getElementById('resultMessage').textContent = scoreManager.getAngerMessage(score);
+      document.getElementById('statPapers').textContent = papersRipped;
+      document.getElementById('statMaxSpeed').textContent = `x${(1 + maxSpeedBonus * 0.3).toFixed(1)}`;
+      document.getElementById('statBest').textContent = scoreManager.getBest('paper-rip').toLocaleString();
+      document.getElementById('resultScreen').style.display = 'flex';
+    }
+
+    // ============ GLOBAL FUNCTIONS ============
+    window._showLeaderboard = () => recordSystem.showLeaderboard('paper-rip');
+    window.startGame = function () {
+      document.getElementById('startScreen').style.display = 'none';
+      sound.init();
+      sound.resume();
+      if (soundEnabled) sound.playClick();
+
+      let count = 3;
+      const cdEl = document.createElement('div');
+      cdEl.className = 'countdown';
+      cdEl.textContent = count;
+      document.body.appendChild(cdEl);
+
+      const cdInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          cdEl.textContent = count;
+          cdEl.style.animation = 'none';
+          cdEl.offsetHeight;
+          cdEl.style.animation = 'bounceIn 0.5s ease-out';
+          if (soundEnabled) sound.playClick();
+        } else {
+          cdEl.textContent = '찢어!';
+          cdEl.style.color = 'var(--relief-yellow)';
+          if (soundEnabled) sound.playExplosion();
+          setTimeout(() => {
+            cdEl.remove();
+            gameRunning = true;
+            spawnPaper();
+            startTimer();
+          }, 600);
+          clearInterval(cdInterval);
+        }
+      }, 800);
+
+      loop.start();
+    };
+
+    window.restartGame = function () {
+      document.getElementById('resultScreen').style.display = 'none';
+      score = 0;
+      papersRipped = 0;
+      maxSpeedBonus = 0;
+      comboCount = 0;
+      timeLeft = 60;
+      scorePopups = [];
+      tornPieces = [];
+      paperFragments = [];
+      tearTrail = [];
+      tearProgress = 0;
+      isDragging = false;
+      currentPaper = null;
+      nextPaperDelay = 0;
+      particles.clear();
+      document.getElementById('timer').textContent = '60';
+      document.getElementById('timer').style.color = '';
+      updateHUD();
+      updateComboDisplay();
+      gameRunning = true;
+      spawnPaper();
+      startTimer();
+    };
+
+    window.toggleSound = function () {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundBtn').textContent = soundEnabled ? '사운드 ON' : '사운드 OFF';
+    };
+
+    // ============ RESPONSIVE RESIZE ============
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const maxW = Math.min(container.clientWidth - 20, 800);
+      const ratio = maxW / 800;
+      canvas.style.width = `${800 * ratio}px`;
+      canvas.style.height = `${600 * ratio}px`;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>

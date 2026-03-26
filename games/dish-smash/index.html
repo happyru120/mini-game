@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🍽️ 접시 날려라! — Dish Smash</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body { background: #0D0D1A; }
+    .game-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+    }
+    .back-btn {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back-btn:hover { color: var(--white-pop); }
+    .sound-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white-pop);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: none;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      gap: 16px;
+    }
+    .start-overlay h1 { font-size: 48px; margin-bottom: 8px; }
+    .start-overlay p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      font-size: 120px;
+      font-weight: 900;
+      color: var(--rage-red);
+      text-shadow: 0 0 40px rgba(255,59,59,0.5);
+      pointer-events: none;
+      animation: bounceIn 0.5s ease-out;
+    }
+    /* Knife cursor */
+    .game-canvas { cursor: none; }
+    .game-wrapper { cursor: none; }
+    body.game-active { cursor: none; }
+
+    /* Slash effect */
+    @keyframes slashFade {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startScreen">
+    <h1>🔪🍽️</h1>
+    <h2 style="font-size:28px; font-weight:900;">접시 날려라!</h2>
+    <p>칼로 날아오는 접시를 베어 산산조각 내자!<br>60초 안에 최대한 많이 깨버려!</p>
+    <button class="btn btn-primary" onclick="startGame()" style="font-size:20px; padding:18px 48px;">
+      🔥 시작하기
+    </button>
+  </div>
+
+  <!-- Game -->
+  <div class="game-wrapper">
+    <div class="top-bar">
+      <a href="../../index.html" class="back-btn" style="cursor:pointer;">← 돌아가기</a>
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊 사운드 ON</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-score">🔥 <span id="score">0</span></div>
+      <div class="hud-combo" id="comboDisplay"></div>
+      <div class="hud-time">⏱️ <span id="timer">60</span></div>
+    </div>
+    <canvas class="game-canvas" id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-overlay" id="resultScreen" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:48px; margin-bottom:8px;">🔪💥</div>
+      <div style="font-size:16px; color:var(--text-secondary);">오늘의 분노 지수</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="statDishes">0</div>
+          <div class="result-stat-label">깬 접시</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statCombo">0</div>
+          <div class="result-stat-label">최고 콤보</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="statBest">0</div>
+          <div class="result-stat-label">역대 최고</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">🔥 다시 하기</button>
+        <a href="../../index.html" class="btn btn-secondary">🏠 다른 게임</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { InputManager } from '../../shared/engine/InputManager.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+    const input = new InputManager(canvas);
+
+    let dishes = [];
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let dishesSmashed = 0;
+    let timeLeft = 60;
+    let gameRunning = false;
+    let soundEnabled = true;
+    let timerInterval = null;
+    let scorePopups = [];
+    let mouseX = 400, mouseY = 300;
+    let glassShards = []; // glass shard particles
+    let slashTrails = []; // slash trail effect
+
+    // ============ GLASS SHARD CLASS ============
+    class GlassShard {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 6;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed - 3;
+        this.gravity = 0.25;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.4;
+        this.life = 1;
+        this.decay = 0.008 + Math.random() * 0.012;
+        this.color = color;
+        // Shard shape: triangular polygon points
+        const s = 4 + Math.random() * 8;
+        this.points = [
+          { x: 0, y: -s },
+          { x: s * (0.3 + Math.random() * 0.7), y: s * (0.2 + Math.random() * 0.5) },
+          { x: -s * (0.3 + Math.random() * 0.7), y: s * (0.3 + Math.random() * 0.4) },
+        ];
+        // Shine
+        this.shine = Math.random() > 0.5;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.vy += this.gravity;
+        this.y += this.vy;
+        this.vx *= 0.99;
+        this.rotation += this.rotSpeed;
+        this.life -= this.decay;
+      }
+
+      get dead() { return this.life <= 0 || this.y > 700; }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = Math.max(0, this.life);
+
+        // Shard body
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        for (let i = 1; i < this.points.length; i++) {
+          ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Glass shine/reflection
+        if (this.shine) {
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath();
+          ctx.moveTo(this.points[0].x * 0.5, this.points[0].y * 0.5);
+          ctx.lineTo(this.points[1].x * 0.3, this.points[1].y * 0.3);
+          ctx.lineTo(this.points[2].x * 0.3, this.points[2].y * 0.3);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Edge highlight
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        ctx.lineTo(this.points[1].x, this.points[1].y);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    // ============ DRAW KNIFE CURSOR ============
+    function drawKnife(ctx, x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-0.4); // slight angle
+      ctx.scale(2.2, 2.2); // bigger knife!
+
+      // Blade glow
+      ctx.shadowColor = 'rgba(200,220,255,0.3)';
+      ctx.shadowBlur = 8;
+
+      // Blade
+      ctx.fillStyle = '#C0C0C0';
+      ctx.beginPath();
+      ctx.moveTo(0, -28);    // tip
+      ctx.lineTo(6, -5);     // right edge
+      ctx.lineTo(5, 8);      // right base
+      ctx.lineTo(-5, 8);     // left base
+      ctx.lineTo(-4, -5);    // left edge
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+
+      // Blade shine
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(-1, -26);
+      ctx.lineTo(2, -5);
+      ctx.lineTo(1, 8);
+      ctx.lineTo(-2, 8);
+      ctx.lineTo(-2, -5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Blade edge (sharp side)
+      ctx.strokeStyle = '#E8E8E8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -28);
+      ctx.lineTo(6, -5);
+      ctx.stroke();
+
+      // Guard
+      ctx.fillStyle = '#8B7355';
+      ctx.fillRect(-8, 8, 16, 5);
+
+      // Handle
+      const handleGrad = ctx.createLinearGradient(-5, 13, 5, 13);
+      handleGrad.addColorStop(0, '#5C3A1E');
+      handleGrad.addColorStop(0.5, '#8B5E3C');
+      handleGrad.addColorStop(1, '#5C3A1E');
+      ctx.fillStyle = handleGrad;
+      ctx.beginPath();
+      ctx.roundRect(-5, 13, 10, 20, 2);
+      ctx.fill();
+
+      // Handle rivets
+      ctx.fillStyle = '#C0A070';
+      ctx.beginPath();
+      ctx.arc(0, 18, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, 26, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // ============ REALISTIC DISH DRAWING ============
+    function drawDish(ctx, dish) {
+      ctx.save();
+      ctx.translate(dish.x, dish.y);
+      ctx.rotate(dish.rotation);
+      const s = dish.size;
+
+      if (dish.name === 'plate') {
+        // Outer rim
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.beginPath();
+        ctx.ellipse(3, 4, s, s * 0.38, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Plate outer
+        const outerGrad = ctx.createRadialGradient(-s * 0.15, -s * 0.1, 0, 0, 0, s);
+        outerGrad.addColorStop(0, '#FFFFFF');
+        outerGrad.addColorStop(0.7, '#F0F0F0');
+        outerGrad.addColorStop(1, '#D8D8D8');
+        ctx.fillStyle = outerGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s, s * 0.38, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rim ring
+        ctx.strokeStyle = '#C8C8C8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.85, s * 0.32, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner well
+        const innerGrad = ctx.createRadialGradient(-s * 0.1, -s * 0.05, 0, 0, 0, s * 0.65);
+        innerGrad.addColorStop(0, '#FAFAFA');
+        innerGrad.addColorStop(1, '#E8E8E8');
+        ctx.fillStyle = innerGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.65, s * 0.24, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Blue decorative pattern (like fine china)
+        ctx.strokeStyle = 'rgba(70, 100, 180, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.75, s * 0.28, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Highlight reflection
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.25, -s * 0.1, s * 0.25, s * 0.08, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (dish.name === 'cup') {
+        // Cup shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        ctx.beginPath();
+        ctx.ellipse(3, s * 0.6, s * 0.5, s * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cup body (trapezoid-ish)
+        const cupGrad = ctx.createLinearGradient(-s * 0.5, 0, s * 0.5, 0);
+        cupGrad.addColorStop(0, '#C8DFF0');
+        cupGrad.addColorStop(0.3, '#E8F4FF');
+        cupGrad.addColorStop(0.7, '#D8ECFA');
+        cupGrad.addColorStop(1, '#A8C8E0');
+        ctx.fillStyle = cupGrad;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.4, -s * 0.5);
+        ctx.lineTo(s * 0.4, -s * 0.5);
+        ctx.lineTo(s * 0.35, s * 0.4);
+        ctx.quadraticCurveTo(0, s * 0.55, -s * 0.35, s * 0.4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cup rim
+        ctx.fillStyle = '#D0E5F5';
+        ctx.beginPath();
+        ctx.ellipse(0, -s * 0.5, s * 0.4, s * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#A0BFD8';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Handle
+        ctx.strokeStyle = '#B0CCE0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(s * 0.5, 0, s * 0.2, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.stroke();
+
+        // Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.15, -s * 0.15, s * 0.1, s * 0.3, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (dish.name === 'vase') {
+        // Vase shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.beginPath();
+        ctx.ellipse(4, s * 0.6, s * 0.35, s * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Vase body
+        const vaseGrad = ctx.createLinearGradient(-s * 0.4, 0, s * 0.4, 0);
+        vaseGrad.addColorStop(0, '#B8860B');
+        vaseGrad.addColorStop(0.3, '#DEB887');
+        vaseGrad.addColorStop(0.6, '#F4D9A0');
+        vaseGrad.addColorStop(1, '#B8860B');
+        ctx.fillStyle = vaseGrad;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.2, -s * 0.6);  // neck top left
+        ctx.quadraticCurveTo(-s * 0.15, -s * 0.35, -s * 0.45, -s * 0.05); // shoulder
+        ctx.quadraticCurveTo(-s * 0.5, s * 0.3, -s * 0.3, s * 0.55);  // belly
+        ctx.lineTo(s * 0.3, s * 0.55);   // bottom
+        ctx.quadraticCurveTo(s * 0.5, s * 0.3, s * 0.45, -s * 0.05);  // right belly
+        ctx.quadraticCurveTo(s * 0.15, -s * 0.35, s * 0.2, -s * 0.6); // right neck
+        ctx.closePath();
+        ctx.fill();
+
+        // Neck rim
+        ctx.fillStyle = '#C89850';
+        ctx.beginPath();
+        ctx.ellipse(0, -s * 0.6, s * 0.2, s * 0.06, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Decorative bands
+        ctx.strokeStyle = 'rgba(139, 90, 43, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, s * 0.1, s * 0.47, s * 0.06, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, s * 0.25, s * 0.42, s * 0.05, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.15, -s * 0.1, s * 0.08, s * 0.35, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Dish types
+    const dishTypes = [
+      { name: 'plate', size: 55, speedMul: 1, scoreMul: 1, fragColors: ['#FFFFFF', '#E8E8E8', '#D0D0D0', '#B8B8B8', 'rgba(180,200,220,0.7)'] },
+      { name: 'cup', size: 35, speedMul: 1.5, scoreMul: 2, fragColors: ['#E8F4FF', '#C8DFF0', '#A8C8E0', '#FFFFFF', 'rgba(150,200,240,0.6)'] },
+      { name: 'vase', size: 60, speedMul: 0.6, scoreMul: 1.5, fragColors: ['#DEB887', '#F4D9A0', '#C89850', '#FFE4C4', 'rgba(200,160,80,0.6)'] },
+    ];
+
+    class Dish {
+      constructor() {
+        const type = dishTypes[Math.floor(Math.random() * dishTypes.length)];
+        Object.assign(this, type);
+        this.x = -this.size;
+        this.y = 100 + Math.random() * 400;
+        const speed = (3 + Math.random() * 3 + (60 - timeLeft) * 0.05) * this.speedMul;
+        const angle = -0.3 + Math.random() * 0.6;
+        this.vx = speed;
+        this.vy = Math.sin(angle) * speed * 0.5;
+        this.rotation = 0;
+        this.rotSpeed = (Math.random() - 0.5) * 0.15;
+        this.alive = true;
+        this.wobble = Math.random() * Math.PI * 2;
+      }
+
+      update(dt) {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.wobble += 0.05;
+        this.y += Math.sin(this.wobble) * 0.5;
+        this.rotation += this.rotSpeed;
+        if (this.x > canvas.width + this.size * 2) {
+          this.alive = false;
+          if (gameRunning) { combo = 0; updateComboDisplay(); }
+        }
+      }
+
+      draw(ctx) { drawDish(ctx, this); }
+
+      hitTest(px, py) {
+        const dx = px - this.x;
+        const dy = py - this.y;
+        const hitW = this.name === 'cup' ? this.size * 0.7 : this.size;
+        const hitH = this.name === 'plate' ? this.size * 0.5 : this.size * 0.7;
+        return (dx * dx) / (hitW * hitW) + (dy * dy) / (hitH * hitH) <= 1;
+      }
+    }
+
+    function spawnDish() {
+      if (!gameRunning) return;
+      dishes.push(new Dish());
+      const interval = Math.max(300, 1200 - (60 - timeLeft) * 15);
+      setTimeout(spawnDish, interval + Math.random() * 400);
+    }
+
+    function smashDish(dish, px, py) {
+      dish.alive = false;
+      dishesSmashed++;
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+
+      const comboMul = Math.min(combo, 10);
+      const points = Math.round(100 * dish.scoreMul * (1 + comboMul * 0.3));
+      score += points;
+
+      // Glass shards flying out!
+      const shardCount = 18 + comboMul * 4;
+      for (let i = 0; i < shardCount; i++) {
+        const color = dish.fragColors[Math.floor(Math.random() * dish.fragColors.length)];
+        glassShards.push(new GlassShard(px, py, color));
+      }
+
+      // Sparkle particles (small bright dots)
+      particles.emit(px, py, 12 + comboMul * 3, {
+        colors: ['#FFFFFF', '#FFD700', 'rgba(255,255,255,0.8)'],
+        speed: 2 + comboMul * 0.5,
+        gravity: 0.05,
+        size: 1 + Math.random() * 2,
+        shape: 'circle',
+        decay: 0.03,
+      });
+
+      // Slash trail
+      slashTrails.push({ x: px, y: py, life: 1 });
+
+      shake.trigger(5 + comboMul * 1.5, 0.3);
+
+      if (soundEnabled) {
+        sound.playBreak();
+        if (combo >= 3) sound.playCombo(combo);
+      }
+
+      scorePopups.push({ x: px, y: py, text: `+${points}`, life: 1, combo: combo >= 3 });
+
+      updateHUD();
+      updateComboDisplay();
+      scoreManager.addStat('dishesSmashed');
+    }
+
+    function updateHUD() {
+      document.getElementById('score').textContent = score.toLocaleString();
+    }
+
+    function updateComboDisplay() {
+      const el = document.getElementById('comboDisplay');
+      if (combo >= 2) {
+        el.textContent = `${combo}x 콤보!`;
+        el.classList.add('active');
+      } else {
+        el.textContent = '';
+        el.classList.remove('active');
+      }
+    }
+
+    // Track mouse position for knife cursor
+    canvas.addEventListener('mousemove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      mouseX = (e.clientX - r.left) * (canvas.width / r.width);
+      mouseY = (e.clientY - r.top) * (canvas.height / r.height);
+    });
+    canvas.addEventListener('touchmove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      const t = e.touches[0];
+      mouseX = (t.clientX - r.left) * (canvas.width / r.width);
+      mouseY = (t.clientY - r.top) * (canvas.height / r.height);
+    }, { passive: true });
+
+    // Input
+    input.on('pointerdown', ({ x, y }) => {
+      if (!gameRunning) return;
+      sound.resume();
+      mouseX = x;
+      mouseY = y;
+
+      let hit = false;
+      for (let i = dishes.length - 1; i >= 0; i--) {
+        if (dishes[i].alive && dishes[i].hitTest(x, y)) {
+          smashDish(dishes[i], x, y);
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) {
+        combo = 0;
+        updateComboDisplay();
+        // Slash on empty air
+        slashTrails.push({ x, y, life: 0.6 });
+      }
+    });
+
+    // Game loop
+    const loop = new GameLoop({
+      update(dt) {
+        if (!gameRunning) return;
+        dishes.forEach(d => d.update(dt));
+        dishes = dishes.filter(d => d.alive || d.x <= canvas.width + 100);
+        particles.update(dt);
+        shake.update(dt);
+
+        // Update glass shards
+        for (let i = glassShards.length - 1; i >= 0; i--) {
+          glassShards[i].update();
+          if (glassShards[i].dead) glassShards.splice(i, 1);
+        }
+
+        // Score popups
+        scorePopups.forEach(p => { p.life -= dt * 1.5; p.y -= 40 * dt; });
+        scorePopups = scorePopups.filter(p => p.life > 0);
+
+        // Slash trails
+        slashTrails.forEach(s => s.life -= dt * 3);
+        slashTrails = slashTrails.filter(s => s.life > 0);
+      },
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        shake.apply(ctx);
+
+        // Background gradient
+        const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bg.addColorStop(0, '#0D0D2B');
+        bg.addColorStop(1, '#1A0A2E');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+        // Subtle grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 50) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 50) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+
+        // Dishes (realistic)
+        dishes.forEach(d => { if (d.alive) d.draw(ctx); });
+
+        // Glass shards
+        for (const shard of glassShards) {
+          shard.draw(ctx);
+        }
+
+        // Sparkle particles
+        particles.draw(ctx);
+
+        // Slash trails
+        for (const s of slashTrails) {
+          ctx.save();
+          ctx.globalAlpha = s.life;
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#FFD700';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.moveTo(s.x - 20, s.y - 20);
+          ctx.lineTo(s.x + 20, s.y + 20);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(s.x + 15, s.y - 15);
+          ctx.lineTo(s.x - 15, s.y + 15);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Score popups
+        scorePopups.forEach(p => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.combo ? '#FF3B3B' : '#FFD700';
+          ctx.font = `${p.combo ? '900' : '700'} ${p.combo ? 28 : 22}px "Noto Sans KR", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
+          if (p.combo) {
+            ctx.fillStyle = '#FF8C00';
+            ctx.font = '600 14px "Noto Sans KR", sans-serif';
+            ctx.fillText(`${combo}x 콤보!`, p.x, p.y + 22);
+          }
+          ctx.restore();
+        });
+
+        // Knife cursor (drawn last, on top)
+        if (gameRunning) {
+          drawKnife(ctx, mouseX, mouseY);
+        }
+
+        ctx.restore();
+      }
+    });
+
+    // Timer
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 10) {
+          document.getElementById('timer').style.color = 'var(--rage-red)';
+        }
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+      document.body.classList.remove('game-active');
+
+      if (soundEnabled) sound.playVictory();
+      scoreManager.addScore('dish-smash', score);
+      recordSystem.showSubmitFlow('dish-smash', score);
+
+      document.getElementById('finalScore').textContent = score.toLocaleString();
+      document.getElementById('resultMessage').textContent = scoreManager.getAngerMessage(score);
+      document.getElementById('statDishes').textContent = dishesSmashed;
+      document.getElementById('statCombo').textContent = maxCombo + 'x';
+      document.getElementById('statBest').textContent = scoreManager.getBest('dish-smash').toLocaleString();
+      document.getElementById('resultScreen').style.display = 'flex';
+    }
+
+    window._showLeaderboard = () => recordSystem.showLeaderboard('dish-smash');
+    window.startGame = function() {
+      document.getElementById('startScreen').style.display = 'none';
+      document.body.classList.add('game-active');
+      sound.init();
+      sound.resume();
+      if (soundEnabled) sound.playClick();
+
+      let count = 3;
+      const cdEl = document.createElement('div');
+      cdEl.className = 'countdown';
+      cdEl.textContent = count;
+      document.body.appendChild(cdEl);
+
+      const cdInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          cdEl.textContent = count;
+          cdEl.style.animation = 'none';
+          cdEl.offsetHeight;
+          cdEl.style.animation = 'bounceIn 0.5s ease-out';
+          if (soundEnabled) sound.playClick();
+        } else {
+          cdEl.textContent = '베어!';
+          cdEl.style.color = 'var(--relief-yellow)';
+          if (soundEnabled) sound.playExplosion();
+          setTimeout(() => {
+            cdEl.remove();
+            gameRunning = true;
+            spawnDish();
+            startTimer();
+          }, 600);
+          clearInterval(cdInterval);
+        }
+      }, 800);
+
+      loop.start();
+    };
+
+    window.restartGame = function() {
+      document.getElementById('resultScreen').style.display = 'none';
+      document.body.classList.add('game-active');
+      dishes = [];
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      dishesSmashed = 0;
+      timeLeft = 60;
+      scorePopups = [];
+      glassShards = [];
+      slashTrails = [];
+      particles.clear();
+      document.getElementById('timer').textContent = '60';
+      document.getElementById('timer').style.color = '';
+      updateHUD();
+      updateComboDisplay();
+      gameRunning = true;
+      spawnDish();
+      startTimer();
+    };
+
+    window.toggleSound = function() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundBtn').textContent = soundEnabled ? '🔊 사운드 ON' : '🔇 사운드 OFF';
+    };
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const maxW = Math.min(container.clientWidth - 20, 800);
+      const ratio = maxW / 800;
+      canvas.style.width = `${800 * ratio}px`;
+      canvas.style.height = `${600 * ratio}px`;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>

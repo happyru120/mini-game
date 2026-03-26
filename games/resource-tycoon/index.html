@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>자원 관리자 (Resource Tycoon)</title>
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    :root {
+      --earth-brown: #8B4513;
+      --earth-dark: #1a1207;
+      --earth-surface: #2a1f0e;
+      --earth-card: #3d2b14;
+      --earth-border: #5a3d1a;
+      --food-green: #4CAF50;
+      --wood-brown: #A0522D;
+      --gold-yellow: #FFD700;
+      --pop-blue: #4FC3F7;
+    }
+
+    body {
+      background: var(--earth-dark);
+      min-height: 100vh;
+    }
+
+    #game-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 12px;
+      position: relative;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .top-bar-left {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: var(--earth-card);
+      border: 1px solid var(--earth-border);
+      color: #ccc;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: var(--earth-border);
+    }
+
+    .icon-btn.muted {
+      color: #666;
+    }
+
+    .turn-display {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold-yellow);
+    }
+
+    /* Resource Bar */
+    .resource-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      background: var(--earth-surface);
+      border-radius: 12px;
+      border: 1px solid var(--earth-border);
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .resource-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--earth-card);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      min-width: 100px;
+      justify-content: center;
+    }
+
+    .resource-item .emoji {
+      font-size: 20px;
+    }
+
+    .resource-item .value {
+      color: #fff;
+    }
+
+    .resource-item .delta {
+      font-size: 12px;
+      color: var(--food-green);
+      margin-left: 2px;
+    }
+
+    .resource-item.food .value { color: var(--food-green); }
+    .resource-item.wood .value { color: var(--wood-brown); }
+    .resource-item.gold .value { color: var(--gold-yellow); }
+    .resource-item.pop .value { color: var(--pop-blue); }
+
+    /* Population goal */
+    .pop-goal {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .pop-goal .goal-bar {
+      width: 100%;
+      max-width: 300px;
+      height: 8px;
+      background: var(--earth-card);
+      border-radius: 4px;
+      margin: 4px auto 0;
+      overflow: hidden;
+    }
+
+    .pop-goal .goal-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--pop-blue), #00E5FF);
+      border-radius: 4px;
+      transition: width 0.5s;
+    }
+
+    /* Building Grid */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #aaa;
+      margin: 12px 0 8px;
+      padding-left: 4px;
+    }
+
+    .building-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .building-card {
+      background: var(--earth-card);
+      border: 2px solid var(--earth-border);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .building-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold-yellow);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+    }
+
+    .building-card.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .building-card .b-emoji {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .building-card .b-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .building-card .b-effect {
+      font-size: 11px;
+      color: var(--food-green);
+      margin-bottom: 6px;
+    }
+
+    .building-card .b-cost {
+      font-size: 11px;
+      color: #bbb;
+    }
+
+    .building-card .b-count {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--gold-yellow);
+      background: rgba(0,0,0,0.5);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    /* Built buildings display */
+    .built-area {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      min-height: 30px;
+      padding: 8px;
+      background: var(--earth-surface);
+      border-radius: 8px;
+      border: 1px solid var(--earth-border);
+      margin-bottom: 12px;
+    }
+
+    .built-icon {
+      font-size: 22px;
+      animation: bounceIn 0.3s ease-out;
+    }
+
+    /* Event log */
+    .event-log {
+      background: var(--earth-surface);
+      border: 1px solid var(--earth-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .event-log .event-entry {
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .event-entry.good { color: var(--food-green); }
+    .event-entry.bad { color: #FF5252; }
+    .event-entry.neutral { color: var(--pop-blue); }
+
+    /* Next turn button */
+    .next-turn-area {
+      text-align: center;
+      margin: 12px 0;
+    }
+
+    .btn-next-turn {
+      background: linear-gradient(135deg, var(--earth-brown), #A0522D);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      padding: 14px 48px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4);
+    }
+
+    .btn-next-turn:hover {
+      box-shadow: 0 6px 20px rgba(139, 69, 19, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn-next-turn:active {
+      transform: scale(0.95);
+    }
+
+    /* Canvas overlay for particles */
+    #fx-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Start Screen */
+    .screen-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 6, 2, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(6px);
+    }
+
+    .screen-overlay.hidden {
+      display: none;
+    }
+
+    .screen-card {
+      background: linear-gradient(145deg, var(--earth-surface), var(--earth-dark));
+      border: 2px solid var(--earth-border);
+      border-radius: 24px;
+      padding: 36px;
+      text-align: center;
+      max-width: 440px;
+      width: 92%;
+      animation: bounceIn 0.5s ease-out;
+    }
+
+    .screen-card h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--gold-yellow), var(--wood-brown));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .screen-card .subtitle {
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .difficulty-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .diff-btn {
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: 2px solid var(--earth-border);
+      background: var(--earth-card);
+      color: #ccc;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .diff-btn:hover, .diff-btn.selected {
+      border-color: var(--gold-yellow);
+      color: var(--gold-yellow);
+      background: rgba(255, 215, 0, 0.1);
+    }
+
+    .diff-btn .diff-desc {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    /* Result screen extras */
+    .result-detail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .result-detail-item {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .result-detail-item .label {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .result-detail-item .val {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--gold-yellow);
+    }
+
+    .win-text {
+      color: var(--food-green);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .lose-text {
+      color: #FF5252;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    /* Event notification popup */
+    .event-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--earth-surface);
+      border: 2px solid var(--gold-yellow);
+      border-radius: 16px;
+      padding: 24px 32px;
+      z-index: 150;
+      text-align: center;
+      animation: bounceIn 0.4s ease-out;
+      min-width: 250px;
+    }
+
+    .event-popup.hidden {
+      display: none;
+    }
+
+    .event-popup .ev-emoji {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .event-popup .ev-title {
+      font-size: 20px;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .event-popup .ev-desc {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 12px;
+    }
+
+    .event-popup .ev-btn {
+      background: var(--earth-card);
+      border: 1px solid var(--earth-border);
+      color: #fff;
+      padding: 8px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+    }
+
+    .event-popup.good { border-color: var(--food-green); }
+    .event-popup.bad { border-color: #FF5252; }
+
+    @media (max-width: 480px) {
+      .screen-card { padding: 24px 16px; }
+      .screen-card h1 { font-size: 26px; }
+      .building-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+      .resource-item { padding: 6px 10px; font-size: 13px; min-width: 80px; }
+      .btn-next-turn { padding: 12px 36px; font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- FX Canvas -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Start Screen -->
+  <div id="start-screen" class="screen-overlay">
+    <div class="screen-card">
+      <h1>자원 관리자</h1>
+      <p class="subtitle">Resource Tycoon</p>
+      <p style="color:#bbb; font-size:14px; margin-bottom:20px; line-height:1.6;">
+        30턴 안에 인구 100명을 달성하세요!<br>
+        자원을 모으고 건물을 지어 마을을 성장시키세요.
+      </p>
+      <p style="color:#999; font-size:13px; margin-bottom:10px;">난이도 선택</p>
+      <div class="difficulty-btns">
+        <button class="diff-btn" data-diff="easy" onclick="selectDifficulty('easy')">
+          쉬움
+          <div class="diff-desc">자원 2배 시작</div>
+        </button>
+        <button class="diff-btn selected" data-diff="normal" onclick="selectDifficulty('normal')">
+          보통
+          <div class="diff-desc">기본 시작</div>
+        </button>
+        <button class="diff-btn" data-diff="hard" onclick="selectDifficulty('hard')">
+          어려움
+          <div class="diff-desc">자원 절반 시작</div>
+        </button>
+      </div>
+      <button class="btn btn-primary" onclick="window.startGame()" style="margin-top:12px; font-size:18px; padding:14px 48px;">
+        게임 시작
+      </button>
+    </div>
+  </div>
+
+  <!-- Result Screen -->
+  <div id="result-screen" class="screen-overlay hidden">
+    <div class="screen-card">
+      <div id="result-emoji" style="font-size:56px; margin-bottom:8px;"></div>
+      <div id="result-title" class="win-text"></div>
+      <div id="result-message" style="color:#bbb; font-size:14px; margin:8px 0 16px; line-height:1.5;"></div>
+      <div id="result-details" class="result-detail"></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="window.restartGame()">다시 하기</button>
+        <a href="../../index.html" class="btn btn-secondary" style="text-decoration:none;">메인으로</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Popup -->
+  <div id="event-popup" class="event-popup hidden">
+    <span class="ev-emoji" id="ev-emoji"></span>
+    <div class="ev-title" id="ev-title"></div>
+    <div class="ev-desc" id="ev-desc"></div>
+    <button class="ev-btn" onclick="dismissEvent()">확인</button>
+  </div>
+
+  <!-- Game UI -->
+  <div id="game-container" style="display:none;">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <a href="../../index.html" class="icon-btn" title="메인으로" style="text-decoration:none;">←</a>
+        <button class="icon-btn" id="sound-btn" onclick="window.toggleSound()" title="사운드 토글">🔊</button>
+      </div>
+      <div class="turn-display">턴 <span id="turn-num">1</span> / <span id="turn-max">30</span></div>
+    </div>
+
+    <!-- Resource Bar -->
+    <div class="resource-bar">
+      <div class="resource-item food">
+        <span class="emoji">🌾</span>
+        <span class="value" id="res-food">50</span>
+        <span class="delta" id="delta-food">(+0)</span>
+      </div>
+      <div class="resource-item wood">
+        <span class="emoji">🪵</span>
+        <span class="value" id="res-wood">50</span>
+        <span class="delta" id="delta-wood">(+0)</span>
+      </div>
+      <div class="resource-item gold">
+        <span class="emoji">💰</span>
+        <span class="value" id="res-gold">30</span>
+        <span class="delta" id="delta-gold">(+0)</span>
+      </div>
+      <div class="resource-item pop">
+        <span class="emoji">👥</span>
+        <span class="value" id="res-pop">10</span>
+        <span class="delta" id="delta-pop">/ 100</span>
+      </div>
+    </div>
+
+    <!-- Population Goal -->
+    <div class="pop-goal">
+      인구 목표: <span id="pop-current">10</span> / 100
+      <div class="goal-bar">
+        <div class="goal-fill" id="pop-fill" style="width: 10%;"></div>
+      </div>
+    </div>
+
+    <!-- Building Grid -->
+    <div class="section-title">🏗️ 건설 (클릭하여 건설)</div>
+    <div class="building-grid" id="building-grid"></div>
+
+    <!-- Built Buildings -->
+    <div class="section-title">🏘️ 건설된 건물</div>
+    <div class="built-area" id="built-area">
+      <span style="color:#666; font-size:13px;">아직 건설된 건물이 없습니다</span>
+    </div>
+
+    <!-- Event Log -->
+    <div class="section-title">📜 기록</div>
+    <div class="event-log" id="event-log">
+      <div class="event-entry neutral">🏁 게임이 시작되었습니다. 마을을 발전시키세요!</div>
+    </div>
+
+    <!-- Next Turn -->
+    <div class="next-turn-area">
+      <button class="btn-next-turn" id="btn-next-turn" onclick="nextTurn()">다음 턴 ▶</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameLoop } from '../../shared/engine/GameLoop.js';
+    import { ParticleSystem } from '../../shared/engine/ParticleSystem.js';
+    import { ScreenShake } from '../../shared/engine/ScreenShake.js';
+    import { SoundManager } from '../../shared/engine/SoundManager.js';
+    import { ScoreManager } from '../../shared/engine/ScoreManager.js';
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    // ── Engine instances ──
+    const particles = new ParticleSystem();
+    const shake = new ScreenShake();
+    const sound = new SoundManager();
+    const scoreManager = new ScoreManager();
+
+    // Canvas setup
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Game loop for particles
+    const gameLoop = new GameLoop({
+      update(dt) {
+        particles.update(dt);
+        shake.update(dt);
+      },
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        shake.apply(ctx);
+        particles.draw(ctx);
+        ctx.restore();
+      }
+    });
+    gameLoop.start();
+
+    // ── Sound state ──
+    let soundEnabled = true;
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      sound.resume();
+      switch (type) {
+        case 'build': sound.playPop(); break;
+        case 'turn': sound.playClick(); break;
+        case 'event_good': sound.playCombo(2); break;
+        case 'event_bad': sound.playHit(); break;
+        case 'victory': sound.playVictory(); break;
+        case 'explosion': sound.playExplosion(); break;
+      }
+    }
+
+    // ── Building Definitions ──
+    const BUILDINGS = [
+      {
+        id: 'farm',
+        name: '농장',
+        emoji: '🌾',
+        effect: '식량 +5/턴',
+        cost: { wood: 10 },
+        perTurn: { food: 5 },
+      },
+      {
+        id: 'lumber',
+        name: '벌목장',
+        emoji: '🪓',
+        effect: '목재 +5/턴',
+        cost: { gold: 20 },
+        perTurn: { wood: 5 },
+      },
+      {
+        id: 'mine',
+        name: '광산',
+        emoji: '⛏️',
+        effect: '금 +5/턴',
+        cost: { food: 15, wood: 15 },
+        perTurn: { gold: 5 },
+      },
+      {
+        id: 'housing',
+        name: '주거지',
+        emoji: '🏠',
+        effect: '인구 +5',
+        cost: { food: 10, wood: 10, gold: 10 },
+        perTurn: {},
+        popBonus: 5,
+      },
+      {
+        id: 'market',
+        name: '시장',
+        emoji: '🏪',
+        effect: '모든 자원 +2/턴',
+        cost: { gold: 50 },
+        perTurn: { food: 2, wood: 2, gold: 2 },
+      },
+    ];
+
+    // ── Random Events ──
+    const EVENTS = [
+      {
+        id: 'drought',
+        name: '가뭄',
+        emoji: '☀️',
+        desc: '극심한 가뭄으로 식량이 줄었습니다!',
+        type: 'bad',
+        apply: (state) => { state.food = Math.max(0, state.food - 20); },
+        summary: '식량 -20',
+      },
+      {
+        id: 'merchant',
+        name: '상인 방문',
+        emoji: '🧳',
+        desc: '떠돌이 상인이 자원을 나눠주었습니다!',
+        type: 'good',
+        apply: (state) => { state.food += 10; state.wood += 10; state.gold += 10; },
+        summary: '식량+10, 목재+10, 금+10',
+      },
+      {
+        id: 'bandits',
+        name: '도적 습격',
+        emoji: '🗡️',
+        desc: '도적들이 금을 약탈했습니다!',
+        type: 'bad',
+        apply: (state) => { state.gold = Math.max(0, state.gold - 15); },
+        summary: '금 -15',
+      },
+      {
+        id: 'harvest',
+        name: '풍년',
+        emoji: '🌈',
+        desc: '대풍년! 식량이 크게 늘었습니다!',
+        type: 'good',
+        apply: (state) => { state.food += 30; },
+        summary: '식량 +30',
+      },
+    ];
+
+    // ── Game State ──
+    let state = {};
+    let difficulty = 'normal';
+    let eventPopupResolve = null;
+
+    const DIFFICULTY_MULT = { easy: 2, normal: 1, hard: 0.5 };
+    const MAX_TURNS = 30;
+    const POP_GOAL = 100;
+
+    function initState() {
+      const mult = DIFFICULTY_MULT[difficulty];
+      state = {
+        food: Math.floor(50 * mult),
+        wood: Math.floor(50 * mult),
+        gold: Math.floor(30 * mult),
+        population: 10,
+        turn: 1,
+        buildings: {},  // { farm: 2, mine: 1, ... }
+        log: [],
+        gameOver: false,
+      };
+      BUILDINGS.forEach(b => state.buildings[b.id] = 0);
+    }
+
+    // ── UI Helpers ──
+    function $(id) { return document.getElementById(id); }
+
+    function updateResourceUI() {
+      $('res-food').textContent = state.food;
+      $('res-wood').textContent = state.wood;
+      $('res-gold').textContent = state.gold;
+      $('res-pop').textContent = state.population;
+      $('pop-current').textContent = state.population;
+      $('pop-fill').style.width = Math.min(100, (state.population / POP_GOAL) * 100) + '%';
+      $('turn-num').textContent = state.turn;
+      $('turn-max').textContent = MAX_TURNS;
+
+      // Calculate deltas
+      const deltas = calcPerTurn();
+      $('delta-food').textContent = deltas.food > 0 ? `(+${deltas.food})` : '(+0)';
+      $('delta-wood').textContent = deltas.wood > 0 ? `(+${deltas.wood})` : '(+0)';
+      $('delta-gold').textContent = deltas.gold > 0 ? `(+${deltas.gold})` : '(+0)';
+      $('delta-pop').textContent = `/ ${POP_GOAL}`;
+    }
+
+    function calcPerTurn() {
+      const totals = { food: 0, wood: 0, gold: 0 };
+      BUILDINGS.forEach(b => {
+        const count = state.buildings[b.id] || 0;
+        for (const [res, val] of Object.entries(b.perTurn)) {
+          totals[res] += val * count;
+        }
+      });
+      return totals;
+    }
+
+    function canAfford(building) {
+      for (const [res, amount] of Object.entries(building.cost)) {
+        if (state[res] < amount) return false;
+      }
+      return true;
+    }
+
+    function costText(cost) {
+      const parts = [];
+      if (cost.food) parts.push(`🌾${cost.food}`);
+      if (cost.wood) parts.push(`🪵${cost.wood}`);
+      if (cost.gold) parts.push(`💰${cost.gold}`);
+      return parts.join(' ');
+    }
+
+    function renderBuildingGrid() {
+      const grid = $('building-grid');
+      grid.innerHTML = '';
+      BUILDINGS.forEach(b => {
+        const affordable = canAfford(b);
+        const card = document.createElement('div');
+        card.className = 'building-card' + (affordable ? '' : ' disabled');
+        card.innerHTML = `
+          <span class="b-emoji">${b.emoji}</span>
+          <div class="b-name">${b.name}</div>
+          <div class="b-effect">${b.effect}</div>
+          <div class="b-cost">${costText(b.cost)}</div>
+          ${state.buildings[b.id] > 0 ? `<span class="b-count">x${state.buildings[b.id]}</span>` : ''}
+        `;
+        if (affordable) {
+          card.addEventListener('click', (e) => buildBuilding(b, e));
+        }
+        grid.appendChild(card);
+      });
+    }
+
+    function renderBuiltArea() {
+      const area = $('built-area');
+      const icons = [];
+      BUILDINGS.forEach(b => {
+        for (let i = 0; i < (state.buildings[b.id] || 0); i++) {
+          icons.push(b.emoji);
+        }
+      });
+      if (icons.length === 0) {
+        area.innerHTML = '<span style="color:#666; font-size:13px;">아직 건설된 건물이 없습니다</span>';
+      } else {
+        area.innerHTML = icons.map(e => `<span class="built-icon">${e}</span>`).join('');
+      }
+    }
+
+    function addLog(text, type = 'neutral') {
+      state.log.unshift({ text, type });
+      if (state.log.length > 50) state.log.pop();
+      renderLog();
+    }
+
+    function renderLog() {
+      const log = $('event-log');
+      log.innerHTML = state.log
+        .slice(0, 20)
+        .map(e => `<div class="event-entry ${e.type}">${e.text}</div>`)
+        .join('');
+    }
+
+    // ── Build ──
+    function buildBuilding(building, event) {
+      if (state.gameOver) return;
+      if (!canAfford(building)) return;
+
+      // Deduct cost
+      for (const [res, amount] of Object.entries(building.cost)) {
+        state[res] -= amount;
+      }
+
+      // Add building
+      state.buildings[building.id]++;
+
+      // Population bonus
+      if (building.popBonus) {
+        state.population += building.popBonus;
+      }
+
+      // Particle effect
+      const rect = event.currentTarget.getBoundingClientRect();
+      const px = rect.left + rect.width / 2;
+      const py = rect.top + rect.height / 2;
+
+      const colorMap = {
+        farm: ['#4CAF50', '#8BC34A', '#CDDC39', '#fff'],
+        lumber: ['#A0522D', '#8B4513', '#D2691E', '#fff'],
+        mine: ['#FFD700', '#FFA000', '#FF8F00', '#fff'],
+        housing: ['#4FC3F7', '#03A9F4', '#0288D1', '#fff'],
+        market: ['#FF9800', '#FFD700', '#FFC107', '#fff'],
+      };
+      particles.emit(px, py, 25, {
+        colors: colorMap[building.id] || ['#FFD700', '#fff'],
+        speed: 4,
+        gravity: 0.1,
+        shape: 'circle',
+      });
+
+      playSound('build');
+      addLog(`🏗️ ${building.name} 건설! (${costText(building.cost)})`, 'good');
+
+      updateResourceUI();
+      renderBuildingGrid();
+      renderBuiltArea();
+
+      // Check win
+      if (state.population >= POP_GOAL) {
+        endGame(true);
+      }
+    }
+
+    // ── Next Turn ──
+    async function nextTurn() {
+      if (state.gameOver) return;
+
+      // 1. Collect resources
+      const perTurn = calcPerTurn();
+      state.food += perTurn.food;
+      state.wood += perTurn.wood;
+      state.gold += perTurn.gold;
+
+      if (perTurn.food + perTurn.wood + perTurn.gold > 0) {
+        const parts = [];
+        if (perTurn.food > 0) parts.push(`🌾+${perTurn.food}`);
+        if (perTurn.wood > 0) parts.push(`🪵+${perTurn.wood}`);
+        if (perTurn.gold > 0) parts.push(`💰+${perTurn.gold}`);
+        addLog(`📦 자원 수집: ${parts.join(' ')}`, 'neutral');
+      }
+
+      playSound('turn');
+
+      // 2. Random event (40% chance)
+      if (Math.random() < 0.4) {
+        const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+        event.apply(state);
+        addLog(`${event.emoji} [${event.name}] ${event.summary}`, event.type === 'good' ? 'good' : 'bad');
+
+        // Show event popup
+        await showEventPopup(event);
+
+        if (event.type === 'good') {
+          playSound('event_good');
+        } else {
+          playSound('event_bad');
+          shake.trigger(6, 0.3);
+        }
+      }
+
+      // 3. Advance turn
+      state.turn++;
+      updateResourceUI();
+      renderBuildingGrid();
+
+      // Check end conditions
+      if (state.population >= POP_GOAL) {
+        endGame(true);
+      } else if (state.turn > MAX_TURNS) {
+        endGame(false);
+      }
+    }
+
+    // ── Event Popup ──
+    function showEventPopup(event) {
+      return new Promise(resolve => {
+        const popup = $('event-popup');
+        $('ev-emoji').textContent = event.emoji;
+        $('ev-title').textContent = event.name;
+        $('ev-desc').textContent = `${event.desc} (${event.summary})`;
+        popup.className = 'event-popup ' + (event.type === 'good' ? 'good' : 'bad');
+        eventPopupResolve = resolve;
+      });
+    }
+
+    function dismissEvent() {
+      $('event-popup').classList.add('hidden');
+      if (eventPopupResolve) {
+        eventPopupResolve();
+        eventPopupResolve = null;
+      }
+    }
+
+    // ── End Game ──
+    function endGame(won) {
+      state.gameOver = true;
+      $('btn-next-turn').style.display = 'none';
+
+      const totalBuildings = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+      const score = state.population * 10 + state.food + state.wood + state.gold + totalBuildings * 50;
+
+      scoreManager.addScore('resource-tycoon', score);
+      recordSystem.showSubmitFlow('resource-tycoon', score);
+
+      const resultScreen = $('result-screen');
+      $('result-emoji').textContent = won ? '🏆' : '😢';
+      $('result-title').textContent = won ? '승리!' : '패배...';
+      $('result-title').className = won ? 'win-text' : 'lose-text';
+      $('result-message').textContent = won
+        ? `축하합니다! ${state.turn}턴 만에 인구 ${POP_GOAL}명을 달성했습니다!`
+        : `${MAX_TURNS}턴이 지났지만 인구 ${state.population}명으로 목표에 도달하지 못했습니다.`;
+
+      $('result-details').innerHTML = `
+        <div class="result-detail-item">
+          <div class="label">최종 인구</div>
+          <div class="val">👥 ${state.population}</div>
+        </div>
+        <div class="result-detail-item">
+          <div class="label">사용한 턴</div>
+          <div class="val">⏱️ ${Math.min(state.turn, MAX_TURNS)}</div>
+        </div>
+        <div class="result-detail-item">
+          <div class="label">건설한 건물</div>
+          <div class="val">🏗️ ${totalBuildings}</div>
+        </div>
+        <div class="result-detail-item">
+          <div class="label">점수</div>
+          <div class="val">⭐ ${score}</div>
+        </div>
+        <div class="result-detail-item">
+          <div class="label">남은 식량</div>
+          <div class="val">🌾 ${state.food}</div>
+        </div>
+        <div class="result-detail-item">
+          <div class="label">난이도</div>
+          <div class="val">${difficulty === 'easy' ? '쉬움' : difficulty === 'normal' ? '보통' : '어려움'}</div>
+        </div>
+      `;
+
+      resultScreen.classList.remove('hidden');
+
+      if (won) {
+        playSound('victory');
+        // Victory particles
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            particles.emit(
+              Math.random() * window.innerWidth,
+              Math.random() * window.innerHeight * 0.5,
+              30,
+              {
+                colors: ['#FFD700', '#FF8C00', '#4CAF50', '#4FC3F7', '#fff'],
+                speed: 5,
+                gravity: 0.08,
+                shape: 'circle',
+              }
+            );
+          }, i * 200);
+        }
+      } else {
+        playSound('explosion');
+        shake.trigger(10, 0.5);
+      }
+    }
+
+    // ── Difficulty Selection ──
+    window.selectDifficulty = function(diff) {
+      difficulty = diff;
+      document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.diff === diff);
+      });
+    };
+
+    // ── Global Functions ──
+    window._showLeaderboard = () => recordSystem.showLeaderboard('resource-tycoon');
+    window.startGame = function() {
+      initState();
+      $('start-screen').classList.add('hidden');
+      $('result-screen').classList.add('hidden');
+      $('game-container').style.display = 'block';
+      $('btn-next-turn').style.display = '';
+      updateResourceUI();
+      renderBuildingGrid();
+      renderBuiltArea();
+      renderLog();
+      playSound('build');
+    };
+
+    window.restartGame = function() {
+      $('result-screen').classList.add('hidden');
+      $('event-popup').classList.add('hidden');
+      initState();
+      $('game-container').style.display = 'block';
+      $('btn-next-turn').style.display = '';
+      state.log = [{ text: '🏁 게임이 시작되었습니다. 마을을 발전시키세요!', type: 'neutral' }];
+      updateResourceUI();
+      renderBuildingGrid();
+      renderBuiltArea();
+      renderLog();
+      playSound('build');
+    };
+
+    window.toggleSound = function() {
+      soundEnabled = !soundEnabled;
+      const btn = $('sound-btn');
+      btn.textContent = soundEnabled ? '🔊' : '🔇';
+      btn.classList.toggle('muted', !soundEnabled);
+    };
+
+    // Expose nextTurn and dismissEvent to onclick handlers
+    window.nextTurn = nextTurn;
+    window.dismissEvent = dismissEvent;
+    window.selectDifficulty = window.selectDifficulty;
+  </script>
+</body>
+</html>
