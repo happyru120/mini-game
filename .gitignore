@@ -1,0 +1,9 @@
+# Dev tool internals
+.bkit/
+.claude/
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
