@@ -284,13 +284,25 @@ function drawBoss(ctx) {
     ctx.globalAlpha = 0.5 + Math.sin(target.hitFlash * 20) * 0.5;
   }
 
-  const baseColor = flash ? '#FF6B6B' : '#2C2C3E';
-  const suitColor = flash ? '#FF4444' : '#1A1A2E';
+  const skinColor = flash ? '#FFD2D2' : '#F2C6A8';
+  const suitColor = flash ? '#FF4444' : '#35507A';
+  const shirtColor = flash ? '#FFF7F7' : '#F3F7FF';
+  const outlineColor = flash ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.24)';
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
   ctx.ellipse(bx, target.bodyBottom + 10, 35, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Spotlight so the silhouette doesn't disappear into the office wall
+  const glow = ctx.createRadialGradient(bx, target.bodyTop + 70, 10, bx, target.bodyTop + 70, 150);
+  glow.addColorStop(0, flash ? 'rgba(255, 220, 180, 0.30)' : 'rgba(255, 255, 255, 0.16)');
+  glow.addColorStop(0.55, flash ? 'rgba(255, 120, 120, 0.14)' : 'rgba(120, 170, 255, 0.10)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(bx, target.bodyTop + 85, 120, 175, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (customBossName) {
@@ -320,6 +332,10 @@ function drawBoss(ctx) {
   ctx.fillStyle = suitColor;
   ctx.fillRect(bx - 18, target.bodyBottom - 30, 14, 55);
   ctx.fillRect(bx + 4, target.bodyBottom - 30, 14, 55);
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bx - 18, target.bodyBottom - 30, 14, 55);
+  ctx.strokeRect(bx + 4, target.bodyBottom - 30, 14, 55);
 
   // Shoes
   ctx.fillStyle = '#111';
@@ -335,6 +351,9 @@ function drawBoss(ctx) {
   ctx.lineTo(bx - 35, target.bodyBottom - 30);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   // Tie
   ctx.fillStyle = '#C0392B';
@@ -348,7 +367,7 @@ function drawBoss(ctx) {
   ctx.fill();
 
   // Shirt collar
-  ctx.fillStyle = '#ECF0F1';
+  ctx.fillStyle = shirtColor;
   ctx.beginPath();
   ctx.moveTo(bx - 12, target.bodyTop);
   ctx.lineTo(bx, target.bodyTop + 15);
@@ -362,18 +381,27 @@ function drawBoss(ctx) {
   ctx.translate(bx - 30, target.bodyTop + 10);
   ctx.rotate(-0.15);
   ctx.fillRect(-8, 0, 16, 60);
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-8, 0, 16, 60);
   ctx.restore();
   ctx.save();
   ctx.translate(bx + 30, target.bodyTop + 10);
   ctx.rotate(0.15);
   ctx.fillRect(-8, 0, 16, 60);
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-8, 0, 16, 60);
   ctx.restore();
 
   // Head
-  ctx.fillStyle = baseColor;
+  ctx.fillStyle = skinColor;
   ctx.beginPath();
   ctx.arc(bx, target.headY, target.headR, 0, Math.PI * 2);
   ctx.fill();
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   // Hair
   ctx.fillStyle = '#111';
@@ -739,11 +767,19 @@ function updateHUD() {
 function drawBackground(ctx) {
   // Office wall
   const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#1a1a2e');
-  grad.addColorStop(0.7, '#16213e');
-  grad.addColorStop(1, '#0f3460');
+  grad.addColorStop(0, '#202845');
+  grad.addColorStop(0.68, '#18233D');
+  grad.addColorStop(1, '#0F1D34');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
+
+  // Subtle light behind the target so the figure reads clearly at a glance
+  const wallLight = ctx.createRadialGradient(target.x, target.bodyTop + 60, 10, target.x, target.bodyTop + 60, 200);
+  wallLight.addColorStop(0, 'rgba(255,255,255,0.12)');
+  wallLight.addColorStop(0.45, 'rgba(120,170,255,0.08)');
+  wallLight.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = wallLight;
+  ctx.fillRect(target.x - 220, 80, 440, 360);
 
   // Floor
   ctx.fillStyle = '#0D0D1A';
