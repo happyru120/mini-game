@@ -284,10 +284,11 @@ function drawBoss(ctx) {
     ctx.globalAlpha = 0.5 + Math.sin(target.hitFlash * 20) * 0.5;
   }
 
-  const skinColor = flash ? '#FFD2D2' : '#F2C6A8';
-  const suitColor = flash ? '#FF4444' : '#35507A';
-  const shirtColor = flash ? '#FFF7F7' : '#F3F7FF';
-  const outlineColor = flash ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.24)';
+  const skinColor = flash ? '#FFE2DC' : '#FFD8C4';
+  const suitColor = flash ? '#FF4F5E' : '#4C6797';
+  const shirtColor = flash ? '#FFF7F7' : '#FAFCFF';
+  const hairColor = flash ? '#2C1A1A' : '#1B2233';
+  const outlineColor = flash ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.34)';
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -338,7 +339,7 @@ function drawBoss(ctx) {
   ctx.strokeRect(bx + 4, target.bodyBottom - 30, 14, 55);
 
   // Shoes
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = '#18202E';
   ctx.fillRect(bx - 20, target.bodyBottom + 22, 18, 8);
   ctx.fillRect(bx + 2, target.bodyBottom + 22, 18, 8);
 
@@ -404,7 +405,7 @@ function drawBoss(ctx) {
   ctx.stroke();
 
   // Hair
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = hairColor;
   ctx.beginPath();
   ctx.arc(bx, target.headY - 8, target.headR, Math.PI, Math.PI * 2);
   ctx.fill();
@@ -415,14 +416,14 @@ function drawBoss(ctx) {
   ctx.arc(bx - 9, target.headY - 2, 3, 0, Math.PI * 2);
   ctx.arc(bx + 9, target.headY - 2, 3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = '#1F2430';
   ctx.beginPath();
   ctx.arc(bx - 9, target.headY - 2, 1.5, 0, Math.PI * 2);
   ctx.arc(bx + 9, target.headY - 2, 1.5, 0, Math.PI * 2);
   ctx.fill();
 
   // Mouth (stern line)
-  ctx.strokeStyle = '#111';
+  ctx.strokeStyle = '#5C3A3A';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(bx - 7, target.headY + 10);
