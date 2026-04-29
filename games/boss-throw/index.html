@@ -25,6 +25,40 @@
       margin-bottom: 20px;
       opacity: 0.8;
     }
+    .name-input-wrap {
+      width: min(100%, 320px);
+      margin: 0 auto 18px;
+      text-align: left;
+    }
+    .name-input-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--apple-label-secondary);
+      margin-bottom: 8px;
+    }
+    .name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--apple-separator);
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
+      font-size: 15px;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .name-input:focus {
+      border-color: var(--apple-blue);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+    }
+    .name-input-help {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--apple-label-secondary);
+      line-height: 1.5;
+    }
     .countdown {
       position: fixed;
       inset: 0;
@@ -60,6 +94,11 @@
   <h1>상사한테 던지기</h1>
   <p class="disclaimer">이건 상상 속 이야기입니다 :)</p>
   <p>새총을 <strong style="color:#FFD700;">왼쪽·아래로 당겨</strong> 놓으면 발사! 🎯<br>머리=3배 / 몸통=2배 점수</p>
+  <div class="name-input-wrap">
+    <label class="name-input-label" for="bossNameInput">이름 넣기</label>
+    <input class="name-input" id="bossNameInput" maxlength="10" placeholder="예: 김부장" autocomplete="off">
+    <div class="name-input-help">입력하면 실루엣 위 이름표에 표시됩니다.</div>
+  </div>
   <p style="font-size:13px; color: var(--text-secondary);">5번 던지기 × 3라운드</p>
   <button class="btn btn-primary" onclick="window._showLeaderboard = () => recordSystem.showLeaderboard('boss-throw');
     window.startGame()">게임 시작</button>
@@ -111,6 +150,8 @@ let throwsLeft = 5;
 const MAX_ROUNDS = 3;
 const MAX_THROWS = 5;
 let currentObjectIndex = 0;
+let customBossName = '';
+const STRESS_NAME_STORAGE_KEY = 'mini_game_stress_name';
 
 // Stats tracking
 let stats = { headHits: 0, bodyHits: 0, misses: 0, totalThrows: 0, bestThrow: 0 };
@@ -252,6 +293,29 @@ function drawBoss(ctx) {
   ctx.ellipse(bx, target.bodyBottom + 10, 35, 8, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  if (customBossName) {
+    ctx.save();
+    const plateText = sanitizeStressName(customBossName);
+    ctx.font = '600 13px -apple-system, "Apple SD Gothic Neo", sans-serif';
+    const textWidth = ctx.measureText(plateText).width;
+    const badgeWidth = Math.max(72, textWidth + 24);
+    const badgeX = bx - badgeWidth / 2;
+    const badgeY = target.headY - 78;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    roundRect(ctx, badgeX, badgeY, badgeWidth, 28, 14);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#1A1A2E';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(plateText, bx, badgeY + 14);
+    ctx.restore();
+  }
+
   // Legs
   ctx.fillStyle = suitColor;
   ctx.fillRect(bx - 18, target.bodyBottom - 30, 14, 55);
@@ -343,6 +407,35 @@ function drawBoss(ctx) {
   }
 
   ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function sanitizeStressName(value) {
+  return (value || '').replace(/\s+/g, ' ').trim().slice(0, 10);
+}
+
+function loadStressName() {
+  try {
+    return sanitizeStressName(localStorage.getItem(STRESS_NAME_STORAGE_KEY) || '');
+  } catch {
+    return '';
+  }
+}
+
+function saveStressName(value) {
+  try {
+    localStorage.setItem(STRESS_NAME_STORAGE_KEY, value);
+  } catch {}
 }
 
 function drawStar(ctx, x, y, size, rot) {
@@ -863,6 +956,8 @@ function countdown(cb) {
 }
 
 window.startGame = function () {
+  customBossName = sanitizeStressName(document.getElementById('bossNameInput').value);
+  saveStressName(customBossName);
   document.getElementById('startOverlay').style.display = 'none';
   sound.init();
   sound.resume();
@@ -901,6 +996,8 @@ window.toggleSound = function () {
     sound.resume();
   }
 };
+
+document.getElementById('bossNameInput').value = loadStressName();
 
 function showResult() {
   gameState = 'result';

@@ -26,6 +26,40 @@
       flex-wrap: wrap;
       justify-content: center;
     }
+    .name-input-wrap {
+      width: min(100%, 320px);
+      margin: 0 auto 18px;
+      text-align: left;
+    }
+    .name-input-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--apple-label-secondary);
+      margin-bottom: 8px;
+    }
+    .name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--apple-separator);
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
+      font-size: 15px;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .name-input:focus {
+      border-color: var(--apple-blue);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+    }
+    .name-input-help {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--apple-label-secondary);
+      line-height: 1.5;
+    }
     .countdown {
       position: fixed;
       inset: 0;
@@ -201,6 +235,11 @@
     <h2 style="font-size:28px; font-weight:900;">🔥 분노의 타이핑</h2>
     <p style="font-size:18px; font-weight:700; color:#FF8C00; margin:0 0 8px;">키보드를 마구 두들겨!</p>
     <p>아무 글자나 막 쳐도 OK!<br>빠를수록, 많이 칠수록 점수 UP! 💥<br><span style="font-size:13px; color:var(--text-secondary);">30초 타이머</span></p>
+    <div class="name-input-wrap">
+      <label class="name-input-label" for="rageTargetNameInput">이름 넣기</label>
+      <input class="name-input" id="rageTargetNameInput" maxlength="10" placeholder="예: 김부장" autocomplete="off">
+      <div class="name-input-help">입력하면 자유 모드에서 아무 키를 눌러도 그 이름 글자가 순서대로 터집니다.</div>
+    </div>
     <div class="start-buttons">
       <button class="btn btn-primary" onclick="startGame(true)" style="font-size:22px; padding:20px 56px;">
         💥 두들기기 시작!
@@ -342,6 +381,8 @@
     let gameStartTime = 0;
     let lastCharTime = 0;
     let charExplosions = []; // floating completed chars
+    let customTargetName = '';
+    const STRESS_NAME_STORAGE_KEY = 'mini_game_stress_name';
 
     const encourageMessages = [
       { threshold: 3, text: '좋아! 계속!', color: '#FFD700' },
@@ -352,6 +393,37 @@
 
     // ---- Pick next text ----
     let lastTextIndex = -1;
+    function sanitizeStressName(value) {
+      return (value || '').replace(/\s+/g, ' ').trim().slice(0, 10);
+    }
+
+    function loadStressName() {
+      try {
+        return sanitizeStressName(localStorage.getItem(STRESS_NAME_STORAGE_KEY) || '');
+      } catch {
+        return '';
+      }
+    }
+
+    function saveStressName(value) {
+      try {
+        localStorage.setItem(STRESS_NAME_STORAGE_KEY, value);
+      } catch {}
+    }
+
+    function getFreeModeLabel() {
+      return customTargetName || '아무 키나 눌러서 폭발시켜!';
+    }
+
+    function updateTypingHint() {
+      const hint = document.getElementById('typingHint');
+      if (freeMode && customTargetName) {
+        hint.textContent = '아무 키나 쳐도 이름 글자가 순서대로 터져요';
+      } else {
+        hint.textContent = '키보드로 입력하세요';
+      }
+    }
+
     function pickNextText() {
       let idx;
       do {
@@ -367,7 +439,20 @@
     function renderTargetText() {
       const container = document.getElementById('targetText');
       if (freeMode) {
-        container.innerHTML = '<span style="color:var(--text-secondary); font-size:24px;">아무 키나 눌러서 폭발시켜!</span>';
+        if (!customTargetName) {
+          container.innerHTML = '<span style="color:var(--text-secondary); font-size:24px;">아무 키나 눌러서 폭발시켜!</span>';
+          return;
+        }
+        const label = getFreeModeLabel();
+        let html = '';
+        for (let i = 0; i < label.length; i++) {
+          let cls = 'untyped';
+          if (i < typedIndex) cls = 'typed';
+          else if (i === typedIndex) cls = 'current';
+          const ch = label[i] === ' ' ? '&nbsp;' : label[i];
+          html += `<span class="char ${cls}" data-idx="${i}">${ch}</span>`;
+        }
+        container.innerHTML = html;
         return;
       }
       let html = '';
@@ -532,8 +617,11 @@
       shake.trigger(2 + Math.min(combo * 0.3, 10), 0.15);
       popFlash = 0.5 + Math.min(combo * 0.02, 0.5);
 
-      // Show the ACTUAL typed character flying up
-      const displayChar = key && key.length === 1 ? key : '★';
+      const freeLabel = getFreeModeLabel();
+      const activeIndex = typedIndex % freeLabel.length;
+      const displayChar = customTargetName
+        ? ((freeLabel[activeIndex] === ' ') ? '·' : freeLabel[activeIndex])
+        : (key && key.length === 1 ? key : '★');
       charExplosions.push({
         char: displayChar,
         x: cx,
@@ -549,6 +637,16 @@
       // Score: 50 base + combo bonus
       const pts = 50 + Math.floor(combo * 5);
       score += pts;
+
+      if (customTargetName) {
+        typedIndex++;
+        if (typedIndex >= freeLabel.length) {
+          typedIndex = 0;
+          wordsCompleted++;
+          explodeWord();
+        }
+        renderTargetText();
+      }
 
       // Score popup
       scorePopups.push({
@@ -895,9 +993,12 @@
     // ---- Start Game ----
     window._showLeaderboard = () => recordSystem.showLeaderboard('rage-type');
     window.startGame = function(isFreeMode = false) {
+      customTargetName = sanitizeStressName(document.getElementById('rageTargetNameInput').value);
+      saveStressName(customTargetName);
       freeMode = isFreeMode === true;
       document.getElementById('startScreen').style.display = 'none';
       document.getElementById('freeModeBadge').style.display = freeMode ? 'block' : 'none';
+      updateTypingHint();
 
       sound.init();
       sound.resume();
@@ -954,7 +1055,7 @@
       wordsCompleted = 0;
       totalCorrectChars = 0;
       totalTypedChars = 0;
-      timeLeft = 90;
+      timeLeft = 30;
       currentText = '';
       typedIndex = 0;
       scorePopups = [];
@@ -968,6 +1069,7 @@
       mobileInput.value = '';
       lastMobileValue = '';
       updateHUD();
+      updateTypingHint();
 
       gameRunning = true;
       gameStartTime = Date.now();
@@ -1005,6 +1107,8 @@
     if (window.innerWidth <= 600) {
       mobileInput.style.display = 'block';
     }
+
+    document.getElementById('rageTargetNameInput').value = loadStressName();
   </script>
 </body>
 </html>
