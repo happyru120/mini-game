@@ -1014,6 +1014,7 @@
           </div>
           <div class="scene-note">
             이름 밀어넣기: 항아리 안쪽 잔향 생성<br>
+            키 난타: 친 키가 바로 울림<br>
             봉인하기: 메아리를 눌러 잠재우기<br>
             비우기: 안쪽을 깨끗하게 정리
           </div>
@@ -1070,7 +1071,7 @@
         <div class="panel-eyebrow">Private Release</div>
         <h1 class="panel-title">고암항아리</h1>
         <p class="panel-copy">
-          타겟을 세워두는 게임이 아니라, 이름이나 말을 안쪽으로 보내고 메아리만 잠깐 듣는 공간입니다.
+          타겟을 세워두는 게임이 아니라, 이름이나 말을 안쪽으로 보내고 메아리만 잠깐 듣는 공간입니다. 입력칸 밖에서는 아무 키나 막 쳐도 항아리 안이 바로 시끄러워집니다.
         </p>
 
         <div class="metrics">
@@ -1115,7 +1116,7 @@
         </div>
 
         <div class="tip-card">
-          <code>Enter</code>로 밀어넣기, <code>S</code>로 봉인, <code>X</code>로 비우기. 다른 게임에서 적어둔 이름이 있으면 여기에 자동으로 불러옵니다.
+          입력칸 밖에서 아무 키나 막 치면 그 키들이 항아리 안에서 바로 울립니다. 입력칸 안에서는 <code>Enter</code>로 이름 밀어넣기, 봉인과 비우기는 버튼으로 처리하면 됩니다. 다른 게임에서 적어둔 이름이 있으면 여기에 자동으로 불러옵니다.
         </div>
       </aside>
     </div>
@@ -1133,6 +1134,8 @@
       echoLayers: 0,
       recentEntries: [],
       lastEntry: '',
+      mashBuffer: '',
+      mashCount: 0,
       sealed: false,
     };
 
@@ -1277,6 +1280,23 @@
       playTone(220, 0.22, 0.11, 0.03, 'triangle');
     }
 
+    function getMashKeyLabel(event) {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return '';
+      if (['Shift', 'CapsLock', 'Fn', 'Control', 'Alt', 'Meta'].includes(event.key)) return '';
+
+      if (event.key === ' ') return '쾅';
+      if (event.key === 'Enter') return '탕';
+      if (event.key === 'Backspace' || event.key === 'Delete') return '툭';
+      if (event.key === 'Escape') return '휙';
+      if (event.key === 'Tab') return '탁';
+
+      if (event.key.length === 1) {
+        return event.key.trim() ? event.key : '';
+      }
+
+      return '';
+    }
+
     function triggerJarMotion(mode) {
       const className = mode === 'push'
         ? 'pop'
@@ -1327,6 +1347,7 @@
       }
 
       state.lastEntry = entry;
+      state.mashBuffer = '';
       state.sealed = false;
       state.insertedCount += 1;
       state.resonance = Math.min(100, state.resonance + 18);
@@ -1347,6 +1368,30 @@
       echoBubble.textContent = `"${entry}"이(가) 툭 들어가자 항아리 배가 한 번 울렸다.`;
       trailText.textContent = `"${entry}"이(가) 방 안 대신 항아리 안쪽으로 들어갔다.`;
       setStatus(`"${entry}"이(가) 항아리 안쪽에서 천천히 울리고 있다.`, '지금은 굳이 오래 붙잡아둘 필요 없이, 잠깐 듣고 봉인하면 된다.');
+      updateUI();
+    }
+
+    function mashIntoJar(label) {
+      if (!label) return;
+
+      state.sealed = false;
+      state.insertedCount += 1;
+      state.mashCount += 1;
+      state.resonance = Math.min(100, state.resonance + 8);
+      state.lastEntry = label;
+      state.mashBuffer = `${state.mashBuffer}${label}`.slice(-6);
+
+      jar.classList.remove('sealed');
+      sealStamp.classList.remove('visible');
+      triggerJarMotion('push');
+      spawnBurst(label, 'push');
+      renderEchoBatch(state.mashBuffer || label);
+      playEchoSound((state.mashBuffer || label).slice(-3));
+
+      jarCaption.textContent = `"${label}" 소리가 안쪽 벽을 치고 다시 튕겨 나왔다.`;
+      echoBubble.textContent = `"${state.mashBuffer || label}" 같은 소리가 항아리 배 안에서 연달아 부딪힌다.`;
+      trailText.textContent = '지금은 문장보다 키보드를 막 치는 편이 더 잘 맞는다.';
+      setStatus('키 난타가 항아리 안쪽에서 마구 울리고 있다.', '입력칸 밖에서는 아무 키나 쳐도 그대로 메아리로 바뀐다.');
       updateUI();
     }
 
@@ -1455,6 +1500,7 @@
       state.resonance = 10;
       state.sealed = false;
       state.lastEntry = '';
+      state.mashBuffer = '';
 
       jar.classList.remove('sealed');
       sealStamp.classList.remove('visible');
@@ -1536,16 +1582,19 @@
       if (!state.active || event.isComposing) return;
       if (document.activeElement === input && event.key !== 'Enter') return;
 
-      const key = event.key.toLowerCase();
       if (event.key === 'Enter') {
+        if (document.activeElement === input) {
+          event.preventDefault();
+          pushIntoJar();
+        } else {
+          event.preventDefault();
+          mashIntoJar(getMashKeyLabel(event));
+        }
+      } else if (document.activeElement !== input) {
+        const label = getMashKeyLabel(event);
+        if (!label) return;
         event.preventDefault();
-        pushIntoJar();
-      } else if (key === 's') {
-        event.preventDefault();
-        sealJar();
-      } else if (key === 'x') {
-        event.preventDefault();
-        clearJar();
+        mashIntoJar(label);
       }
     });
   </script>
