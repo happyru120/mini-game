@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>고암항아리 - Goam Jar</title>
+  <meta name="description" content="이름이나 말을 밀어 넣으면 항아리 안에서 메아리치다 잠잠해지는 디지털 고암항아리">
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(255, 166, 77, 0.14), transparent 26%),
+        radial-gradient(circle at 15% 20%, rgba(0, 122, 255, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(30, 25, 24, 0.96) 0%, rgba(10, 10, 12, 0.98) 100%);
+      color: var(--apple-label);
+    }
+
+    .jar-room {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 12px 16px 40px;
+    }
+
+    .jar-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, 360px);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card-shell {
+      background: var(--apple-bg-secondary);
+      border: 1px solid var(--apple-separator);
+      border-radius: 24px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .scene,
+    .panel {
+      padding: 24px;
+    }
+
+    .scene-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .scene-copy {
+      flex: 1 1 420px;
+      min-width: 0;
+    }
+
+    .scene-eyebrow,
+    .panel-eyebrow,
+    .card-label,
+    .input-label {
+      color: var(--apple-label-secondary);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .scene-eyebrow,
+    .panel-eyebrow {
+      margin-bottom: 10px;
+    }
+
+    .scene-title,
+    .panel-title {
+      letter-spacing: -0.04em;
+      line-height: 1.06;
+    }
+
+    .scene-title {
+      font-size: 38px;
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      font-size: 34px;
+      margin-bottom: 12px;
+    }
+
+    .scene-subtitle,
+    .panel-copy,
+    .input-help,
+    .trail-text,
+    .resonance-copy,
+    .tip-card,
+    .status-subline {
+      color: var(--apple-label-secondary);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .scene-note {
+      flex: 0 0 auto;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
+      color: var(--apple-label-secondary);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .scene-stage {
+      position: relative;
+      min-height: 520px;
+      overflow: hidden;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 198, 124, 0.18), transparent 28%),
+        radial-gradient(circle at 20% 12%, rgba(106, 159, 255, 0.18), transparent 22%),
+        linear-gradient(180deg, #39322F 0%, #1E1918 56%, #121112 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        inset 0 -24px 32px rgba(0, 0, 0, 0.24);
+    }
+
+    .scene-stage::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+        radial-gradient(circle at 50% 72%, rgba(0, 0, 0, 0.24), transparent 34%);
+      pointer-events: none;
+    }
+
+    .stage-haze,
+    .whisper-dust {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .stage-haze {
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255, 216, 166, 0.10), transparent 24%),
+        radial-gradient(circle at 68% 18%, rgba(255, 255, 255, 0.08), transparent 22%);
+      opacity: 0.86;
+    }
+
+    .shelf-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 84px;
+      height: 16px;
+      background: linear-gradient(180deg, rgba(88, 60, 42, 0.92), rgba(49, 31, 22, 0.98));
+      box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.20);
+    }
+
+    .incoming-lane {
+      position: absolute;
+      left: 50%;
+      top: 46px;
+      width: 360px;
+      max-width: calc(100% - 48px);
+      min-height: 46px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    .incoming-token {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: rgba(255, 248, 238, 0.95);
+      color: #3C2B22;
+      font-size: 18px;
+      font-weight: 700;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.80);
+      animation: fallIntoJar 1s cubic-bezier(0.24, 0.88, 0.38, 1) forwards;
+    }
+
+    .jar-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 58px;
+      width: 310px;
+      height: 68px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.06) 72%, transparent 100%);
+      filter: blur(4px);
+      z-index: 1;
+    }
+
+    .jar {
+      position: absolute;
+      left: 50%;
+      bottom: 62px;
+      width: 320px;
+      height: 360px;
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+
+    .jar-mouth-glow {
+      position: absolute;
+      left: 50%;
+      top: 36px;
+      width: 128px;
+      height: 24px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 199, 122, 0.30) 0%, rgba(255, 199, 122, 0.02) 72%, transparent 100%);
+      filter: blur(6px);
+      opacity: 0.9;
+    }
+
+    .jar-lid {
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      width: 154px;
+      height: 32px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(145, 103, 63, 0.98) 0%, rgba(99, 61, 32, 0.98) 100%);
+      border: 1px solid rgba(255, 241, 214, 0.18);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 237, 209, 0.18),
+        0 10px 18px rgba(0, 0, 0, 0.16);
+      transition: transform 0.45s ease, top 0.45s ease, box-shadow 0.45s ease;
+      z-index: 5;
+    }
+
+    .jar-lid::before {
+      content: '';
+      position: absolute;
+      inset: 7px 16px 10px;
+      border-radius: 999px;
+      background: rgba(255, 221, 187, 0.16);
+    }
+
+    .jar-neck {
+      position: absolute;
+      left: 50%;
+      top: 34px;
+      width: 118px;
+      height: 76px;
+      transform: translateX(-50%);
+      border-radius: 36px 36px 28px 28px;
+      background:
+        linear-gradient(180deg, rgba(76, 57, 45, 0.94) 0%, rgba(47, 34, 28, 0.98) 100%);
+      border: 1px solid rgba(255, 226, 196, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      z-index: 4;
+    }
+
+    .jar-neck::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      width: 78px;
+      height: 16px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(7, 7, 9, 0.94), rgba(30, 22, 17, 0.98));
+      box-shadow:
+        inset 0 -2px 0 rgba(255, 255, 255, 0.04),
+        0 0 18px rgba(255, 172, 79, 0.16);
+    }
+
+    .jar-body {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 100%;
+      height: 276px;
+      transform: translateX(-50%);
+      overflow: hidden;
+      border-radius: 42% 42% 28% 28% / 26% 26% 18% 18%;
+      background:
+        linear-gradient(180deg, rgba(122, 84, 55, 0.96) 0%, rgba(82, 52, 33, 0.98) 32%, rgba(43, 28, 22, 0.98) 100%);
+      border: 1px solid rgba(255, 224, 192, 0.20);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 241, 217, 0.16),
+        inset 0 -24px 30px rgba(0, 0, 0, 0.34),
+        0 24px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .jar-body::after {
+      content: '';
+      position: absolute;
+      inset: 16px 24px 20px;
+      border-radius: 40% 40% 26% 26% / 24% 24% 20% 20%;
+      border: 1px solid rgba(255, 239, 224, 0.08);
+      pointer-events: none;
+    }
+
+    .jar-reflection {
+      position: absolute;
+      left: 34px;
+      top: 36px;
+      width: 52px;
+      height: 176px;
+      border-radius: 52px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02));
+      filter: blur(1px);
+      opacity: 0.82;
+    }
+
+    .whisper-dust {
+      background:
+        radial-gradient(circle, rgba(255, 218, 175, 0.68) 0 1px, transparent 2px) 0 0 / 30px 30px,
+        radial-gradient(circle, rgba(255, 243, 230, 0.36) 0 1px, transparent 2px) 14px 12px / 34px 34px;
+      opacity: 0.12;
+      animation: dustFloat 14s linear infinite;
+    }
+
+    .echo-chamber {
+      position: absolute;
+      inset: 76px 34px 28px;
+      overflow: hidden;
+      border-radius: 46% 46% 26% 26% / 26% 26% 26% 26%;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 198, 124, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(24, 14, 11, 0.34), rgba(9, 8, 10, 0.62));
+    }
+
+    .echo-placeholder {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(180px, 86%);
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: rgba(255, 236, 216, 0.44);
+      font-size: 15px;
+      line-height: 1.7;
+      letter-spacing: -0.02em;
+    }
+
+    .echo-batch {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .echo-node {
+      position: absolute;
+      color: rgba(255, 233, 210, 0.84);
+      text-shadow: 0 0 18px rgba(255, 173, 92, 0.16);
+      white-space: nowrap;
+      animation: echoDrift 4.8s ease-out forwards;
+      transform-origin: center;
+    }
+
+    .echo-node.full {
+      left: 0;
+      right: 0;
+      top: 28%;
+      text-align: center;
+      font-size: clamp(22px, 2.8vw, 34px);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+    }
+
+    .echo-node.ghost {
+      left: 0;
+      right: 0;
+      top: 30%;
+      text-align: center;
+      font-size: clamp(20px, 2.5vw, 32px);
+      font-weight: 600;
+      opacity: 0.36;
+      filter: blur(1px);
+      animation-delay: 0.12s;
+    }
+
+    .echo-node.char {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      opacity: 0.8;
+      animation-duration: 5.6s;
+    }
+
+    .seal-stamp {
+      position: absolute;
+      right: 28px;
+      top: 24px;
+      z-index: 7;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 112, 83, 0.14);
+      border: 1px solid rgba(255, 112, 83, 0.22);
+      color: #FF8E72;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.24s ease, transform 0.24s ease;
+    }
+
+    .seal-stamp.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .jar-caption {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      width: min(360px, calc(100% - 48px));
+      transform: translateX(-50%);
+      text-align: center;
+      color: rgba(255, 237, 221, 0.84);
+      font-size: 14px;
+      line-height: 1.6;
+      z-index: 7;
+    }
+
+    .scene-bottom {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .trail-card,
+    .echo-bubble,
+    .metric,
+    .resonance-card,
+    .status-card,
+    .input-card,
+    .tip-card {
+      background: var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
+      border-radius: 18px;
+    }
+
+    .trail-card {
+      flex: 1 1 280px;
+      min-width: 0;
+      padding: 18px;
+    }
+
+    .trail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .trail-count {
+      color: var(--apple-blue);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .trail-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .trail-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 149, 0, 0.12);
+      color: var(--apple-label);
+      font-size: 13px;
+      line-height: 1.2;
+      border: 1px solid rgba(255, 149, 0, 0.16);
+    }
+
+    .echo-bubble {
+      position: relative;
+      flex: 1 1 220px;
+      align-self: flex-end;
+      min-height: 96px;
+      padding: 16px 18px;
+      color: var(--apple-label);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .echo-bubble::after {
+      content: '';
+      position: absolute;
+      left: 18px;
+      bottom: -7px;
+      width: 12px;
+      height: 12px;
+      background: var(--apple-bg-tertiary);
+      border-right: 1px solid var(--apple-separator);
+      border-bottom: 1px solid var(--apple-separator);
+      transform: rotate(45deg);
+    }
+
+    .panel-copy {
+      margin-bottom: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      padding: 14px 12px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--apple-label);
+      margin-bottom: 4px;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-label {
+      color: var(--apple-label-secondary);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .resonance-card,
+    .status-card,
+    .input-card,
+    .tip-card {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .card-label,
+    .input-label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .resonance-meter {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--apple-fill);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .resonance-fill {
+      height: 100%;
+      width: 16%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(0, 122, 255, 0.92) 0%, rgba(255, 149, 0, 0.94) 56%, rgba(255, 91, 68, 0.94) 100%);
+      transition: width 0.24s ease;
+    }
+
+    .status-line {
+      color: var(--apple-label);
+      font-size: 16px;
+      line-height: 1.55;
+      min-height: 52px;
+    }
+
+    .status-subline {
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--apple-separator);
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
+      font-size: 15px;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 10px;
+    }
+
+    .name-input:focus {
+      border-color: var(--apple-blue);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .sound-toggle {
+      min-width: 112px;
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
+      border: 1px solid var(--apple-separator);
+    }
+
+    .sound-toggle.active {
+      background: rgba(0, 122, 255, 0.12);
+      color: var(--apple-blue);
+      border-color: rgba(0, 122, 255, 0.22);
+    }
+
+    .tip-card code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(0, 122, 255, 0.10);
+      color: var(--apple-blue);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+
+    .jar.sealed .jar-lid {
+      top: 22px;
+      transform: translateX(-50%) scale(0.98);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 237, 209, 0.12),
+        0 6px 12px rgba(0, 0, 0, 0.18);
+    }
+
+    .jar.sealed .jar-mouth-glow {
+      opacity: 0.36;
+    }
+
+    .jar.sealed .echo-node {
+      animation-play-state: paused;
+      opacity: 0.18;
+      filter: blur(4px);
+    }
+
+    .jar.sealed .whisper-dust {
+      opacity: 0.05;
+    }
+
+    @keyframes fallIntoJar {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -16px) scale(0.92);
+      }
+      14% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+      70% {
+        opacity: 0.96;
+        transform: translate(-50%, 222px) scale(0.88);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, 246px) scale(0.46);
+      }
+    }
+
+    @keyframes echoDrift {
+      0% {
+        opacity: 0;
+        transform: translate3d(var(--start-x, 0px), var(--start-y, 0px), 0) scale(0.84);
+      }
+      14% {
+        opacity: 0.92;
+      }
+      78% {
+        opacity: 0.34;
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--end-x, 0px), var(--end-y, -48px), 0) scale(1.2);
+      }
+    }
+
+    @keyframes dustFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-24px); }
+    }
+
+    @media (max-width: 980px) {
+      .jar-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .jar-room {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .scene,
+      .panel {
+        padding: 18px;
+      }
+
+      .scene-title,
+      .panel-title {
+        font-size: 30px;
+      }
+
+      .scene-stage {
+        min-height: 460px;
+      }
+
+      .jar {
+        width: 274px;
+        height: 322px;
+      }
+
+      .incoming-lane {
+        width: calc(100% - 28px);
+      }
+
+      .scene-bottom {
+        flex-direction: column;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .top-bar {
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="start-overlay" id="startScreen">
+    <div class="overlay-card">
+      <div style="font-size:56px; margin-bottom:10px;">🏺</div>
+      <h1 style="font-size:34px; margin-bottom:10px; color:var(--apple-label);">고암항아리</h1>
+      <p style="color:var(--apple-label-secondary); line-height:1.7; margin-bottom:22px;">
+        이름이나 한마디를 밀어 넣으면 항아리 안에서 음절이 겹쳐 울렸다가 천천히 잦아듭니다.<br>
+        오래 남기기보다 넣고, 울리고, 봉인해두는 쪽에 가까운 디지털 배출함입니다.
+      </p>
+      <button class="btn btn-primary" onclick="openJarRoom()">항아리 열기</button>
+    </div>
+  </div>
+
+  <div class="jar-room" id="app" style="display:none;">
+    <div class="top-bar" style="max-width:1140px; padding-left:0; padding-right:0;">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn sound-toggle active" id="soundButton" onclick="toggleSound()">잔향 ON</button>
+    </div>
+
+    <div class="jar-layout">
+      <section class="scene card-shell">
+        <div class="scene-header">
+          <div class="scene-copy">
+            <div class="scene-eyebrow">Sealed Echo Jar</div>
+            <div class="scene-title">이름 하나 넣고,<br>잠깐 울리게 두자.</div>
+            <div class="scene-subtitle">
+              벽에 대고 소리치기보다, 항아리 안쪽으로 밀어 넣고 몇 번 메아리치게 한 다음 조용히 봉인해두는 공간.
+            </div>
+          </div>
+          <div class="scene-note">
+            이름 밀어넣기: 항아리 안쪽 잔향 생성<br>
+            봉인하기: 메아리를 눌러 잠재우기<br>
+            비우기: 안쪽을 깨끗하게 정리
+          </div>
+        </div>
+
+        <div class="scene-stage">
+          <div class="stage-haze"></div>
+          <div class="incoming-lane" id="incomingLane"></div>
+          <div class="seal-stamp" id="sealStamp">봉인됨</div>
+
+          <div class="jar-shadow"></div>
+          <div class="jar" id="jar">
+            <div class="jar-mouth-glow"></div>
+            <div class="jar-lid" id="jarLid"></div>
+            <div class="jar-neck"></div>
+            <div class="jar-body">
+              <div class="jar-reflection"></div>
+              <div class="whisper-dust"></div>
+              <div class="echo-chamber" id="echoChamber">
+                <div class="echo-placeholder" id="echoPlaceholder">아직 아무 이름도 들어가지 않았다.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="shelf-line"></div>
+          <div class="jar-caption" id="jarCaption">입구 가까이에 서서 아직 아무 말도 넣지 않았다.</div>
+        </div>
+
+        <div class="scene-bottom">
+          <div class="trail-card">
+            <div class="trail-head">
+              <div class="card-label" style="margin-bottom:0;">최근 넣은 말</div>
+              <div class="trail-count" id="trailCount">0개</div>
+            </div>
+            <div class="trail-text" id="trailText">지금은 조용하다. 이름 하나쯤 밀어 넣어도 된다.</div>
+            <div class="trail-list" id="trailList"></div>
+          </div>
+
+          <div class="echo-bubble" id="echoBubble">
+            항아리가 비어 있어 아직 벽에 부딪히는 소리도 없다.
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel card-shell">
+        <div class="panel-eyebrow">Private Release</div>
+        <h1 class="panel-title">고암항아리</h1>
+        <p class="panel-copy">
+          타겟을 세워두는 게임이 아니라, 이름이나 말을 안쪽으로 보내고 메아리만 잠깐 듣는 공간입니다.
+        </p>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-value" id="insertedValue">0</div>
+            <div class="metric-label">넣은 횟수</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="echoValue">0</div>
+            <div class="metric-label">메아리 층</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="sealedValue">0</div>
+            <div class="metric-label">봉인 횟수</div>
+          </div>
+        </div>
+
+        <div class="resonance-card">
+          <div class="card-label">잔향 게이지</div>
+          <div class="resonance-meter">
+            <div class="resonance-fill" id="resonanceFill"></div>
+          </div>
+          <div class="resonance-copy" id="resonanceCopy">지금은 바닥에만 얇게 울림이 깔려 있다.</div>
+        </div>
+
+        <div class="status-card">
+          <div class="card-label">지금 상태</div>
+          <div class="status-line" id="statusLine" aria-live="polite">항아리 뚜껑은 열려 있고, 안쪽은 아직 비어 있다.</div>
+          <div class="status-subline" id="statusSubline">넣고 싶은 이름이 있으면 짧게 적고 바로 밀어 넣으면 된다.</div>
+        </div>
+
+        <div class="input-card">
+          <label class="input-label" for="jarNameInput">이름 또는 한마디</label>
+          <input class="name-input" id="jarNameInput" maxlength="12" placeholder="예: 김부장, 회의, 퇴근" autocomplete="off">
+          <div class="input-help">입력하면 같은 이름이 항아리 안쪽에서 음절 단위로 몇 번 울렸다가 잦아듭니다.</div>
+
+          <div class="actions">
+            <button class="btn btn-primary" onclick="pushIntoJar()">이름 밀어넣기</button>
+            <button class="btn btn-secondary" onclick="sealJar()">봉인하기</button>
+            <button class="btn btn-destructive" onclick="clearJar()">비우기</button>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <code>Enter</code>로 밀어넣기, <code>S</code>로 봉인, <code>X</code>로 비우기. 다른 게임에서 적어둔 이름이 있으면 여기에 자동으로 불러옵니다.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const STRESS_NAME_STORAGE_KEY = 'mini_game_stress_name';
+    const GOAM_STATS_STORAGE_KEY = 'goam_jar_stats';
+    const state = {
+      active: false,
+      soundEnabled: true,
+      insertedCount: 0,
+      sealedCount: 0,
+      resonance: 14,
+      echoLayers: 0,
+      recentEntries: [],
+      lastEntry: '',
+      sealed: false,
+    };
+
+    const input = document.getElementById('jarNameInput');
+    const incomingLane = document.getElementById('incomingLane');
+    const echoChamber = document.getElementById('echoChamber');
+    const echoPlaceholder = document.getElementById('echoPlaceholder');
+    const jar = document.getElementById('jar');
+    const sealStamp = document.getElementById('sealStamp');
+    const jarCaption = document.getElementById('jarCaption');
+    const echoBubble = document.getElementById('echoBubble');
+    const insertedValue = document.getElementById('insertedValue');
+    const echoValue = document.getElementById('echoValue');
+    const sealedValue = document.getElementById('sealedValue');
+    const resonanceFill = document.getElementById('resonanceFill');
+    const resonanceCopy = document.getElementById('resonanceCopy');
+    const statusLine = document.getElementById('statusLine');
+    const statusSubline = document.getElementById('statusSubline');
+    const trailCount = document.getElementById('trailCount');
+    const trailText = document.getElementById('trailText');
+    const trailList = document.getElementById('trailList');
+    const soundButton = document.getElementById('soundButton');
+
+    let audioContext = null;
+
+    const captionLines = [
+      '항아리 안쪽 벽이 이름을 한 번 더 되받아친다.',
+      '입구를 지난 말이 둥글게 맴돌다 안쪽으로 가라앉는다.',
+      '음절이 벽에 부딪히며 짧게 울리고 금세 흐려진다.',
+      '말이 바깥에 머무르지 않고 안쪽 표면으로 스며든다.',
+      '몇 번 메아리친 뒤 바닥 쪽으로 천천히 가라앉는다.',
+    ];
+
+    const bubbleLines = [
+      '항아리가 비어 있어 아직 벽에 부딪히는 소리도 없다.',
+      '입구를 지나간 이름이 안쪽에서 둥글게 되울린다.',
+      '메아리가 조금씩 얇아지면서 결국 안쪽으로 눌어붙는다.',
+      '대신 소리쳐 주는 건 아니고, 몇 번 받아두는 정도다.',
+      '봉인하고 나면 방 안이 다시 잠잠해진다.',
+    ];
+
+    function openJarRoom() {
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      state.active = true;
+      loadPrefill();
+      loadStats();
+      updateUI();
+      window.setTimeout(() => input.focus(), 90);
+    }
+
+    function sanitizeEntry(value) {
+      return value.replace(/\s+/g, ' ').trim().slice(0, 12);
+    }
+
+    function loadPrefill() {
+      try {
+        const savedName = localStorage.getItem(STRESS_NAME_STORAGE_KEY) || '';
+        input.value = sanitizeEntry(savedName);
+      } catch {}
+    }
+
+    function loadStats() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(GOAM_STATS_STORAGE_KEY) || '{}');
+        state.insertedCount = Number(saved.insertedCount) || 0;
+        state.sealedCount = Number(saved.sealedCount) || 0;
+        state.recentEntries = Array.isArray(saved.recentEntries) ? saved.recentEntries.slice(0, 4) : [];
+      } catch {
+        state.insertedCount = 0;
+        state.sealedCount = 0;
+        state.recentEntries = [];
+      }
+    }
+
+    function persistStats() {
+      try {
+        localStorage.setItem(GOAM_STATS_STORAGE_KEY, JSON.stringify({
+          insertedCount: state.insertedCount,
+          sealedCount: state.sealedCount,
+          recentEntries: state.recentEntries,
+        }));
+      } catch {}
+    }
+
+    function saveSharedName(value) {
+      try {
+        localStorage.setItem(STRESS_NAME_STORAGE_KEY, value);
+      } catch {}
+    }
+
+    function ensureAudio() {
+      if (!state.soundEnabled) return null;
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playTone(frequency, duration, delay = 0, gainValue = 0.04, type = 'sine') {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+
+      const startAt = ctx.currentTime + delay;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startAt);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(40, frequency * 0.84), startAt + duration);
+
+      gain.gain.setValueAtTime(gainValue, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration);
+    }
+
+    function playEchoSound(text) {
+      const chars = Array.from(text);
+      chars.slice(0, 5).forEach((_, index) => {
+        playTone(330 + index * 46, 0.22, index * 0.08, 0.035);
+      });
+      playTone(210, 0.42, 0.18, 0.028, 'triangle');
+    }
+
+    function playSealSound() {
+      playTone(220, 0.16, 0, 0.04, 'triangle');
+      playTone(156, 0.28, 0.08, 0.04, 'sawtooth');
+      playTone(96, 0.42, 0.16, 0.032, 'sine');
+    }
+
+    function pushIntoJar() {
+      if (!state.active) return;
+
+      const entry = sanitizeEntry(input.value);
+      if (!entry) {
+        setStatus('이름이나 한마디를 먼저 적어야 한다.', '빈 항아리에는 울릴 말이 없다.');
+        input.focus();
+        return;
+      }
+
+      state.lastEntry = entry;
+      state.sealed = false;
+      state.insertedCount += 1;
+      state.resonance = Math.min(100, state.resonance + 18);
+      state.recentEntries = [entry, ...state.recentEntries.filter((item) => item !== entry)].slice(0, 4);
+
+      saveSharedName(entry);
+      persistStats();
+
+      jar.classList.remove('sealed');
+      sealStamp.classList.remove('visible');
+      animateIncomingToken(entry);
+      window.setTimeout(() => renderEchoBatch(entry), 320);
+      playEchoSound(entry);
+
+      jarCaption.textContent = captionLines[state.insertedCount % captionLines.length];
+      echoBubble.textContent = bubbleLines[(state.insertedCount + 1) % bubbleLines.length];
+      trailText.textContent = `"${entry}"이(가) 방 안 대신 항아리 안쪽으로 들어갔다.`;
+      setStatus(`"${entry}"이(가) 항아리 안쪽에서 천천히 울리고 있다.`, '지금은 굳이 오래 붙잡아둘 필요 없이, 잠깐 듣고 봉인하면 된다.');
+      updateUI();
+    }
+
+    function animateIncomingToken(entry) {
+      const token = document.createElement('div');
+      token.className = 'incoming-token';
+      token.textContent = entry;
+      token.addEventListener('animationend', () => token.remove());
+      incomingLane.appendChild(token);
+    }
+
+    function renderEchoBatch(entry) {
+      echoPlaceholder.style.display = 'none';
+
+      const batches = echoChamber.querySelectorAll('.echo-batch');
+      if (batches.length >= 3) {
+        batches[0].remove();
+      }
+
+      const batch = document.createElement('div');
+      batch.className = 'echo-batch';
+
+      const full = document.createElement('div');
+      full.className = 'echo-node full';
+      full.textContent = entry;
+      full.style.setProperty('--start-y', '8px');
+      full.style.setProperty('--end-y', '-22px');
+      batch.appendChild(full);
+
+      const ghost = document.createElement('div');
+      ghost.className = 'echo-node ghost';
+      ghost.textContent = entry;
+      ghost.style.setProperty('--start-y', '16px');
+      ghost.style.setProperty('--end-y', '-38px');
+      ghost.style.animationDelay = '0.14s';
+      batch.appendChild(ghost);
+
+      const chars = Array.from(entry);
+      chars.forEach((char, index) => {
+        const node = document.createElement('div');
+        node.className = 'echo-node char';
+        node.textContent = `${char}${index < chars.length - 1 ? '…' : ''}`;
+
+        const x = 24 + (index % 3) * 28 + Math.random() * 18;
+        const y = 34 + index * 18 + Math.random() * 12;
+        const driftX = -18 + Math.random() * 36;
+        const driftY = -26 - Math.random() * 26;
+
+        node.style.left = `${x}%`;
+        node.style.top = `${y}%`;
+        node.style.setProperty('--start-x', `${Math.round(driftX * 0.25)}px`);
+        node.style.setProperty('--start-y', `${Math.round(8 + Math.random() * 8)}px`);
+        node.style.setProperty('--end-x', `${Math.round(driftX)}px`);
+        node.style.setProperty('--end-y', `${Math.round(driftY)}px`);
+        node.style.animationDelay = `${0.06 * index}s`;
+        node.style.opacity = `${0.78 - index * 0.06}`;
+
+        batch.appendChild(node);
+      });
+
+      batch.addEventListener('animationend', () => {
+        updateEchoLayerCount();
+      }, { once: true });
+
+      echoChamber.appendChild(batch);
+      updateEchoLayerCount();
+    }
+
+    function sealJar() {
+      if (!state.active) return;
+
+      const hasEcho = echoChamber.querySelector('.echo-batch');
+      if (!hasEcho) {
+        setStatus('봉인할 메아리가 아직 없다.', '먼저 이름이나 말을 하나 밀어 넣어야 한다.');
+        return;
+      }
+
+      state.sealed = true;
+      state.sealedCount += 1;
+      state.resonance = Math.max(12, state.resonance - 22);
+
+      jar.classList.add('sealed');
+      sealStamp.textContent = state.lastEntry ? `${state.lastEntry} 봉인` : '봉인됨';
+      sealStamp.classList.add('visible');
+      jarCaption.textContent = '뚜껑이 내려앉고, 메아리가 안쪽에서만 낮게 남는다.';
+      echoBubble.textContent = '방 안으로 새어 나오던 울림이 줄어들고, 안쪽만 조용히 웅웅거린다.';
+      trailText.textContent = state.lastEntry
+        ? `"${state.lastEntry}"은(는) 바깥으로 나오지 않고 안쪽에 눌려 남았다.`
+        : '방금 넣은 말이 안쪽에 눌려 남았다.';
+
+      setStatus('항아리 뚜껑이 내려와 메아리를 눌러두는 중이다.', '완전히 지운 건 아니고, 지금 당장은 밖으로 새지 않게 눌러둔 상태다.');
+      persistStats();
+      playSealSound();
+      updateUI();
+    }
+
+    function clearJar() {
+      if (!state.active) return;
+
+      echoChamber.querySelectorAll('.echo-batch').forEach((batch) => batch.remove());
+      echoPlaceholder.style.display = 'block';
+
+      state.echoLayers = 0;
+      state.resonance = 10;
+      state.sealed = false;
+      state.lastEntry = '';
+
+      jar.classList.remove('sealed');
+      sealStamp.classList.remove('visible');
+      jarCaption.textContent = '안쪽을 한 번 털어냈다. 바닥까지 다시 조용해졌다.';
+      echoBubble.textContent = '방금까지의 울림은 사라졌고, 항아리 안이 다시 비어 있다.';
+      trailText.textContent = '지금은 조용하다. 다시 넣을 말이 생기면 그때 써도 된다.';
+      setStatus('항아리 안쪽을 비워 잔향을 정리했다.', '최근 넣은 기록은 남지만, 현재 울림은 모두 사라졌다.');
+      updateUI();
+    }
+
+    function updateEchoLayerCount() {
+      state.echoLayers = echoChamber.querySelectorAll('.echo-batch').length;
+      updateUI();
+    }
+
+    function setStatus(main, sub) {
+      statusLine.textContent = main;
+      statusSubline.textContent = sub;
+    }
+
+    function updateUI() {
+      insertedValue.textContent = state.insertedCount;
+      sealedValue.textContent = state.sealedCount;
+      echoValue.textContent = state.echoLayers;
+      resonanceFill.style.width = `${Math.max(10, state.resonance)}%`;
+      trailCount.textContent = `${state.recentEntries.length}개`;
+
+      if (!state.echoLayers) {
+        resonanceCopy.textContent = '지금은 바닥에만 얇게 울림이 깔려 있다.';
+      } else if (state.sealed) {
+        resonanceCopy.textContent = '뚜껑 아래로 울림이 눌려 있고, 표면만 낮게 떨린다.';
+      } else if (state.resonance < 40) {
+        resonanceCopy.textContent = '이름 하나가 천천히 원을 그리며 되울리고 있다.';
+      } else if (state.resonance < 70) {
+        resonanceCopy.textContent = '항아리 벽이 여러 겹으로 받아치며 잔향이 조금 두꺼워졌다.';
+      } else {
+        resonanceCopy.textContent = '안쪽이 꽤 시끄럽다. 이제는 봉인하거나 한 번 비워줄 때다.';
+      }
+
+      renderTrail();
+      soundButton.textContent = state.soundEnabled ? '잔향 ON' : '잔향 OFF';
+      soundButton.classList.toggle('active', state.soundEnabled);
+    }
+
+    function renderTrail() {
+      trailList.innerHTML = state.recentEntries
+        .map((entry) => `<span class="trail-chip">${escapeHtml(entry)}</span>`)
+        .join('');
+    }
+
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      updateUI();
+      if (state.soundEnabled) {
+        playTone(480, 0.08, 0, 0.03);
+      }
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        pushIntoJar();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!state.active || event.isComposing) return;
+      if (document.activeElement === input && event.key !== 'Enter') return;
+
+      const key = event.key.toLowerCase();
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        pushIntoJar();
+      } else if (key === 's') {
+        event.preventDefault();
+        sealJar();
+      } else if (key === 'x') {
+        event.preventDefault();
+        clearJar();
+      }
+    });
+  </script>
+</body>
+</html>
