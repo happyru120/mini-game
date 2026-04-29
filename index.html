@@ -326,6 +326,10 @@
           <span class="mood-emoji">🧠</span>
           집중!
         </button>
+        <button class="mood-btn" data-mood="break" onclick="selectMood('break')">
+          <span class="mood-emoji">🚬</span>
+          휴게실
+        </button>
         <button class="mood-btn" data-mood="random" onclick="selectMood('random')">
           <span class="mood-emoji">🎲</span>
           아무거나
@@ -351,6 +355,7 @@
       <button class="tab-btn" data-cat="classic" onclick="filterGames('classic')">🕹️ 클래식</button>
       <button class="tab-btn" data-cat="casual" onclick="filterGames('casual')">🎲 캐주얼</button>
       <button class="tab-btn" data-cat="strategy" onclick="filterGames('strategy')">🧠 전략</button>
+      <button class="tab-btn" data-cat="break" onclick="filterGames('break')">🚬 휴게실</button>
     </div>
 
     <!-- Game Grid -->
@@ -382,6 +387,8 @@
       // Strategy
       { id: 'tower-defense', emoji: '🏰', title: '타워 디펜스', desc: '타워를 전략적으로 배치해 적을 막아라!', cat: 'strategy', time: '10-20분', tag: '전략 배치', url: 'games/tower-defense/index.html', ready: true },
       { id: 'resource-tycoon', emoji: '🏘️', title: '자원 관리자', desc: '제한된 자원으로 마을을 성장시켜라!', cat: 'strategy', time: '10-30분', tag: '경영 시뮬', url: 'games/resource-tycoon/index.html', ready: true },
+      // Break Room
+      { id: 'smoke-break', emoji: '🚬', title: '흡연 구역', desc: '잠깐 멍때리며 연기를 흘려보내는 디지털 휴게실', cat: 'break', time: '1-5분', tag: '한숨 타임', url: 'games/smoke-break/index.html', ready: true },
     ];
 
     let currentFilter = 'all';
@@ -420,6 +427,7 @@
         rageLevel.classList.remove('visible');
         if (mood === 'bored') filterGames('classic');
         else if (mood === 'focus') filterGames('strategy');
+        else if (mood === 'break') filterGames('break');
         else filterGames('all');
       }
     }

@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>휴게실 - Smoke Break</title>
+  <meta name="description" content="잠깐 멍때리고 연기를 흘려보내는 디지털 흡연 구역">
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(255, 180, 90, 0.18), transparent 28%),
+        linear-gradient(180deg, #15171d 0%, #0d0e12 58%, #181920 100%);
+      color: #F7F8FB;
+    }
+
+    .break-room {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 8px 16px 40px;
+    }
+
+    .room-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .room-scene {
+      position: relative;
+      min-height: 700px;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 190, 110, 0.15), transparent 25%),
+        linear-gradient(180deg, rgba(28, 31, 39, 0.97) 0%, rgba(17, 19, 26, 0.98) 100%);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    .room-scene::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 25%),
+        linear-gradient(180deg, transparent 0, transparent calc(100% - 82px), rgba(0, 0, 0, 0.28) calc(100% - 82px));
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .scene-header {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      right: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      z-index: 3;
+    }
+
+    .scene-copy {
+      max-width: 340px;
+    }
+
+    .scene-eyebrow {
+      color: rgba(247, 248, 251, 0.6);
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .scene-title {
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+
+    .scene-subtitle {
+      color: rgba(247, 248, 251, 0.62);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .scene-note {
+      align-self: flex-start;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(247, 248, 251, 0.74);
+      font-size: 12px;
+      line-height: 1.5;
+      backdrop-filter: blur(16px);
+    }
+
+    .window-zone {
+      position: absolute;
+      top: 132px;
+      left: 28px;
+      right: 28px;
+      height: 328px;
+      border-radius: 22px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 25%, rgba(123, 174, 255, 0.16), transparent 30%),
+        linear-gradient(180deg, #2B3243 0%, #131722 58%, #0E1119 100%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    .window-zone::before,
+    .window-zone::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .window-zone::before { left: 33.333%; }
+    .window-zone::after { left: 66.666%; }
+
+    .window-glow {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(145, 196, 255, 0.14), transparent 30%),
+        radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12), transparent 28%);
+    }
+
+    .cityline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 170px;
+      background: linear-gradient(180deg, transparent 0%, rgba(6, 9, 14, 0.1) 30%, rgba(4, 6, 10, 0.95) 100%);
+    }
+
+    .building {
+      position: absolute;
+      bottom: 0;
+      background:
+        linear-gradient(180deg, rgba(32, 38, 54, 0.9) 0%, rgba(10, 13, 20, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+    }
+
+    .building::before {
+      content: '';
+      position: absolute;
+      inset: 10px 8px;
+      background:
+        radial-gradient(circle, rgba(255, 211, 135, 0.8) 0 1px, transparent 2px) 0 0 / 18px 18px;
+      opacity: 0.55;
+    }
+
+    .building.b1 { left: 4%; width: 16%; height: 118px; }
+    .building.b2 { left: 18%; width: 10%; height: 164px; }
+    .building.b3 { left: 31%; width: 14%; height: 136px; }
+    .building.b4 { left: 46%; width: 12%; height: 190px; }
+    .building.b5 { left: 61%; width: 10%; height: 145px; }
+    .building.b6 { left: 74%; width: 18%; height: 124px; }
+
+    .neon-sign {
+      position: absolute;
+      top: 486px;
+      left: 42px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 30px rgba(92, 168, 255, 0.14);
+      color: #CFE5FF;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      z-index: 3;
+    }
+
+    .ventilator {
+      position: absolute;
+      top: 512px;
+      right: 50px;
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.04) 0 26%, transparent 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.22));
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+      z-index: 3;
+    }
+
+    .ventilator::before,
+    .ventilator::after {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      border: 12px solid transparent;
+      border-top-color: rgba(245, 247, 251, 0.18);
+      border-right-color: rgba(245, 247, 251, 0.08);
+      animation: fanSpin 4.6s linear infinite;
+    }
+
+    .ventilator::after {
+      inset: 26px;
+      border-width: 8px;
+      animation-direction: reverse;
+      animation-duration: 6.5s;
+      opacity: 0.75;
+    }
+
+    .ventilator.off::before,
+    .ventilator.off::after {
+      animation-play-state: paused;
+    }
+
+    .smoke-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 4;
+    }
+
+    .smoke-puff,
+    .smoke-ring {
+      position: absolute;
+      bottom: 120px;
+      left: 52%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+
+    .smoke-puff {
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.42) 0%, rgba(214, 224, 234, 0.2) 48%, rgba(180, 190, 205, 0.02) 72%);
+      filter: blur(1.5px);
+      animation: driftUp var(--drift-duration, 4.8s) ease-out forwards;
+    }
+
+    .smoke-ring {
+      width: var(--ring-size, 48px);
+      height: var(--ring-size, 48px);
+      border-radius: 50%;
+      border: 2px solid rgba(234, 240, 248, 0.46);
+      filter: blur(0.4px);
+      animation: ringUp var(--drift-duration, 5.6s) ease-out forwards;
+    }
+
+    .room-floor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 164px;
+      background:
+        linear-gradient(180deg, rgba(11, 12, 15, 0) 0%, rgba(11, 12, 15, 0.9) 20%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 28px, rgba(0, 0, 0, 0.02) 28px 56px);
+    }
+
+    .break-rail {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      z-index: 5;
+    }
+
+    .cigarette-dock {
+      flex: 1;
+      max-width: 420px;
+      padding: 18px 18px 20px;
+      border-radius: 22px;
+      background: rgba(17, 18, 23, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+    }
+
+    .dock-label {
+      color: rgba(247, 248, 251, 0.58);
+      font-size: 12px;
+      margin-bottom: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cigarette-track {
+      position: relative;
+      height: 18px;
+      width: 236px;
+      margin-bottom: 18px;
+    }
+
+    .cigarette-filter {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 18px;
+      border-radius: 999px 0 0 999px;
+      background:
+        linear-gradient(180deg, #D19759 0%, #B67A41 100%);
+      box-shadow: inset -5px 0 0 rgba(120, 76, 32, 0.18);
+    }
+
+    .cigarette-paper {
+      position: absolute;
+      left: 44px;
+      top: 0;
+      height: 18px;
+      width: 172px;
+      border-radius: 0 999px 999px 0;
+      background: linear-gradient(180deg, #F6F0E9 0%, #E4DBD2 100%);
+      box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+      transition: width 0.25s ease;
+      transform-origin: left center;
+    }
+
+    .ember {
+      position: absolute;
+      top: -3px;
+      right: -7px;
+      width: 14px;
+      height: 24px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 40% 50%, #FFD56B 0%, #FF8A3D 48%, #C53B0B 78%);
+      box-shadow: 0 0 12px rgba(255, 119, 34, 0.68);
+      transition: transform 0.16s ease, opacity 0.2s ease;
+    }
+
+    .ash-tip {
+      position: absolute;
+      top: 4px;
+      right: -13px;
+      width: 12px;
+      height: 10px;
+      border-radius: 10px 6px 6px 10px;
+      background: linear-gradient(180deg, #CEC9C1 0%, #9C9690 100%);
+      opacity: 0.3;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .ashtray {
+      position: relative;
+      width: 170px;
+      height: 62px;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(70, 74, 84, 0.95) 0%, rgba(25, 27, 33, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 10px 18px rgba(255, 255, 255, 0.04),
+        inset 0 -12px 24px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .ashtray::before {
+      content: '';
+      position: absolute;
+      inset: 8px 18px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ash-fill {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 12px;
+      height: 8px;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(182, 181, 178, 0.9) 0%, rgba(97, 96, 96, 0.92) 100%);
+      box-shadow: 0 -3px 18px rgba(255, 255, 255, 0.1);
+      transition: height 0.22s ease;
+    }
+
+    .thought-bubble {
+      position: relative;
+      max-width: 250px;
+      padding: 16px 18px;
+      border-radius: 18px 18px 18px 6px;
+      background: rgba(250, 251, 253, 0.92);
+      color: #15161A;
+      font-size: 14px;
+      line-height: 1.6;
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .thought-bubble::after {
+      content: '';
+      position: absolute;
+      left: 18px;
+      bottom: -6px;
+      width: 12px;
+      height: 12px;
+      background: rgba(250, 251, 253, 0.92);
+      border-radius: 3px;
+      transform: rotate(45deg);
+    }
+
+    .panel {
+      background: rgba(18, 20, 26, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 26px;
+      padding: 24px 22px;
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 12px;
+    }
+
+    .panel-eyebrow {
+      color: rgba(247, 248, 251, 0.52);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 32px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 12px;
+    }
+
+    .panel-copy {
+      color: rgba(247, 248, 251, 0.62);
+      font-size: 14px;
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      border-radius: 18px;
+      padding: 14px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-label {
+      color: rgba(247, 248, 251, 0.52);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .calm-card,
+    .status-card,
+    .tip-card {
+      border-radius: 20px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 14px;
+    }
+
+    .card-label {
+      color: rgba(247, 248, 251, 0.5);
+      font-size: 12px;
+      margin-bottom: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .calm-meter {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .calm-fill {
+      height: 100%;
+      width: 18%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #A4C7FF 0%, #FFE0A3 100%);
+      transition: width 0.25s ease;
+    }
+
+    .calm-copy,
+    .tip-card {
+      color: rgba(247, 248, 251, 0.64);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .status-line {
+      color: #FFFFFF;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 48px;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .actions .btn-primary {
+      background: linear-gradient(135deg, #FF8A3D 0%, #FFB347 100%);
+      color: #15161A;
+    }
+
+    .actions .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #F7F8FB;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .actions .btn-secondary:hover {
+      opacity: 0.88;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .control-row button {
+      flex: 1;
+    }
+
+    .room-toggle {
+      min-width: 104px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #F7F8FB;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .room-toggle.active {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .keyboard-hint {
+      color: rgba(247, 248, 251, 0.44);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    @keyframes driftUp {
+      0% {
+        transform: translate(-50%, 0) scale(0.62);
+        opacity: 0;
+      }
+      12% { opacity: 0.52; }
+      100% {
+        transform: translate(calc(-50% + var(--drift-x, 0px)), calc(-1 * var(--drift-y, 260px))) scale(1.45);
+        opacity: 0;
+      }
+    }
+
+    @keyframes ringUp {
+      0% {
+        transform: translate(-50%, 0) scale(0.46);
+        opacity: 0;
+      }
+      15% { opacity: 0.58; }
+      100% {
+        transform: translate(calc(-50% + var(--drift-x, 0px)), calc(-1 * var(--drift-y, 320px))) scale(1.9);
+        opacity: 0;
+      }
+    }
+
+    @keyframes fanSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 980px) {
+      .room-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .scene-header {
+        position: static;
+        padding: 24px 24px 0;
+        flex-direction: column;
+      }
+
+      .scene-title {
+        font-size: 32px;
+      }
+
+      .window-zone {
+        top: 220px;
+        left: 18px;
+        right: 18px;
+        height: 270px;
+      }
+
+      .room-scene {
+        min-height: 760px;
+      }
+
+      .neon-sign {
+        top: 516px;
+        left: 24px;
+      }
+
+      .ventilator {
+        top: 568px;
+        right: 24px;
+      }
+
+      .break-rail {
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .cigarette-track {
+        width: 100%;
+        max-width: 236px;
+      }
+
+      .thought-bubble {
+        max-width: none;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="start-overlay" id="startScreen">
+    <div class="overlay-card">
+      <div style="font-size:56px; margin-bottom:10px;">🚬</div>
+      <h1 style="font-size:34px; margin-bottom:10px; color:var(--apple-label);">휴게실</h1>
+      <p style="color:var(--apple-label-secondary); line-height:1.7; margin-bottom:22px;">
+        잠깐 벽 기대고 멍때리는 가상 흡연 구역.<br>
+        한 모금, 연기 한 번, 재털기 정도만 있는 느슨한 인터랙션입니다.
+      </p>
+      <button class="btn btn-primary" onclick="startBreak()">들어가기</button>
+    </div>
+  </div>
+
+  <div class="break-room" id="app" style="display:none;">
+    <div class="top-bar" style="max-width:1180px; padding-left:0; padding-right:0;">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn room-toggle active" id="ventButton" onclick="toggleVent()">환풍기 ON</button>
+    </div>
+
+    <div class="room-layout">
+      <section class="room-scene">
+        <div class="scene-header">
+          <div class="scene-copy">
+            <div class="scene-eyebrow">Smoke Area</div>
+            <div class="scene-title">말 걸지 마,<br>지금은 휴게실.</div>
+            <div class="scene-subtitle">
+              창밖만 보면서 연기 한 줄 올려보내는, 조금 건조하고 조금 쓸쓸한 흡연 구역.
+            </div>
+          </div>
+          <div class="scene-note">
+            한 모금: 연기 추가<br>
+            연기 뿜기: 큰 스모크 링<br>
+            재 털기: 재떨이 정리
+          </div>
+        </div>
+
+        <div class="window-zone">
+          <div class="window-glow"></div>
+          <div class="cityline">
+            <div class="building b1"></div>
+            <div class="building b2"></div>
+            <div class="building b3"></div>
+            <div class="building b4"></div>
+            <div class="building b5"></div>
+            <div class="building b6"></div>
+          </div>
+        </div>
+
+        <div class="neon-sign">SMOKE BREAK</div>
+        <div class="ventilator" id="ventilator"></div>
+        <div class="smoke-layer" id="smokeLayer"></div>
+        <div class="room-floor"></div>
+
+        <div class="break-rail">
+          <div class="cigarette-dock">
+            <div class="dock-label">오늘도 버티는 중</div>
+            <div class="cigarette-track">
+              <div class="cigarette-filter"></div>
+              <div class="cigarette-paper" id="cigarettePaper">
+                <div class="ember" id="ember"></div>
+                <div class="ash-tip" id="ashTip"></div>
+              </div>
+            </div>
+            <div class="ashtray">
+              <div class="ash-fill" id="ashFill"></div>
+            </div>
+          </div>
+
+          <div class="thought-bubble" id="thoughtBubble">
+            잠깐만. 숨 좀 돌리고 들어가자.
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-eyebrow">Virtual Break</div>
+        <h1 class="panel-title">담배 피는 곳</h1>
+        <p class="panel-copy">
+          작은 룸 하나, 재떨이 하나, 창문 하나. 별일 없이 연기만 흘려보내는 가상 휴게실입니다.
+        </p>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-value" id="timeValue">0:00</div>
+            <div class="metric-label">휴식 시간</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="puffValue">0</div>
+            <div class="metric-label">한 모금</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="cigValue">1</div>
+            <div class="metric-label">피운 개비</div>
+          </div>
+        </div>
+
+        <div class="calm-card">
+          <div class="card-label">한숨 게이지</div>
+          <div class="calm-meter">
+            <div class="calm-fill" id="calmFill"></div>
+          </div>
+          <div class="calm-copy" id="calmCopy">아직 표정이 많이 굳어 있다.</div>
+        </div>
+
+        <div class="status-card">
+          <div class="card-label">지금 상태</div>
+          <div class="status-line" id="statusLine" aria-live="polite">
+            라이터를 켜기 전, 그냥 창밖만 보는 중.
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="takePuff()">🚬 한 모금</button>
+          <button class="btn btn-secondary" onclick="blowSmokeRing()">💨 연기 뿜기</button>
+          <button class="btn btn-secondary" onclick="tapAsh()">재 털기</button>
+        </div>
+
+        <div class="tip-card">
+          `Space`로 한 모금, `R`로 연기 뿜기, `A`로 재 털기. 오래 있으면 한숨 게이지가 천천히 올라갑니다.
+        </div>
+
+        <div class="keyboard-hint">진짜 목적은 아무것도 안 하고 잠깐 비워두는 것.</div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      active: false,
+      puffCount: 0,
+      cigarettes: 1,
+      calm: 18,
+      ash: 10,
+      ember: 100,
+      ventOn: true,
+      startedAt: Date.now(),
+      tickId: null,
+    };
+
+    const smokeLayer = document.getElementById('smokeLayer');
+    const cigarettePaper = document.getElementById('cigarettePaper');
+    const ember = document.getElementById('ember');
+    const ashTip = document.getElementById('ashTip');
+    const ashFill = document.getElementById('ashFill');
+    const thoughtBubble = document.getElementById('thoughtBubble');
+    const statusLine = document.getElementById('statusLine');
+    const calmFill = document.getElementById('calmFill');
+    const calmCopy = document.getElementById('calmCopy');
+    const timeValue = document.getElementById('timeValue');
+    const puffValue = document.getElementById('puffValue');
+    const cigValue = document.getElementById('cigValue');
+    const ventilator = document.getElementById('ventilator');
+    const ventButton = document.getElementById('ventButton');
+
+    const thoughtLines = [
+      '잠깐만. 숨 좀 돌리고 들어가자.',
+      '창밖만 보고 있어도 시간이 조금은 간다.',
+      '오늘 회의는 여기 두고 가자.',
+      '이 정도면 버틴 편이다.',
+      '연기처럼 날려버릴 수 있으면 좋겠다.',
+      '괜히 말 섞지 말고 조용히 있다 가자.',
+    ];
+
+    const statusLines = [
+      '첫 한 모금. 아직 표정은 딱딱하다.',
+      '조금은 풀렸다. 그래도 다시 들어가긴 싫다.',
+      '이제야 좀 숨통이 트인다.',
+      '재만 쌓이고 생각은 계속 돈다.',
+      '한 대 끝. 다시 불 붙이는 중.',
+      '환풍기가 겨우 이 공기를 밀어낸다.',
+    ];
+
+    function startBreak() {
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      state.active = true;
+      state.startedAt = Date.now();
+      recordVisit();
+      updateRoom();
+      createSmokeBurst(6, true);
+      if (state.tickId) clearInterval(state.tickId);
+      state.tickId = setInterval(() => {
+        if (!state.active) return;
+        state.calm = Math.min(100, state.calm + 0.6);
+        updateRoom();
+      }, 1000);
+    }
+
+    function formatTime(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateThought(forceText) {
+      thoughtBubble.textContent = forceText || thoughtLines[state.puffCount % thoughtLines.length];
+    }
+
+    function updateStatus(forceText) {
+      statusLine.textContent = forceText || statusLines[state.puffCount % statusLines.length];
+    }
+
+    function updateRoom() {
+      const paperWidth = Math.max(34, 172 * (state.ember / 100));
+      cigarettePaper.style.width = `${paperWidth}px`;
+      ember.style.opacity = state.ember <= 10 ? '0.3' : '1';
+      ember.style.transform = state.ember <= 10 ? 'scale(0.9)' : 'scale(1)';
+      ashTip.style.opacity = `${Math.min(0.9, 0.25 + state.ash / 120)}`;
+      ashTip.style.transform = `translateX(${Math.min(8, state.ash / 18)}px)`;
+      ashFill.style.height = `${Math.max(8, state.ash * 0.34)}px`;
+      calmFill.style.width = `${Math.max(12, state.calm)}%`;
+      puffValue.textContent = state.puffCount;
+      cigValue.textContent = state.cigarettes;
+      timeValue.textContent = formatTime(Date.now() - state.startedAt);
+
+      if (state.calm < 30) calmCopy.textContent = '아직 표정이 많이 굳어 있다.';
+      else if (state.calm < 60) calmCopy.textContent = '한숨 한 번에 어깨가 조금 내려갔다.';
+      else if (state.calm < 85) calmCopy.textContent = '이제는 말 걸어도 바로 짜증내진 않을 것 같다.';
+      else calmCopy.textContent = '조금은 사람다운 표정으로 돌아왔다.';
+    }
+
+    function createSmokeBurst(count, ring = false) {
+      for (let i = 0; i < count; i += 1) {
+        const node = document.createElement('div');
+        const isRing = ring && i === 0;
+        node.className = isRing ? 'smoke-ring' : 'smoke-puff';
+
+        const size = 24 + Math.random() * 56;
+        const driftX = (Math.random() - 0.5) * (state.ventOn ? 220 : 120);
+        const driftY = 180 + Math.random() * 190;
+        const duration = (state.ventOn ? 3.6 : 4.8) + Math.random() * 1.8;
+        const bottom = 108 + Math.random() * 42;
+        const left = 42 + Math.random() * 18;
+
+        node.style.bottom = `${bottom}px`;
+        node.style.left = `${left}%`;
+        node.style.setProperty('--drift-x', `${driftX}px`);
+        node.style.setProperty('--drift-y', `${driftY}px`);
+        node.style.setProperty('--drift-duration', `${duration}s`);
+
+        if (isRing) {
+          node.style.setProperty('--ring-size', `${48 + Math.random() * 28}px`);
+        } else {
+          node.style.width = `${size}px`;
+          node.style.height = `${size}px`;
+        }
+
+        node.addEventListener('animationend', () => node.remove());
+        smokeLayer.appendChild(node);
+      }
+    }
+
+    function takePuff() {
+      if (!state.active) return;
+
+      state.puffCount += 1;
+      state.calm = Math.min(100, state.calm + 8);
+      state.ash = Math.min(100, state.ash + 14);
+      state.ember = Math.max(0, state.ember - 16);
+
+      createSmokeBurst(5, true);
+      updateThought();
+      updateStatus();
+
+      if (state.ember <= 0) {
+        state.cigarettes += 1;
+        state.ember = 100;
+        state.ash = Math.min(100, state.ash + 10);
+        updateThought('한 대 끝. 재떨이만 더 묵직해졌다.');
+        updateStatus('한 대 끝. 다시 불 붙이고 벽에 기대는 중.');
+        createSmokeBurst(9, true);
+      }
+
+      updateRoom();
+      recordPuff();
+    }
+
+    function blowSmokeRing() {
+      if (!state.active) return;
+
+      state.calm = Math.min(100, state.calm + 4);
+      createSmokeBurst(8, true);
+      updateThought('연기만 둥글게 말아 올리고 아무 생각 없는 척.');
+      updateStatus('천천히 뱉었다. 방 안 공기가 조금 더 흐려졌다.');
+      updateRoom();
+    }
+
+    function tapAsh() {
+      if (!state.active) return;
+
+      state.ash = Math.max(8, state.ash - 42);
+      updateThought('툭, 툭. 재만 털었는데도 좀 정리된 기분.');
+      updateStatus('재를 털고 다시 창문 쪽으로 시선을 돌렸다.');
+      createSmokeBurst(3, false);
+      updateRoom();
+    }
+
+    function toggleVent() {
+      state.ventOn = !state.ventOn;
+      ventButton.textContent = state.ventOn ? '환풍기 ON' : '환풍기 OFF';
+      ventButton.classList.toggle('active', state.ventOn);
+      ventilator.classList.toggle('off', !state.ventOn);
+      ventilator.style.opacity = state.ventOn ? '1' : '0.35';
+      updateStatus(state.ventOn ? '환풍기가 다시 돌기 시작했다.' : '환풍기를 껐다. 연기가 천천히 고인다.');
+    }
+
+    function recordVisit() {
+      try {
+        const existing = JSON.parse(localStorage.getItem('smoke_break_stats') || '{}');
+        existing.totalVisits = (existing.totalVisits || 0) + 1;
+        localStorage.setItem('smoke_break_stats', JSON.stringify(existing));
+      } catch {}
+    }
+
+    function recordPuff() {
+      try {
+        const existing = JSON.parse(localStorage.getItem('smoke_break_stats') || '{}');
+        existing.totalPuffs = (existing.totalPuffs || 0) + 1;
+        localStorage.setItem('smoke_break_stats', JSON.stringify(existing));
+      } catch {}
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (!state.active) return;
+      if (event.code === 'Space') {
+        event.preventDefault();
+        takePuff();
+      } else if (event.key.toLowerCase() === 'r') {
+        blowSmokeRing();
+      } else if (event.key.toLowerCase() === 'a') {
+        tapAsh();
+      }
+    });
+  </script>
+</body>
+</html>
