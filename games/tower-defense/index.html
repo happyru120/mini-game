@@ -6,34 +6,10 @@
   <title>Tower Defense - 타워 디펜스</title>
   <link rel="stylesheet" href="../../shared/styles/common.css">
   <style>
-    body { background: #1a1a2e; }
     .game-wrapper {
       max-width: 840px;
       margin: 0 auto;
       padding: 10px;
-    }
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 16px;
-    }
-    .back-btn {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .back-btn:hover { color: var(--white-pop); }
-    .sound-btn {
-      background: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      color: var(--white-pop);
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      font-family: inherit;
     }
     .game-hud {
       display: flex;
@@ -42,24 +18,25 @@
       padding: 8px 16px;
       max-width: 800px;
       margin: 0 auto 4px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 8px;
+      background: var(--apple-bg-secondary);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
     .hud-item {
       text-align: center;
     }
     .hud-label {
       font-size: 11px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       text-transform: uppercase;
     }
     .hud-value {
       font-size: 20px;
-      font-weight: 900;
+      font-weight: 700;
     }
-    .hud-wave { color: #64B5F6; }
-    .hud-hp { color: #FF5252; }
-    .hud-gold { color: #FFD700; }
+    .hud-wave { color: var(--apple-blue); }
+    .hud-hp { color: var(--apple-red); }
+    .hud-gold { color: var(--apple-yellow); }
 
     .tower-panel {
       display: flex;
@@ -70,52 +47,42 @@
       flex-wrap: wrap;
     }
     .tower-btn {
-      background: var(--dark-card);
-      border: 2px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
+      background: var(--apple-bg-secondary);
+      border: 1px solid var(--apple-separator);
+      border-radius: var(--radius-sm);
       padding: 8px 14px;
-      color: var(--white-pop);
+      color: var(--apple-label);
       cursor: pointer;
-      font-family: inherit;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       transition: border-color 0.2s, transform 0.15s;
       text-align: center;
       min-width: 100px;
+      box-shadow: var(--shadow-sm);
     }
-    .tower-btn:hover { border-color: rgba(255,255,255,0.4); }
+    .tower-btn:hover { border-color: var(--apple-blue); }
     .tower-btn:active { transform: scale(0.95); }
-    .tower-btn.selected { border-color: var(--relief-yellow); box-shadow: 0 0 12px rgba(255,215,0,0.3); }
-    .tower-btn .cost { font-size: 11px; color: #FFD700; margin-top: 2px; }
+    .tower-btn.selected { border-color: var(--apple-yellow); background: rgba(255,204,0,0.12); }
+    .tower-btn .cost { font-size: 11px; color: var(--apple-yellow); margin-top: 2px; }
     .tower-btn .tname { font-size: 14px; }
 
     .wave-btn {
-      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      background: var(--apple-green);
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       padding: 10px 24px;
       color: white;
       cursor: pointer;
-      font-family: inherit;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
       font-size: 15px;
-      font-weight: 700;
-      transition: transform 0.15s;
+      font-weight: 600;
+      transition: opacity 0.15s, transform 0.1s;
     }
-    .wave-btn:hover { transform: scale(1.05); }
+    .wave-btn:hover { opacity: 0.88; }
     .wave-btn:active { transform: scale(0.95); }
-    .wave-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+    .wave-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
 
-    .start-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      gap: 16px;
-    }
     .start-overlay h1 { font-size: 42px; margin-bottom: 8px; }
     .start-overlay p {
       color: var(--text-secondary);

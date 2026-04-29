@@ -22,18 +22,18 @@
 
     .hub-title {
       font-size: 32px;
-      font-weight: 900;
+      font-weight: 700;
       margin-bottom: 8px;
+      letter-spacing: -0.5px;
     }
 
     .hub-title .fire {
       display: inline-block;
-      animation: pulseGlow 2s infinite;
-      border-radius: 50%;
+      animation: pulseGlow 2s ease-in-out infinite;
     }
 
     .hub-subtitle {
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       font-size: 16px;
     }
 
@@ -45,7 +45,7 @@
 
     .mood-question {
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 600;
       margin-bottom: 16px;
     }
 
@@ -62,22 +62,24 @@
       align-items: center;
       gap: 6px;
       padding: 16px 24px;
-      background: var(--dark-surface);
-      border: 2px solid transparent;
-      border-radius: 16px;
+      background: var(--apple-bg-secondary);
+      border: 2px solid var(--apple-separator);
+      border-radius: var(--radius-lg);
       cursor: pointer;
       transition: all 0.2s;
-      color: var(--white-pop);
-      font-family: inherit;
+      color: var(--apple-label);
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
       font-size: 14px;
       font-weight: 600;
       min-width: 100px;
+      box-shadow: var(--shadow-sm);
     }
 
     .mood-btn:hover, .mood-btn.active {
-      border-color: var(--rage-red);
-      background: var(--dark-card);
-      transform: translateY(-3px);
+      border-color: var(--apple-blue);
+      background: rgba(0, 122, 255, 0.08);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .mood-emoji {
@@ -97,9 +99,9 @@
     }
 
     .rage-level-title {
-      font-size: 16px;
+      font-size: 15px;
       margin-bottom: 12px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
     }
 
     .rage-level-btns {
@@ -112,19 +114,21 @@
     .rage-lvl-btn {
       padding: 10px 20px;
       border-radius: 20px;
-      border: 2px solid rgba(255, 59, 59, 0.3);
-      background: transparent;
-      color: var(--white-pop);
-      font-family: inherit;
+      border: 2px solid var(--apple-separator);
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
       font-weight: 600;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
     }
 
     .rage-lvl-btn:hover {
-      background: var(--rage-red);
-      border-color: var(--rage-red);
+      background: var(--apple-red);
+      border-color: var(--apple-red);
+      color: #FFFFFF;
     }
 
     /* Category Tabs */
@@ -138,22 +142,23 @@
 
     .tab-btn {
       padding: 10px 20px;
-      background: var(--dark-surface);
+      background: var(--apple-bg-secondary);
       border: 2px solid transparent;
       border-radius: 24px;
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-weight: 700;
+      color: var(--apple-label-secondary);
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
+      font-weight: 600;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
     }
 
-    .tab-btn:hover { color: var(--white-pop); }
+    .tab-btn:hover { color: var(--apple-label); }
     .tab-btn.active {
-      border-color: var(--rage-red);
-      color: var(--white-pop);
-      background: var(--dark-card);
+      background: var(--apple-blue);
+      color: #FFFFFF;
+      border-color: transparent;
     }
 
     /* Game Grid */
@@ -165,9 +170,9 @@
     }
 
     .game-card {
-      background: var(--dark-surface);
-      border: 2px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
+      background: var(--apple-bg-secondary);
+      border: 1px solid var(--apple-separator);
+      border-radius: var(--radius-lg);
       padding: 24px;
       cursor: pointer;
       transition: all 0.25s;
@@ -176,12 +181,13 @@
       display: block;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
 
     .game-card:hover {
-      border-color: var(--rage-red);
-      transform: translateY(-4px);
-      box-shadow: 0 8px 30px rgba(255, 59, 59, 0.2);
+      border-color: var(--apple-blue);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
     }
 
     .game-card-emoji {
@@ -191,13 +197,14 @@
 
     .game-card-title {
       font-size: 18px;
-      font-weight: 900;
+      font-weight: 700;
       margin-bottom: 6px;
+      letter-spacing: -0.3px;
     }
 
     .game-card-desc {
       font-size: 13px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       line-height: 1.5;
       margin-bottom: 12px;
     }
@@ -206,14 +213,14 @@
       display: flex;
       gap: 12px;
       font-size: 12px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
     }
 
     .game-card-tag {
       padding: 4px 10px;
-      background: rgba(255, 59, 59, 0.15);
-      color: var(--rage-red);
-      border-radius: 8px;
+      background: rgba(0, 122, 255, 0.12);
+      color: var(--apple-blue);
+      border-radius: var(--radius-sm);
       font-weight: 600;
       font-size: 11px;
     }
@@ -229,9 +236,9 @@
       top: 12px;
       right: 12px;
       font-size: 12px;
-      background: var(--dark-card);
+      background: var(--apple-bg-tertiary);
       padding: 4px 10px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
     }
 
     /* Stats Bar */
@@ -241,9 +248,10 @@
       justify-content: center;
       margin: 30px 0 10px;
       padding: 16px;
-      background: var(--dark-surface);
-      border-radius: 16px;
+      background: var(--apple-bg-secondary);
+      border-radius: var(--radius-lg);
       flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
     }
 
     .stat-item {
@@ -252,13 +260,13 @@
 
     .stat-value {
       font-size: 24px;
-      font-weight: 900;
-      color: var(--energy-orange);
+      font-weight: 700;
+      color: var(--apple-blue);
     }
 
     .stat-label {
       font-size: 11px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       margin-top: 2px;
     }
 
@@ -267,7 +275,7 @@
       text-align: center;
       padding: 40px 0 20px;
       font-size: 13px;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
     }
 
     @media (max-width: 480px) {

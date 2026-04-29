@@ -6,58 +6,18 @@
   <title>🐍 스네이크 — Snake</title>
   <link rel="stylesheet" href="../../shared/styles/common.css">
   <style>
-    body { background: #0A0A1A; }
     .game-wrapper {
       max-width: 800px;
       margin: 0 auto;
       padding: 10px;
     }
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 16px;
-    }
-    .back-btn {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .back-btn:hover { color: var(--white-pop); }
-    .sound-btn {
-      background: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      color: var(--white-pop);
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      font-family: inherit;
-    }
-
-    /* Start / Result overlays */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      gap: 16px;
-      backdrop-filter: blur(6px);
-    }
-    .overlay.hidden { display: none; }
 
     .overlay h1 {
       font-size: 48px;
       margin-bottom: 4px;
-      text-shadow: 0 0 30px rgba(0,255,128,0.6);
     }
     .overlay p {
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       font-size: 15px;
       max-width: 360px;
       text-align: center;
@@ -75,39 +35,34 @@
       flex-direction: column;
       align-items: center;
       padding: 14px 20px;
-      border: 2px solid rgba(0,255,128,0.3);
-      border-radius: 14px;
-      background: rgba(0,255,128,0.05);
-      color: var(--white-pop);
+      border: 1px solid var(--apple-separator);
+      border-radius: var(--radius-md);
+      background: var(--apple-bg-secondary);
+      color: var(--apple-label);
       cursor: pointer;
-      font-family: inherit;
+      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 600;
       transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
     }
     .mode-btn:hover {
-      border-color: rgba(0,255,128,0.7);
-      background: rgba(0,255,128,0.12);
-      transform: scale(1.03);
+      background: rgba(0, 122, 255, 0.10);
+      border-color: var(--apple-blue);
+      transform: scale(1.02);
     }
     .mode-btn:active { transform: scale(0.97); }
     .mode-btn .mode-desc {
       font-size: 12px;
       font-weight: 400;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       margin-top: 4px;
-    }
-
-    /* Canvas neon border */
-    canvas.game-canvas {
-      border: 2px solid rgba(0,255,128,0.3);
-      box-shadow: 0 0 20px rgba(0,255,128,0.15), inset 0 0 20px rgba(0,255,128,0.05);
     }
 
     /* Mobile controls hint */
     .mobile-hint {
       text-align: center;
-      color: var(--text-secondary);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       margin-top: 8px;
     }
