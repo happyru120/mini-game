@@ -382,6 +382,11 @@
       box-shadow: 0 24px 46px rgba(88, 86, 214, 0.12);
     }
 
+    .game-card.recommended {
+      border-color: rgba(88, 86, 214, 0.3);
+      box-shadow: 0 0 0 2px rgba(88, 86, 214, 0.14), 0 24px 46px rgba(88, 86, 214, 0.16);
+    }
+
     .game-card-link {
       display: flex;
       align-items: stretch;
@@ -503,6 +508,11 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .status-pill.recommend {
+      background: rgba(88, 86, 214, 0.14);
+      color: var(--hub-primary);
     }
 
     .game-footer {
@@ -828,23 +838,23 @@
       <div class="mood-grid">
         <button class="mood-btn" data-mood="rage" onclick="selectMood('rage')">
           <span class="mood-emoji">💢</span>
-          <span class="mood-label">Angry</span>
+          <span class="mood-label">분노</span>
         </button>
         <button class="mood-btn" data-mood="bored" onclick="selectMood('bored')">
           <span class="mood-emoji">🥱</span>
-          <span class="mood-label">Bored</span>
+          <span class="mood-label">심심</span>
         </button>
         <button class="mood-btn" data-mood="focus" onclick="selectMood('focus')">
           <span class="mood-emoji">🧠</span>
-          <span class="mood-label">Focus</span>
+          <span class="mood-label">집중</span>
         </button>
         <button class="mood-btn" data-mood="break" onclick="selectMood('break')">
           <span class="mood-emoji">🌿</span>
-          <span class="mood-label">Chill</span>
+          <span class="mood-label">휴식</span>
         </button>
         <button class="mood-btn" data-mood="random" onclick="selectMood('random')">
           <span class="mood-emoji">🎲</span>
-          <span class="mood-label">Random</span>
+          <span class="mood-label">랜덤</span>
         </button>
       </div>
       <div class="rage-panel" id="rageLevel">
@@ -923,7 +933,7 @@
         </article>
         <article class="snapshot-tile">
           <span class="snapshot-label">무드 상태</span>
-          <strong class="snapshot-value" id="snapshotMood">Neutral</strong>
+          <strong class="snapshot-value" id="snapshotMood">기본</strong>
           <span class="snapshot-subvalue" id="snapshotMoodNote">아직 무드를 고르지 않았습니다.</span>
         </article>
       </div>
@@ -983,12 +993,12 @@
     };
 
     const moodMeta = {
-      all: { label: "Neutral", note: "아직 무드를 고르지 않았습니다." },
-      rage: { label: "Angry", note: "강한 파괴형과 타격형 게임 위주로 정렬합니다." },
-      bored: { label: "Bored", note: "짧게 몰입되는 클래식 흐름으로 바뀝니다." },
-      focus: { label: "Focus", note: "조용히 붙잡고 가는 전략 라인으로 이동합니다." },
-      break: { label: "Chill", note: "속도를 낮추는 휴게실 게임으로 바로 연결합니다." },
-      random: { label: "Random", note: "지금은 전체 게임을 한 번에 다시 보여줍니다." }
+      all: { label: "기본", note: "아직 무드를 고르지 않았습니다." },
+      rage: { label: "분노", note: "강한 파괴형과 타격형 게임 위주로 정렬합니다." },
+      bored: { label: "심심", note: "짧게 몰입되는 클래식 흐름으로 바뀝니다." },
+      focus: { label: "집중", note: "조용히 붙잡고 가는 전략 라인으로 이동합니다." },
+      break: { label: "휴식", note: "속도를 낮추는 휴게실 게임으로 바로 연결합니다." },
+      random: { label: "랜덤", note: "이번 판 추천 카드 1개를 바로 강조합니다." }
     };
 
     const visualThemes = {
@@ -1020,6 +1030,7 @@
     let currentFilter = "all";
     let currentMood = "all";
     let currentRageLevel = 0;
+    let recommendedGameId = null;
     let statsState = {
       totalAngerScore: 0,
       gamesPlayed: 0,
@@ -1051,11 +1062,14 @@
 
       grid.innerHTML = filtered.map((game, index) => {
         const visual = getVisual(game, index);
-        const statusPill = hotGameIds.has(game.id) ? "<span class=\"status-pill\">Hot</span>" : "";
+        const recommendPill = recommendedGameId === game.id ? "<span class=\"status-pill recommend\">추천</span>" : "";
+        const hotPill = hotGameIds.has(game.id) ? "<span class=\"status-pill\">Hot</span>" : "";
+        const statusPill = `${recommendPill}${hotPill}`;
         const meta = categoryMeta[game.cat] || categoryMeta.all;
+        const recommendedClass = recommendedGameId === game.id ? "recommended" : "";
 
         return `
-          <article class="game-card" data-cat="${escapeHtml(game.cat)}">
+          <article class="game-card ${recommendedClass}" data-cat="${escapeHtml(game.cat)}">
             <a class="game-card-link" href="${escapeHtml(game.url)}">
               <div class="game-thumb" style="--thumb-bg: ${visual.bg}; --thumb-glow: ${visual.glow};">
                 <span class="thumb-badge">${escapeHtml(meta.label)}</span>
@@ -1105,6 +1119,9 @@
 
     function filterGames(cat) {
       currentFilter = cat;
+      if (currentMood !== "random") {
+        recommendedGameId = null;
+      }
       document.querySelectorAll(".tab-btn").forEach((button) => {
         button.classList.toggle("active", button.dataset.cat === cat);
       });
@@ -1133,7 +1150,19 @@
         if (mood === "bored") filterGames("classic");
         else if (mood === "focus") filterGames("strategy");
         else if (mood === "break") filterGames("break");
-        else if (mood === "random") filterGames("all");
+        else if (mood === "random") {
+          const randomIndex = Math.floor(Math.random() * games.length);
+          recommendedGameId = games[randomIndex]?.id || null;
+          filterGames("all");
+          requestAnimationFrame(() => {
+            const card = recommendedGameId
+              ? document.querySelector(`.game-card.recommended`)
+              : null;
+            if (card) {
+              card.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          });
+        }
         else filterGames("all");
       }
 
@@ -1189,18 +1218,47 @@
     }
 
     function setupBottomNav() {
-      document.querySelectorAll(".nav-btn").forEach((button) => {
+      const navButtons = Array.from(document.querySelectorAll(".nav-btn"));
+      const sectionIds = ["homeSection", "gamesSection", "rankingsSection"];
+      const sectionMap = new Map(
+        navButtons.map((button) => [button.dataset.target, button])
+      );
+
+      function setNavActive(targetId) {
+        navButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.target === targetId);
+        });
+      }
+
+      navButtons.forEach((button) => {
         button.addEventListener("click", () => {
           const target = document.getElementById(button.dataset.target);
           if (target) {
             target.scrollIntoView({ behavior: "smooth", block: "start" });
           }
-
-          document.querySelectorAll(".nav-btn").forEach((nav) => {
-            nav.classList.toggle("active", nav === button);
-          });
+          setNavActive(button.dataset.target);
         });
       });
+
+      if (!("IntersectionObserver" in window)) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+          if (visible.length === 0) return;
+          const activeId = visible[0].target.id;
+          if (sectionMap.has(activeId)) setNavActive(activeId);
+        },
+        { rootMargin: "-25% 0px -55% 0px", threshold: [0.15, 0.35, 0.6] }
+      );
+
+      sectionIds
+        .map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .forEach((section) => observer.observe(section));
     }
 
     loadStats();
