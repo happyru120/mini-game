@@ -434,11 +434,11 @@
       top: 0;
       display: flex;
       align-items: center;
-      gap: 12px;
-      min-width: 92px;
-      max-width: 210px;
-      padding: 12px 14px;
-      border-radius: 20px;
+      gap: 10px;
+      min-width: 84px;
+      max-width: 188px;
+      padding: 10px 12px;
+      border-radius: 18px;
       background: rgba(255, 255, 255, 0.76);
       border: 1px solid rgba(255, 255, 255, 0.76);
       backdrop-filter: blur(20px);
@@ -452,8 +452,8 @@
     }
 
     .notification-card.heavy {
-      min-width: 154px;
-      padding-right: 16px;
+      min-width: 140px;
+      padding-right: 14px;
     }
 
     .notification-card[data-type="badge"] {
@@ -484,13 +484,13 @@
     }
 
     .notification-icon {
-      flex: 0 0 38px;
-      width: 38px;
-      height: 38px;
-      border-radius: 14px;
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
       display: grid;
       place-items: center;
-      font-size: 18px;
+      font-size: 16px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
     }
 
@@ -530,7 +530,7 @@
     }
 
     .notification-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--apple-label);
       line-height: 1.2;
@@ -542,7 +542,7 @@
     .notification-body {
       margin-top: 4px;
       color: var(--apple-label-secondary);
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.35;
       white-space: nowrap;
       overflow: hidden;
@@ -551,11 +551,11 @@
 
     .notification-pill {
       flex: 0 0 auto;
-      padding: 6px 9px;
+      padding: 5px 8px;
       border-radius: 999px;
       background: rgba(60, 60, 67, 0.08);
       color: var(--apple-label-secondary);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       line-height: 1;
       letter-spacing: 0.02em;
@@ -1234,26 +1234,26 @@
       }
 
       .notification-card {
-        max-width: 176px;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 18px;
+        max-width: 158px;
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 16px;
       }
 
       .notification-icon {
-        width: 34px;
-        height: 34px;
-        font-size: 16px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
       }
 
       .notification-title {
-        font-size: 13px;
+        font-size: 12px;
       }
 
       .notification-body,
       .notification-pill,
       .stage-toast-sub {
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .vacuum {
@@ -1558,7 +1558,7 @@
     const GAME_SECONDS = 60;
     const COMBO_WINDOW = 0.9;
     const FEVER_DURATION = 8;
-    const MAX_ITEMS = 16;
+    const MAX_ITEMS = 14;
 
     const TYPE_CONFIG = {
       badge: {
@@ -1568,8 +1568,8 @@
         pill: '가벼움',
         score: 80,
         clutter: 5,
-        progressPerSecond: 1.6,
-        size: [114, 70],
+        progressPerSecond: 1.75,
+        size: [106, 64],
       },
       ping: {
         icon: '💬',
@@ -1578,8 +1578,8 @@
         pill: '재촉',
         score: 120,
         clutter: 6,
-        progressPerSecond: 1.45,
-        size: [142, 76],
+        progressPerSecond: 1.58,
+        size: [130, 70],
       },
       mail: {
         icon: '✉️',
@@ -1588,8 +1588,8 @@
         pill: '묵직함',
         score: 180,
         clutter: 8,
-        progressPerSecond: 1.15,
-        size: [176, 84],
+        progressPerSecond: 1.24,
+        size: [162, 78],
       },
       meeting: {
         icon: '📅',
@@ -1598,8 +1598,8 @@
         pill: '번짐',
         score: 220,
         clutter: 9,
-        progressPerSecond: 1.05,
-        size: [188, 88],
+        progressPerSecond: 1.12,
+        size: [172, 82],
         splitAfter: 8.4,
       },
       revision: {
@@ -1609,8 +1609,8 @@
         pill: '두 번',
         score: 360,
         clutter: 12,
-        progressPerSecond: 0.92,
-        size: [190, 92],
+        progressPerSecond: 1.02,
+        size: [176, 84],
         phaseBreak: 0.82,
         required: 1.6,
       },
@@ -1621,8 +1621,8 @@
         pill: '보너스',
         score: 520,
         clutter: 3,
-        progressPerSecond: 1.8,
-        size: [172, 82],
+        progressPerSecond: 1.96,
+        size: [160, 76],
       },
     };
 
@@ -2013,16 +2013,16 @@
       addParticle('pulse-ring', x, y, { size: 48, life: 0.42 });
       playTone(state.feverActive ? 640 : 520, 0.1, 'triangle', 0.032);
 
-      const radius = (state.feverActive ? 240 : 190) * (1 + (strength - 1) * 0.25);
+      const radius = (state.feverActive ? 282 : 228) * (1 + (strength - 1) * 0.3);
       for (const item of state.items) {
         const dx = x - item.x;
         const dy = y - item.y;
         const dist = Math.hypot(dx, dy) || 1;
         if (dist > radius) continue;
         const pull = 1 - dist / radius;
-        item.vx += (dx / dist) * pull * 380 * strength;
-        item.vy += (dy / dist) * pull * 380 * strength;
-        item.progress += pull * 0.42 * strength;
+        item.vx += (dx / dist) * pull * 520 * strength;
+        item.vy += (dy / dist) * pull * 520 * strength;
+        item.progress += pull * 0.56 * strength;
         item.pulse = 1;
       }
     }
@@ -2137,8 +2137,8 @@
       const bottom = height - 112;
       const radius = state.feverActive ? 250 : 190;
       const intake = state.feverActive ? 40 : 32;
-      const visualRadius = state.feverActive ? 150 : 128;
-      const safeRadius = state.feverActive ? 112 : 96;
+      const visualRadius = state.feverActive ? 164 : 142;
+      const safeRadius = state.feverActive ? 124 : 108;
 
       for (const item of [...state.items]) {
         item.age += dt;
@@ -2174,8 +2174,8 @@
 
         if (!state.suction && dist < safeRadius) {
           const pushRatio = 1 - dist / safeRadius;
-          item.vx -= (dx / dist) * pushRatio * 280 * dt;
-          item.vy -= (dy / dist) * pushRatio * 220 * dt;
+          item.vx -= (dx / dist) * pushRatio * 360 * dt;
+          item.vy -= (dy / dist) * pushRatio * 280 * dt;
         }
 
         if (state.suction && pullRatio > 0) {
@@ -2217,8 +2217,8 @@
     function renderItems() {
       for (const item of state.items) {
         const focusEase = item.focus || 0;
-        const scale = 1 - Math.min(0.26, item.progress * 0.16) - focusEase * 0.08 + item.pulse * 0.06;
-        const opacity = clamp(1 - item.progress * 0.42 - focusEase * 0.34, 0.16, 1);
+        const scale = 1 - Math.min(0.26, item.progress * 0.16) - focusEase * 0.1 + item.pulse * 0.08;
+        const opacity = clamp(1 - item.progress * 0.42 - focusEase * 0.42, 0.1, 1);
         item.el.style.transform = `translate(${item.x - item.width / 2}px, ${item.y - item.height / 2}px) rotate(${item.rotation}rad) scale(${scale})`;
         item.el.style.opacity = opacity.toFixed(3);
         item.el.style.filter = `blur(${(focusEase * 1.2).toFixed(2)}px)`;
@@ -2301,7 +2301,7 @@
       }
 
       state.spawnTimer -= dt;
-      const spawnDelay = clamp(1.24 - state.clutter / 156, 0.38, 1.24);
+      const spawnDelay = clamp(1.34 - state.clutter / 180, 0.44, 1.34);
       if (state.spawnTimer <= 0 && state.items.length < MAX_ITEMS) {
         spawnItem();
         state.spawnTimer = spawnDelay;
@@ -2357,7 +2357,7 @@
       resultOverlay.classList.remove('visible');
       setToast('조용한 책상은 금방 끝난다. 지금부터 다시 쌓인다.', '몰리는 축을 먼저 보고, 작은 핑으로 콤보를 이어가자.');
       setModeCopy('기본 흡입. 메일과 회의는 묵직하고, 붉은 수정 요청은 한 번 더 붙잡아야 끝난다.');
-      for (let i = 0; i < 3; i += 1) spawnItem(i === 0 ? 'mail' : i === 1 ? 'badge' : 'ping');
+      for (let i = 0; i < 2; i += 1) spawnItem(i === 0 ? 'mail' : 'badge');
       updateHud();
       if (state.audio?.state === 'suspended') state.audio.resume();
     }
@@ -2406,7 +2406,7 @@
       const point = stagePointFromEvent(event);
       setPointer(point);
       state.suction = true;
-      triggerPulse(point.x, point.y, 1);
+      triggerPulse(point.x, point.y, 1.22);
       updateHum();
     }
 
@@ -2459,7 +2459,7 @@
           if (!state.running) return;
           if (!state.suction) {
             state.suction = true;
-            triggerPulse(state.pointer.x, state.pointer.y, 1.08);
+            triggerPulse(state.pointer.x, state.pointer.y, 1.3);
           }
           updateHum();
         }
