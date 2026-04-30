@@ -135,7 +135,6 @@
       padding: 8px 20px 0;
     }
 
-    .hero-card,
     .section-card,
     .snapshot-card {
       background: var(--hub-surface);
@@ -146,99 +145,12 @@
       overflow: hidden;
     }
 
-    .hero-card {
-      padding: 30px;
-      margin-bottom: 24px;
-      background:
-        radial-gradient(circle at top right, rgba(124, 122, 247, 0.18), transparent 28%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.93));
-    }
-
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      inset: auto -20% -35% auto;
-      width: 320px;
-      height: 320px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(88, 86, 214, 0.12), transparent 68%);
-      pointer-events: none;
-    }
-
     .eyebrow {
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.18em;
       color: rgba(88, 86, 214, 0.78);
       text-transform: uppercase;
-    }
-
-    .hero-title {
-      margin-top: 10px;
-      font-family: "Plus Jakarta Sans", sans-serif;
-      font-size: clamp(28px, 4vw, 40px);
-      line-height: 1.18;
-      letter-spacing: -0.04em;
-    }
-
-    .hero-copy {
-      max-width: 620px;
-      color: var(--hub-subtle);
-      font-size: 16px;
-      line-height: 1.65;
-      margin-top: 10px;
-    }
-
-    .hero-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .hero-badge {
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(88, 86, 214, 0.08);
-      color: var(--hub-primary);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
-
-    .stats-grid {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 26px;
-    }
-
-    .stat-card {
-      padding: 18px 16px;
-      border-radius: 24px;
-      background: rgba(242, 244, 246, 0.92);
-      text-align: center;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #7a7f8a;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .stat-value {
-      margin-top: 8px;
-      font-family: "Plus Jakarta Sans", sans-serif;
-      font-size: clamp(26px, 3.6vw, 32px);
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.04em;
-      color: var(--hub-primary);
     }
 
     .section-card {
@@ -259,6 +171,20 @@
       font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.03em;
+    }
+
+    .section-meta {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(88, 86, 214, 0.08);
+      color: var(--hub-primary);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
     .section-copy {
@@ -799,14 +725,9 @@
         padding: 8px 16px 0;
       }
 
-      .hero-card,
       .section-card,
       .snapshot-card {
         border-radius: 28px;
-      }
-
-      .hero-card {
-        padding: 24px 20px;
       }
 
       .section-card,
@@ -853,7 +774,6 @@
         font-size: 10px;
       }
 
-      .stats-grid,
       .snapshot-grid {
         grid-template-columns: 1fr;
       }
@@ -896,36 +816,12 @@
   </header>
 
   <main class="app-shell">
-    <section class="hero-card" id="dashboardSection">
-      <p class="eyebrow">Stress Relief Club</p>
-      <h1 class="hero-title">안녕하세요, 지니님!<br>오늘은 어떤 방식으로 풀어낼까요?</h1>
-      <p class="hero-copy">보이는 카드만 누르면 바로 시작됩니다. 스트레스 해소, 클래식, 휴게실까지 한 화면에서 빠르게 고를 수 있게 정리했습니다.</p>
-      <div class="hero-badges">
-        <span class="hero-badge">설치 없음</span>
-        <span class="hero-badge">바로 플레이</span>
-        <span class="hero-badge">기록 자동 반영</span>
-      </div>
-      <div class="stats-grid">
-        <article class="stat-card">
-          <span class="stat-label">Total Points</span>
-          <strong class="stat-value" id="totalScore">0</strong>
-        </article>
-        <article class="stat-card">
-          <span class="stat-label">Games Played</span>
-          <strong class="stat-value" id="totalGames">0</strong>
-        </article>
-        <article class="stat-card">
-          <span class="stat-label">Level</span>
-          <strong class="stat-value" id="playerLevel">1</strong>
-        </article>
-      </div>
-    </section>
-
     <section class="section-card">
       <div class="section-head">
         <div>
           <p class="eyebrow">Mood Select</p>
           <h2 class="section-title">지금 기분은 어때요?</h2>
+          <span class="section-meta">18 games · 설치 없이 바로 플레이</span>
         </div>
         <p class="section-copy">기분 버튼을 누르면 아래 리스트와 카테고리가 바로 바뀝니다. 열받았을 때는 단계까지 골라서 바로 센 게임으로 들어갈 수 있게 했습니다.</p>
       </div>
@@ -995,6 +891,21 @@
         <p class="snapshot-copy" id="snapshotSummary">지금 선택한 분위기에 맞춰 플레이 구역과 추천 흐름을 다르게 잡습니다.</p>
       </div>
       <div class="snapshot-grid">
+        <article class="snapshot-tile">
+          <span class="snapshot-label">Total Points</span>
+          <strong class="snapshot-value" id="totalScore">0</strong>
+          <span class="snapshot-subvalue">허브가 읽어온 누적 분노 점수입니다.</span>
+        </article>
+        <article class="snapshot-tile">
+          <span class="snapshot-label">Games Played</span>
+          <strong class="snapshot-value" id="totalGames">0</strong>
+          <span class="snapshot-subvalue">로컬에 기록된 총 플레이 횟수입니다.</span>
+        </article>
+        <article class="snapshot-tile">
+          <span class="snapshot-label">Level</span>
+          <strong class="snapshot-value" id="playerLevel">1</strong>
+          <span class="snapshot-subvalue">누적 점수 기준으로 계산한 현재 레벨입니다.</span>
+        </article>
         <article class="snapshot-tile">
           <span class="snapshot-label">현재 필터</span>
           <strong class="snapshot-value" id="snapshotFilter">전체</strong>
