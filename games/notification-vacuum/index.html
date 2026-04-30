@@ -520,6 +520,18 @@
       will-change: transform, opacity;
     }
 
+    .notification-card::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      border-radius: 999px;
+      background: rgba(60, 60, 67, 0.10);
+      opacity: 0.9;
+    }
+
     .notification-card.heavy {
       min-width: 136px;
       max-width: 180px;
@@ -528,29 +540,66 @@
 
     .notification-card[data-type="badge"] {
       border-color: rgba(255, 59, 48, 0.20);
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .notification-card[data-type="badge"]::before {
+      background: rgba(255, 59, 48, 0.68);
     }
 
     .notification-card[data-type="ping"] {
       border-color: rgba(0, 122, 255, 0.20);
+      background: rgba(248, 252, 255, 0.84);
+    }
+
+    .notification-card[data-type="ping"]::before {
+      background: rgba(0, 122, 255, 0.68);
     }
 
     .notification-card[data-type="mail"] {
       border-color: rgba(52, 199, 89, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(243, 250, 246, 0.82));
+    }
+
+    .notification-card[data-type="mail"]::before {
+      background: rgba(52, 199, 89, 0.72);
     }
 
     .notification-card[data-type="meeting"] {
       border-color: rgba(94, 92, 230, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(243, 244, 255, 0.82));
+    }
+
+    .notification-card[data-type="meeting"]::before {
+      background: rgba(94, 92, 230, 0.72);
     }
 
     .notification-card[data-type="revision"] {
       border-color: rgba(255, 149, 0, 0.28);
+      background:
+        linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(255, 247, 235, 0.92));
+      box-shadow:
+        0 16px 24px rgba(184, 146, 92, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    }
+
+    .notification-card[data-type="revision"]::before {
+      background: rgba(255, 149, 0, 0.76);
     }
 
     .notification-card[data-type="zero"] {
       border-color: rgba(255, 204, 0, 0.34);
+      background:
+        linear-gradient(180deg, rgba(255, 252, 234, 0.95), rgba(255, 247, 214, 0.94));
       box-shadow:
         0 16px 30px rgba(255, 204, 0, 0.24),
         inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    }
+
+    .notification-card[data-type="zero"]::before {
+      background: rgba(255, 204, 0, 0.82);
     }
 
     .notification-icon {
@@ -983,15 +1032,22 @@
     .side-rail {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .rail-card {
       padding: 18px;
       border-radius: 24px;
-      background: var(--apple-bg-secondary);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 250, 0.98));
       border: 1px solid var(--apple-separator);
       box-shadow: var(--shadow-sm);
+    }
+
+    .rail-card.primary {
+      background:
+        radial-gradient(circle at 82% 16%, rgba(90, 200, 250, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 250, 0.98));
     }
 
     .rail-eyebrow {
@@ -1005,32 +1061,57 @@
     .metric-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .metric-card {
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--apple-bg-tertiary);
+      padding: 12px 13px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
       border: 1px solid var(--apple-separator);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
     .metric-label {
       color: var(--apple-label-secondary);
-      font-size: 12px;
-      margin-bottom: 6px;
+      font-size: 11px;
+      margin-bottom: 5px;
+      letter-spacing: 0.02em;
     }
 
     .metric-value {
       color: var(--apple-label);
-      font-size: 28px;
+      font-size: 26px;
       line-height: 1;
       font-weight: 800;
       letter-spacing: -0.04em;
     }
 
     .metric-value.tiny {
-      font-size: 22px;
+      font-size: 20px;
+    }
+
+    .metric-note {
+      margin-top: 7px;
+      color: var(--apple-label-secondary);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .metric-time {
+      color: var(--apple-label);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
     }
 
     .meter-card {
@@ -1092,7 +1173,7 @@
     }
 
     .chip-row {
-      margin-top: 16px;
+      margin-top: 14px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -1122,10 +1203,10 @@
 
     .mode-card {
       margin-top: 14px;
-      padding: 14px 16px;
+      padding: 14px 15px;
       border-radius: 18px;
       background:
-        linear-gradient(180deg, rgba(245, 249, 252, 0.96), rgba(239, 244, 248, 0.96));
+        linear-gradient(180deg, rgba(245, 249, 252, 0.96), rgba(240, 245, 249, 0.96));
       border: 1px solid var(--apple-separator);
     }
 
@@ -1143,10 +1224,47 @@
       line-height: 1.58;
     }
 
+    .micro-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(0, 122, 255, 0.06);
+      color: var(--apple-label-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .micro-note strong {
+      color: var(--apple-blue);
+    }
+
+    .support-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .support-title {
+      color: var(--apple-label);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .support-copy {
+      color: var(--apple-label-secondary);
+      font-size: 12px;
+      line-height: 1.45;
+      max-width: 190px;
+      text-align: right;
+    }
+
     .hint-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       color: var(--apple-label-secondary);
       font-size: 13px;
       line-height: 1.58;
@@ -1171,6 +1289,79 @@
 
     .panel-actions .btn {
       flex: 1 1 0;
+    }
+
+    .legend-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .legend-chip {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 11px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(60, 60, 67, 0.10);
+    }
+
+    .legend-dot {
+      flex: 0 0 10px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.7);
+    }
+
+    .legend-dot.badge { background: var(--apple-red); }
+    .legend-dot.ping { background: var(--apple-blue); }
+    .legend-dot.mail { background: var(--apple-green); }
+    .legend-dot.revision { background: var(--apple-orange); }
+    .legend-dot.zero { background: #c98700; }
+
+    .legend-copy {
+      min-width: 0;
+    }
+
+    .legend-name {
+      color: var(--apple-label);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .legend-note {
+      margin-top: 3px;
+      color: var(--apple-label-secondary);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .control-strip {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(60, 60, 67, 0.10);
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: var(--apple-label-secondary);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .control-row strong {
+      color: var(--apple-label);
+      font-weight: 700;
     }
 
     .overlay {
@@ -1200,6 +1391,46 @@
       border: 1px solid rgba(60, 60, 67, 0.12);
       box-shadow: 0 24px 48px rgba(86, 105, 121, 0.20);
       text-align: center;
+    }
+
+    .overlay-card.start-card {
+      background:
+        radial-gradient(circle at top, rgba(90, 200, 250, 0.14), transparent 40%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 251, 0.98));
+    }
+
+    .overlay-card.result-card {
+      background:
+        radial-gradient(circle at top, rgba(52, 199, 89, 0.10), transparent 38%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 250, 0.98));
+    }
+
+    .overlay-preview {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .preview-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(60, 60, 67, 0.10);
+      color: var(--apple-label);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 18px rgba(120, 136, 150, 0.12);
+    }
+
+    .preview-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
     }
 
     .overlay-eyebrow {
@@ -1258,6 +1489,46 @@
 
     .overlay-actions .btn {
       min-width: 132px;
+    }
+
+    .checklist {
+      margin-top: 18px;
+      display: grid;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(60, 60, 67, 0.08);
+      color: var(--apple-label-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .check-mark {
+      flex: 0 0 18px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(52, 199, 89, 0.14);
+      color: var(--apple-green);
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    .check-copy strong {
+      color: var(--apple-label);
+      display: block;
+      margin-bottom: 2px;
     }
 
     .result-score {
@@ -1582,24 +1853,21 @@
       </main>
 
       <aside class="side-rail">
-        <section class="rail-card">
+        <section class="rail-card primary">
           <div class="rail-eyebrow">오늘 정리량</div>
           <div class="metric-grid">
             <div class="metric-card">
-              <div class="metric-label">점수</div>
+              <div class="metric-label">정리한 양</div>
               <div class="metric-value" id="scoreValue">0</div>
+              <div class="metric-note" id="clearValue">0개 정리</div>
             </div>
             <div class="metric-card">
-              <div class="metric-label">콤보</div>
-              <div class="metric-value" id="comboValue">x1</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-label">남은 시간</div>
-              <div class="metric-value" id="timeValue">60</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-label">치운 알림</div>
-              <div class="metric-value tiny" id="clearValue">0개</div>
+              <div class="metric-label">런 상태</div>
+              <div class="metric-row">
+                <div class="info-chip" id="phaseChip">정리 준비</div>
+                <div class="metric-time" id="timeValue">60초</div>
+              </div>
+              <div class="metric-note" id="comboValue">x1 콤보</div>
             </div>
           </div>
 
@@ -1625,32 +1893,60 @@
             </div>
           </div>
 
-          <div class="chip-row">
-            <div class="info-chip" id="phaseChip">정리 준비</div>
-            <div class="info-chip" id="bestChip">최고 0점</div>
-          </div>
-
           <div class="mode-card">
             <div class="mode-title">청소기 모드</div>
             <div class="mode-copy" id="modeCopy">
               기본 흡입. 배지는 가볍고, 메일은 묵직하고, 빨간 수정 요청은 한 번 더 눌러붙어야 끝난다.
             </div>
+            <div class="micro-note"><strong>클린 레인</strong> 중앙은 계속 비워진다. 가장자리부터 안쪽으로 훑는 편이 안정적이다.</div>
           </div>
         </section>
 
         <section class="rail-card">
-          <div class="rail-eyebrow">조작 힌트</div>
-          <div class="hint-list">
-            <div><code>마우스/터치</code> 청소기 위치 이동</div>
-            <div><code>꾹 누르기</code> 계속 흡입</div>
-            <div><code>Space</code> 현재 위치에서 흡입 유지</div>
-            <div><code>탭/클릭</code> 강한 펄스 한 번</div>
-            <div><code>M</code> 청소음 토글</div>
+          <div class="support-head">
+            <div>
+              <div class="rail-eyebrow" style="margin-bottom:6px;">Signal Guide</div>
+              <div class="support-title">알림 군</div>
+            </div>
+            <div class="support-copy">위협도는 카드 크기보다 색과 재질로 읽는 쪽이 빠르다.</div>
           </div>
 
-          <div class="panel-actions">
-            <button class="btn btn-primary" type="button" id="panelStartButton">플레이</button>
-            <button class="btn btn-secondary" type="button" id="panelLeaderButton">🏆 랭킹</button>
+          <div class="legend-grid">
+            <div class="legend-chip">
+              <div class="legend-dot badge"></div>
+              <div class="legend-copy">
+                <div class="legend-name">배지 / 핑</div>
+                <div class="legend-note">가벼워서 콤보 연결용</div>
+              </div>
+            </div>
+            <div class="legend-chip">
+              <div class="legend-dot mail"></div>
+              <div class="legend-copy">
+                <div class="legend-name">메일 / 회의</div>
+                <div class="legend-note">묵직해서 점수가 큼</div>
+              </div>
+            </div>
+            <div class="legend-chip">
+              <div class="legend-dot revision"></div>
+              <div class="legend-copy">
+                <div class="legend-name">수정 요청</div>
+                <div class="legend-note">한 번 더 붙잡아야 정리됨</div>
+              </div>
+            </div>
+            <div class="legend-chip">
+              <div class="legend-dot zero"></div>
+              <div class="legend-copy">
+                <div class="legend-name">황금 0배지</div>
+                <div class="legend-note">혼잡도를 크게 낮춤</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-strip">
+            <div class="control-row"><strong>홀드</strong><span>지속 흡입</span></div>
+            <div class="control-row"><strong>탭</strong><span>강한 첫 펄스</span></div>
+            <div class="control-row"><strong>Space</strong><span>현재 위치 유지 흡입</span></div>
+            <div class="control-row"><strong>M</strong><span>청소음 토글</span></div>
           </div>
         </section>
       </aside>
@@ -1658,7 +1954,7 @@
   </div>
 
   <div class="overlay visible" id="startOverlay">
-    <div class="overlay-card">
+    <div class="overlay-card start-card">
       <div class="overlay-eyebrow">Soft Utility</div>
       <div class="overlay-title">알림 청소기</div>
       <div class="overlay-copy">
@@ -1666,10 +1962,25 @@
         오래 쌓이면 혼잡도가 올라가고, 빠르게 정리하면 짧은 인박스 제로 모드가 열립니다.
       </div>
 
-      <div class="overlay-points">
-        <div class="overlay-point"><strong>메일 · 회의 · 수정 요청</strong>이 순서 없이 밀려옵니다.</div>
-        <div class="overlay-point"><strong>탭</strong>은 강한 첫 흡입, <strong>홀드</strong>는 지속 정리입니다.</div>
-        <div class="overlay-point"><strong>황금 0배지</strong>는 혼잡도를 크게 낮추고 게이지를 채웁니다.</div>
+      <div class="overlay-preview">
+        <div class="preview-chip"><span class="preview-dot" style="background: var(--apple-blue);"></span>얇은 핑으로 콤보 연결</div>
+        <div class="preview-chip"><span class="preview-dot" style="background: var(--apple-orange);"></span>붉은 요청은 한 번 더</div>
+        <div class="preview-chip"><span class="preview-dot" style="background: var(--apple-green);"></span>0배지로 흐름 리셋</div>
+      </div>
+
+      <div class="checklist">
+        <div class="check-row">
+          <div class="check-mark">1</div>
+          <div class="check-copy"><strong>외곽에서 안쪽으로</strong> 알림은 가장자리 장치에서 시작하고, 중앙 클린 레인은 계속 비워진다.</div>
+        </div>
+        <div class="check-row">
+          <div class="check-mark">2</div>
+          <div class="check-copy"><strong>탭 후 홀드</strong> 첫 펄스로 끌어당기고, 붙은 카드만 이어서 빨아들이면 가장 안정적이다.</div>
+        </div>
+        <div class="check-row">
+          <div class="check-mark">3</div>
+          <div class="check-copy"><strong>묵직한 카드 우선</strong> 메일, 회의, 수정 요청이 화면을 오래 막기 전에 먼저 정리하는 편이 좋다.</div>
+        </div>
       </div>
 
       <div class="overlay-actions">
@@ -1680,7 +1991,7 @@
   </div>
 
   <div class="overlay" id="resultOverlay">
-    <div class="overlay-card">
+    <div class="overlay-card result-card">
       <div class="overlay-eyebrow">Clean Sweep</div>
       <div class="overlay-title">정리 완료</div>
       <div class="result-score" id="resultScore">0</div>
@@ -1787,7 +2098,7 @@
       },
     };
 
-    const SOURCES = ['screen', 'screen', 'screen', 'tray', 'phone', 'watch'];
+    const SOURCES = ['screen', 'screen', 'screen', 'screen', 'phone'];
 
     const deskStage = document.getElementById('deskStage');
     const notificationLayer = document.getElementById('notificationLayer');
@@ -1811,7 +2122,6 @@
     const cleanFill = document.getElementById('cleanFill');
     const cleanValue = document.getElementById('cleanValue');
     const phaseChip = document.getElementById('phaseChip');
-    const bestChip = document.getElementById('bestChip');
     const modeCopy = document.getElementById('modeCopy');
     const resultScore = document.getElementById('resultScore');
     const resultCopy = document.getElementById('resultCopy');
@@ -1855,14 +2165,12 @@
 
     const startButtons = [
       document.getElementById('startButton'),
-      document.getElementById('panelStartButton'),
       document.getElementById('restartButton'),
-    ];
+    ].filter(Boolean);
     const leaderButtons = [
       document.getElementById('startLeaderButton'),
-      document.getElementById('panelLeaderButton'),
       document.getElementById('resultLeaderButton'),
-    ];
+    ].filter(Boolean);
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -1893,14 +2201,12 @@
 
     function refreshBest() {
       state.bestScore = Number(localStorage.getItem(BEST_KEY) || 0);
-      bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
     }
 
     function saveBest(nextScore) {
       if (nextScore <= state.bestScore) return;
       state.bestScore = nextScore;
       localStorage.setItem(BEST_KEY, String(nextScore));
-      bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
     }
 
     function setToast(main, sub) {
@@ -1914,9 +2220,9 @@
 
     function updateHud() {
       scoreValue.textContent = Math.round(state.score).toLocaleString();
-      comboValue.textContent = `x${Math.max(1, getComboMultiplier(state.combo))}`;
-      timeValue.textContent = formatTime(state.timeLeft);
-      clearValue.textContent = `${state.cleared}개`;
+      comboValue.textContent = `x${Math.max(1, getComboMultiplier(state.combo))} 콤보`;
+      timeValue.textContent = `${formatTime(state.timeLeft)}초`;
+      clearValue.textContent = `${state.cleared}개 정리`;
       clutterFill.style.width = `${state.clutter}%`;
       cleanFill.style.width = `${state.clean}%`;
       cleanValue.textContent = state.feverActive ? `ON ${Math.ceil(state.feverTimer)}초` : `${Math.round(state.clean)}%`;
