@@ -3,456 +3,1292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🔥 미니게임 컬렉션 — 부수고, 깨고, 즐겨라!</title>
-  <meta name="description" content="열받을 때, 심심할 때, 설치 없이 바로 플레이하는 고퀄리티 미니게임 모음">
+  <title>MiniPlay - 설치 없이 바로 푸는 미니게임</title>
+  <meta name="description" content="열받을 때, 심심할 때, 쉬고 싶을 때 바로 들어가는 고퀄리티 미니게임 허브">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Material+Symbols+Outlined:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/styles/common.css">
   <style>
-    .hub-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
+    :root {
+      --hub-primary: #5856d6;
+      --hub-primary-soft: #eef0ff;
+      --hub-primary-strong: #403cbe;
+      --hub-surface: rgba(255, 255, 255, 0.92);
+      --hub-surface-strong: #ffffff;
+      --hub-line: rgba(17, 24, 39, 0.08);
+      --hub-shadow: 0 24px 60px rgba(88, 86, 214, 0.08);
+      --hub-shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.06);
+      --hub-text: #191c1e;
+      --hub-subtle: #666b76;
+      --hub-page: radial-gradient(circle at top, rgba(88, 86, 214, 0.09), transparent 38%), #f8f9fb;
+    }
+
+    body {
       min-height: 100vh;
+      background: var(--hub-page);
+      color: var(--hub-text);
+      font-family: "Inter", -apple-system, "Apple SD Gothic Neo", BlinkMacSystemFont, sans-serif;
+      padding-bottom: 120px;
     }
 
-    /* Header */
-    .hub-header {
-      text-align: center;
-      padding: 40px 0 20px;
-    }
-
-    .hub-title {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-
-    .hub-title .fire {
-      display: inline-block;
-      animation: pulseGlow 2s ease-in-out infinite;
-    }
-
-    .hub-subtitle {
-      color: var(--apple-label-secondary);
-      font-size: 16px;
-    }
-
-    /* Mood Selector */
-    .mood-section {
-      text-align: center;
-      margin: 30px 0;
-    }
-
-    .mood-question {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-
-    .mood-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .mood-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 16px 24px;
-      background: var(--apple-bg-secondary);
-      border: 2px solid var(--apple-separator);
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      transition: all 0.2s;
-      color: var(--apple-label);
-      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      min-width: 100px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .mood-btn:hover, .mood-btn.active {
-      border-color: var(--apple-blue);
-      background: rgba(0, 122, 255, 0.08);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .mood-emoji {
-      font-size: 36px;
-    }
-
-    /* Rage Level */
-    .rage-level {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-      animation: slideUp 0.3s ease-out;
-    }
-
-    .rage-level.visible {
-      display: block;
-    }
-
-    .rage-level-title {
-      font-size: 15px;
-      margin-bottom: 12px;
-      color: var(--apple-label-secondary);
-    }
-
-    .rage-level-btns {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .rage-lvl-btn {
-      padding: 10px 20px;
-      border-radius: 20px;
-      border: 2px solid var(--apple-separator);
-      background: var(--apple-bg-secondary);
-      color: var(--apple-label);
-      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .rage-lvl-btn:hover {
-      background: var(--apple-red);
-      border-color: var(--apple-red);
-      color: #FFFFFF;
-    }
-
-    /* Category Tabs */
-    .category-tabs {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin: 24px 0 16px;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      padding: 10px 20px;
-      background: var(--apple-bg-secondary);
-      border: 2px solid transparent;
-      border-radius: 24px;
-      color: var(--apple-label-secondary);
-      font-family: -apple-system, 'Apple SD Gothic Neo', BlinkMacSystemFont, sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .tab-btn:hover { color: var(--apple-label); }
-    .tab-btn.active {
-      background: var(--apple-blue);
-      color: #FFFFFF;
-      border-color: transparent;
-    }
-
-    /* Game Grid */
-    .games-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .game-card {
-      background: var(--apple-bg-secondary);
-      border: 1px solid var(--apple-separator);
-      border-radius: var(--radius-lg);
-      padding: 24px;
-      cursor: pointer;
-      transition: all 0.25s;
-      text-decoration: none;
+    a {
       color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      line-height: 1;
+    }
+
+    .app-bar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 20px 14px;
+      background: linear-gradient(180deg, rgba(248, 249, 251, 0.96), rgba(248, 249, 251, 0.76));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), transparent 42%),
+        linear-gradient(135deg, #7c7af7, #5856d6 55%, #403cbe);
+      color: #ffffff;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-weight: 800;
+      box-shadow: 0 10px 20px rgba(88, 86, 214, 0.24);
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-title {
       display: block;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--hub-primary);
+    }
+
+    .brand-subtitle {
+      display: block;
+      margin-top: 4px;
+      color: var(--hub-subtle);
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-bar-action {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--hub-line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      color: #7a8190;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--hub-shadow-soft);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+    }
+
+    .app-bar-action:hover {
+      background: #ffffff;
+      color: var(--hub-primary);
+      transform: translateY(-1px);
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 8px 20px 0;
+    }
+
+    .hero-card,
+    .section-card,
+    .snapshot-card {
+      background: var(--hub-surface);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 32px;
+      box-shadow: var(--hub-shadow);
       position: relative;
       overflow: hidden;
-      box-shadow: var(--shadow-sm);
     }
 
-    .game-card:hover {
-      border-color: var(--apple-blue);
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md);
+    .hero-card {
+      padding: 30px;
+      margin-bottom: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(124, 122, 247, 0.18), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.93));
     }
 
-    .game-card-emoji {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-
-    .game-card-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: -0.3px;
-    }
-
-    .game-card-desc {
-      font-size: 13px;
-      color: var(--apple-label-secondary);
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-
-    .game-card-meta {
-      display: flex;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--apple-label-secondary);
-    }
-
-    .game-card-tag {
-      padding: 4px 10px;
-      background: rgba(0, 122, 255, 0.12);
-      color: var(--apple-blue);
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 11px;
-    }
-
-    .game-card.locked {
-      opacity: 0.5;
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -35% auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(88, 86, 214, 0.12), transparent 68%);
       pointer-events: none;
     }
 
-    .game-card.locked::after {
-      content: '🔒 Coming Soon';
-      position: absolute;
-      top: 12px;
-      right: 12px;
+    .eyebrow {
       font-size: 12px;
-      background: var(--apple-bg-tertiary);
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-    }
-
-    /* Stats Bar */
-    .stats-bar {
-      display: flex;
-      gap: 20px;
-      justify-content: center;
-      margin: 30px 0 10px;
-      padding: 16px;
-      background: var(--apple-bg-secondary);
-      border-radius: var(--radius-lg);
-      flex-wrap: wrap;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .stat-item {
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 24px;
       font-weight: 700;
-      color: var(--apple-blue);
+      letter-spacing: 0.18em;
+      color: rgba(88, 86, 214, 0.78);
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      margin-top: 10px;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.18;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+      color: var(--hub-subtle);
+      font-size: 16px;
+      line-height: 1.65;
+      margin-top: 10px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .hero-badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(88, 86, 214, 0.08);
+      color: var(--hub-primary);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .stats-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 26px;
+    }
+
+    .stat-card {
+      padding: 18px 16px;
+      border-radius: 24px;
+      background: rgba(242, 244, 246, 0.92);
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
     }
 
     .stat-label {
-      font-size: 11px;
-      color: var(--apple-label-secondary);
-      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7a7f8a;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    /* Footer */
-    .hub-footer {
-      text-align: center;
-      padding: 40px 0 20px;
+    .stat-value {
+      margin-top: 8px;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: clamp(26px, 3.6vw, 32px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--hub-primary);
+    }
+
+    .section-card {
+      padding: 28px 24px 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .section-copy {
+      font-size: 14px;
+      color: var(--hub-subtle);
+      line-height: 1.55;
+      max-width: 430px;
+      text-align: right;
+    }
+
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mood-btn {
+      border: 1px solid rgba(88, 86, 214, 0.06);
+      border-radius: 24px;
+      background: #ffffff;
+      padding: 18px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: var(--hub-shadow-soft);
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .mood-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px rgba(88, 86, 214, 0.12);
+    }
+
+    .mood-btn.active {
+      border-color: rgba(88, 86, 214, 0.24);
+      background: linear-gradient(180deg, rgba(88, 86, 214, 0.08), rgba(88, 86, 214, 0.04));
+    }
+
+    .mood-emoji {
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .mood-label {
       font-size: 13px;
-      color: var(--apple-label-secondary);
+      font-weight: 700;
+      color: #5d6270;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    @media (max-width: 480px) {
-      .hub-title { font-size: 24px; }
-      .mood-btn { min-width: 80px; padding: 12px 16px; }
-      .mood-emoji { font-size: 28px; }
-      .games-grid { grid-template-columns: 1fr; }
+    .rage-panel {
+      display: none;
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(88, 86, 214, 0.06), rgba(88, 86, 214, 0.03));
+      border: 1px solid rgba(88, 86, 214, 0.08);
+    }
+
+    .rage-panel.visible {
+      display: block;
+      animation: fadeUp 0.24s ease;
+    }
+
+    .rage-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .rage-title strong {
+      font-size: 15px;
+      font-weight: 700;
+      color: #333744;
+    }
+
+    .rage-title span {
+      font-size: 13px;
+      color: var(--hub-subtle);
+    }
+
+    .rage-levels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .rage-lvl-btn {
+      border: 1px solid rgba(88, 86, 214, 0.08);
+      border-radius: 999px;
+      background: #ffffff;
+      padding: 11px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4c5160;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .rage-lvl-btn:hover,
+    .rage-lvl-btn.active {
+      background: var(--hub-primary);
+      border-color: var(--hub-primary);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .tab-strip {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 2px 12px;
+      margin-bottom: 22px;
+      scrollbar-width: none;
+    }
+
+    .tab-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      white-space: nowrap;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #5b6270;
+      box-shadow: var(--hub-shadow-soft);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .tab-btn.active {
+      background: var(--hub-primary);
+      color: #ffffff;
+      border-color: var(--hub-primary);
+    }
+
+    .games-panel {
+      padding-bottom: 12px;
+    }
+
+    .feed-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .feed-title {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .feed-note {
+      max-width: 360px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--hub-subtle);
+      text-align: right;
+    }
+
+    .game-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .game-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(17, 24, 39, 0.05);
+      border-radius: 28px;
+      box-shadow: var(--hub-shadow-soft);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      overflow: hidden;
+    }
+
+    .game-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(88, 86, 214, 0.18);
+      box-shadow: 0 24px 46px rgba(88, 86, 214, 0.12);
+    }
+
+    .game-card-link {
+      display: flex;
+      align-items: stretch;
+      gap: 18px;
+      padding: 16px;
+    }
+
+    .game-thumb {
+      position: relative;
+      width: 132px;
+      min-width: 132px;
+      border-radius: 24px;
+      padding: 14px;
+      overflow: hidden;
+      background: var(--thumb-bg, linear-gradient(135deg, #eceeff, #dfe6ff));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .game-thumb::before,
+    .game-thumb::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .game-thumb::before {
+      width: 140px;
+      height: 140px;
+      right: -36px;
+      top: -28px;
+      background: rgba(255, 255, 255, 0.36);
+    }
+
+    .game-thumb::after {
+      width: 74px;
+      height: 74px;
+      left: -12px;
+      bottom: -20px;
+      background: var(--thumb-glow, rgba(255, 255, 255, 0.42));
+      filter: blur(2px);
+    }
+
+    .thumb-badge,
+    .thumb-tag {
+      position: relative;
+      z-index: 1;
+      align-self: flex-start;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(40, 44, 55, 0.84);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .thumb-emoji {
+      position: relative;
+      z-index: 1;
+      display: block;
+      text-align: center;
+      font-size: 46px;
+      line-height: 1;
+      filter: drop-shadow(0 12px 16px rgba(255, 255, 255, 0.3));
+    }
+
+    .game-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .game-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .game-title-wrap {
+      min-width: 0;
+    }
+
+    .game-title {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.04em;
+      color: #16191d;
+    }
+
+    .game-desc {
+      margin-top: 8px;
+      font-size: 14px;
+      line-height: 1.58;
+      color: var(--hub-subtle);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .status-pill {
+      flex-shrink: 0;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 95, 86, 0.12);
+      color: #d23d31;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .game-footer {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .game-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .meta-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f5f7fb;
+      color: #68707d;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .play-pill {
+      width: 50px;
+      height: 50px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #5d5ae0, #4542c8);
+      color: #ffffff;
+      box-shadow: 0 12px 22px rgba(88, 86, 214, 0.28);
+      transition: transform 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .game-card:hover .play-pill {
+      transform: scale(1.04);
+    }
+
+    .snapshot-card {
+      margin-top: 12px;
+      padding: 26px 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 255, 0.92)),
+        rgba(255, 255, 255, 0.92);
+    }
+
+    .snapshot-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .snapshot-title {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .snapshot-copy {
+      max-width: 360px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--hub-subtle);
+      text-align: right;
+    }
+
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .snapshot-tile {
+      padding: 18px 16px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(17, 24, 39, 0.05);
+      box-shadow: var(--hub-shadow-soft);
+    }
+
+    .snapshot-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8a90a0;
+    }
+
+    .snapshot-value {
+      display: block;
+      margin-top: 10px;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #171a1f;
+    }
+
+    .snapshot-subvalue {
+      display: block;
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--hub-subtle);
+      line-height: 1.45;
+    }
+
+    .hub-footer {
+      margin: 18px 0 0;
+      padding: 0 2px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--hub-subtle);
+      text-align: center;
+    }
+
+    .bottom-nav-wrap {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 24px;
+      z-index: 40;
+      display: flex;
+      justify-content: center;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .bottom-nav {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 8px;
+      width: min(100%, 460px);
+      padding: 10px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: 0 24px 40px rgba(88, 86, 214, 0.18);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .nav-btn {
+      border: none;
+      background: transparent;
+      color: #8a92a0;
+      border-radius: 20px;
+      min-width: 96px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease;
+    }
+
+    .nav-btn.active {
+      background: rgba(88, 86, 214, 0.12);
+      color: var(--hub-primary);
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .nav-label {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 920px) {
+      .stats-grid,
+      .snapshot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .feed-head,
+      .section-head,
+      .snapshot-head {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .section-copy,
+      .feed-note,
+      .snapshot-copy {
+        max-width: none;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app-bar {
+        padding: 16px 16px 12px;
+      }
+
+      .app-shell {
+        padding: 8px 16px 0;
+      }
+
+      .hero-card,
+      .section-card,
+      .snapshot-card {
+        border-radius: 28px;
+      }
+
+      .hero-card {
+        padding: 24px 20px;
+      }
+
+      .section-card,
+      .snapshot-card {
+        padding: 22px 18px 20px;
+      }
+
+      .mood-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .game-card-link {
+        flex-direction: column;
+      }
+
+      .game-thumb {
+        width: 100%;
+        min-width: 0;
+        aspect-ratio: 16 / 9;
+      }
+
+      .game-footer {
+        align-items: center;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding-bottom: 112px;
+      }
+
+      .brand-title {
+        font-size: 21px;
+      }
+
+      .hero-badges {
+        gap: 8px;
+      }
+
+      .hero-badge,
+      .meta-chip,
+      .thumb-badge,
+      .thumb-tag {
+        font-size: 10px;
+      }
+
+      .stats-grid,
+      .snapshot-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .game-title {
+        font-size: 22px;
+      }
+
+      .game-header {
+        flex-direction: column;
+      }
+
+      .status-pill {
+        align-self: flex-start;
+      }
+
+      .bottom-nav {
+        width: 100%;
+      }
+
+      .nav-btn {
+        min-width: 0;
+        flex: 1;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="hub-container">
-    <!-- Header -->
-    <header class="hub-header">
-      <h1 class="hub-title"><span class="fire">🔥</span> 미니게임 컬렉션</h1>
-      <p class="hub-subtitle">설치도 없고, 로그인도 없어요. 그냥 플레이하면 돼요.</p>
-    </header>
-
-    <!-- Stats Bar -->
-    <div class="stats-bar" id="statsBar">
-      <div class="stat-item">
-        <div class="stat-value" id="totalScore">0</div>
-        <div class="stat-label">누적 분노 지수</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="totalGames">0</div>
-        <div class="stat-label">플레이 횟수</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="totalSmashed">0</div>
-        <div class="stat-label">파괴한 것들</div>
+  <header class="app-bar" id="homeSection">
+    <div class="brand-block">
+      <div class="brand-avatar" aria-hidden="true">지</div>
+      <div class="brand-copy">
+        <span class="brand-title">MiniPlay</span>
+        <span class="brand-subtitle">설치 없이 바로 푸는 감정별 미니게임 허브</span>
       </div>
     </div>
+    <button class="app-bar-action" type="button" aria-label="알림">
+      <span class="material-symbols-outlined">notifications</span>
+    </button>
+  </header>
 
-    <!-- Mood Selector -->
-    <section class="mood-section">
-      <p class="mood-question">지금 기분이 어때?</p>
-      <div class="mood-buttons">
+  <main class="app-shell">
+    <section class="hero-card" id="dashboardSection">
+      <p class="eyebrow">Stress Relief Club</p>
+      <h1 class="hero-title">안녕하세요, 지니님!<br>오늘은 어떤 방식으로 풀어낼까요?</h1>
+      <p class="hero-copy">보이는 카드만 누르면 바로 시작됩니다. 스트레스 해소, 클래식, 휴게실까지 한 화면에서 빠르게 고를 수 있게 정리했습니다.</p>
+      <div class="hero-badges">
+        <span class="hero-badge">설치 없음</span>
+        <span class="hero-badge">바로 플레이</span>
+        <span class="hero-badge">기록 자동 반영</span>
+      </div>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-label">Total Points</span>
+          <strong class="stat-value" id="totalScore">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Games Played</span>
+          <strong class="stat-value" id="totalGames">0</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Level</span>
+          <strong class="stat-value" id="playerLevel">1</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Mood Select</p>
+          <h2 class="section-title">지금 기분은 어때요?</h2>
+        </div>
+        <p class="section-copy">기분 버튼을 누르면 아래 리스트와 카테고리가 바로 바뀝니다. 열받았을 때는 단계까지 골라서 바로 센 게임으로 들어갈 수 있게 했습니다.</p>
+      </div>
+      <div class="mood-grid">
         <button class="mood-btn" data-mood="rage" onclick="selectMood('rage')">
-          <span class="mood-emoji">😤</span>
-          열받아!
+          <span class="mood-emoji">💢</span>
+          <span class="mood-label">Angry</span>
         </button>
         <button class="mood-btn" data-mood="bored" onclick="selectMood('bored')">
-          <span class="mood-emoji">😎</span>
-          심심해~
+          <span class="mood-emoji">🥱</span>
+          <span class="mood-label">Bored</span>
         </button>
         <button class="mood-btn" data-mood="focus" onclick="selectMood('focus')">
           <span class="mood-emoji">🧠</span>
-          집중!
+          <span class="mood-label">Focus</span>
         </button>
         <button class="mood-btn" data-mood="break" onclick="selectMood('break')">
-          <span class="mood-emoji">🚬</span>
-          휴게실
+          <span class="mood-emoji">🌿</span>
+          <span class="mood-label">Chill</span>
         </button>
         <button class="mood-btn" data-mood="random" onclick="selectMood('random')">
           <span class="mood-emoji">🎲</span>
-          아무거나
+          <span class="mood-label">Random</span>
         </button>
       </div>
-    </section>
-
-    <!-- Rage Level (shown on rage mood) -->
-    <section class="rage-level" id="rageLevel">
-      <p class="rage-level-title">얼마나 열 받았어요?</p>
-      <div class="rage-level-btns">
-        <button class="rage-lvl-btn" onclick="setRageLevel(1)">😐 슬슬 짜증</button>
-        <button class="rage-lvl-btn" onclick="setRageLevel(2)">😠 꽤 열받음</button>
-        <button class="rage-lvl-btn" onclick="setRageLevel(3)">🤬 진짜 화남</button>
-        <button class="rage-lvl-btn" onclick="setRageLevel(4)">💀 폭발 직전</button>
+      <div class="rage-panel" id="rageLevel">
+        <div class="rage-title">
+          <strong>얼마나 열 받았어요?</strong>
+          <span>단계를 고르면 스트레스 해소 게임 순서를 조정합니다.</span>
+        </div>
+        <div class="rage-levels">
+          <button class="rage-lvl-btn" data-level="1" onclick="setRageLevel(1)">😐 슬슬 짜증</button>
+          <button class="rage-lvl-btn" data-level="2" onclick="setRageLevel(2)">😠 꽤 열받음</button>
+          <button class="rage-lvl-btn" data-level="3" onclick="setRageLevel(3)">🤬 진짜 화남</button>
+          <button class="rage-lvl-btn" data-level="4" onclick="setRageLevel(4)">💀 폭발 직전</button>
+        </div>
       </div>
     </section>
 
-    <!-- Category Tabs -->
-    <div class="category-tabs">
-      <button class="tab-btn active" data-cat="all" onclick="filterGames('all')">🎮 전체</button>
-      <button class="tab-btn" data-cat="stress" onclick="filterGames('stress')">🔥 스트레스 해소</button>
-      <button class="tab-btn" data-cat="classic" onclick="filterGames('classic')">🕹️ 클래식</button>
-      <button class="tab-btn" data-cat="casual" onclick="filterGames('casual')">🎲 캐주얼</button>
-      <button class="tab-btn" data-cat="strategy" onclick="filterGames('strategy')">🧠 전략</button>
-      <button class="tab-btn" data-cat="break" onclick="filterGames('break')">🚬 휴게실</button>
-    </div>
+    <section class="games-panel" id="gamesSection">
+      <div class="tab-strip">
+        <button class="tab-btn active" data-cat="all" onclick="filterGames('all')">전체</button>
+        <button class="tab-btn" data-cat="stress" onclick="filterGames('stress')">스트레스 해소</button>
+        <button class="tab-btn" data-cat="classic" onclick="filterGames('classic')">클래식</button>
+        <button class="tab-btn" data-cat="casual" onclick="filterGames('casual')">캐주얼</button>
+        <button class="tab-btn" data-cat="strategy" onclick="filterGames('strategy')">전략</button>
+        <button class="tab-btn" data-cat="break" onclick="filterGames('break')">휴게실</button>
+      </div>
 
-    <!-- Game Grid -->
-    <div class="games-grid" id="gamesGrid"></div>
+      <div class="feed-head">
+        <div>
+          <p class="eyebrow">Game List</p>
+          <h2 class="feed-title" id="feedTitle">오늘 바로 누르기 좋은 게임</h2>
+        </div>
+        <p class="feed-note" id="feedNote">설치도 로그인도 없이 바로 시작할 수 있게, 카드 클릭 동선을 최대한 짧게 줄였습니다.</p>
+      </div>
 
-    <!-- Footer -->
+      <div class="game-list" id="gamesGrid"></div>
+    </section>
+
+    <section class="snapshot-card" id="rankingsSection">
+      <div class="snapshot-head">
+        <div>
+          <p class="eyebrow">Records</p>
+          <h2 class="snapshot-title">내 기록 스냅샷</h2>
+        </div>
+        <p class="snapshot-copy" id="snapshotSummary">지금 선택한 분위기에 맞춰 플레이 구역과 추천 흐름을 다르게 잡습니다.</p>
+      </div>
+      <div class="snapshot-grid">
+        <article class="snapshot-tile">
+          <span class="snapshot-label">현재 필터</span>
+          <strong class="snapshot-value" id="snapshotFilter">전체</strong>
+          <span class="snapshot-subvalue" id="snapshotFilterNote">모든 카테고리를 한 번에 보고 있습니다.</span>
+        </article>
+        <article class="snapshot-tile">
+          <span class="snapshot-label">표시 중 게임</span>
+          <strong class="snapshot-value" id="visibleGames">0</strong>
+          <span class="snapshot-subvalue">현재 화면에 보이는 카드 수입니다.</span>
+        </article>
+        <article class="snapshot-tile">
+          <span class="snapshot-label">파괴/정리 수치</span>
+          <strong class="snapshot-value" id="totalSmashed">0</strong>
+          <span class="snapshot-subvalue">접시, 버블, 볼, 정리 기록을 합산합니다.</span>
+        </article>
+        <article class="snapshot-tile">
+          <span class="snapshot-label">무드 상태</span>
+          <strong class="snapshot-value" id="snapshotMood">Neutral</strong>
+          <span class="snapshot-subvalue" id="snapshotMoodNote">아직 무드를 고르지 않았습니다.</span>
+        </article>
+      </div>
+    </section>
+
     <footer class="hub-footer">
-      <p>오늘도 고생했어요. 내일도 버텨낼 수 있어요 (아마도) 💪</p>
+      오늘도 고생했어요. 버튼 한 번으로 바로 들어가고, 끝나면 다시 이 허브로 돌아오면 됩니다.
     </footer>
+  </main>
+
+  <div class="bottom-nav-wrap">
+    <nav class="bottom-nav" aria-label="하단 탐색">
+      <button class="nav-btn active" data-nav="home" data-target="homeSection" type="button">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;">home</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-btn" data-nav="games" data-target="gamesSection" type="button">
+        <span class="material-symbols-outlined">sports_esports</span>
+        <span class="nav-label">Games</span>
+      </button>
+      <button class="nav-btn" data-nav="rankings" data-target="rankingsSection" type="button">
+        <span class="material-symbols-outlined">leaderboard</span>
+        <span class="nav-label">Rankings</span>
+      </button>
+    </nav>
   </div>
 
   <script>
     const games = [
-      // Stress Relief
-      { id: 'dish-smash', emoji: '🍽️', title: '접시 날려라', desc: '날아오는 접시를 클릭해서 산산조각 내자!', cat: 'stress', time: '60초', tag: '파괴 쾌감', url: 'games/dish-smash/index.html', ready: true },
-      { id: 'stress-ball', emoji: '🔴', title: '스트레스볼 연타', desc: '미친 듯이 클릭해서 스트레스볼을 터뜨려!', cat: 'stress', time: '무제한', tag: '연타 콤보', url: 'games/stress-ball/index.html', ready: true },
-      { id: 'rage-type', emoji: '⌨️', title: '분노의 타이핑', desc: '화면의 텍스트를 미친 듯이 쳐서 폭발시켜!', cat: 'stress', time: '90초', tag: '타자 폭발', url: 'games/rage-type/index.html', ready: true },
-      { id: 'bubble-wrap', emoji: '🫧', title: '버블랩 터뜨리기', desc: '무한 버블랩을 뻥뻥 터뜨리는 순수한 쾌감', cat: 'stress', time: '무제한', tag: '힐링', url: 'games/bubble-wrap/index.html', ready: true },
-      { id: 'paper-rip', emoji: '📄', title: '종이 찢기', desc: '성가신 서류를 시원하게 찢어버려!', cat: 'stress', time: '1분', tag: '드래그 파괴', url: 'games/paper-rip/index.html', ready: true },
-      { id: 'boss-throw', emoji: '🎯', title: '상사한테 던지기', desc: '물건을 조준해서 타겟에게 던지자!', cat: 'stress', time: '3분', tag: '투척 물리', url: 'games/boss-throw/index.html', ready: true },
-      { id: 'clock-out-stamp', emoji: '🟥', title: '퇴근 도장 난사', desc: '거대한 퇴근 도장으로 회의, 메신저, 수정 요청을 책상 위에서 밀어버려!', cat: 'stress', time: '45초', tag: '권한 역전', url: 'games/clock-out-stamp/index.html', ready: true },
-      { id: 'notification-vacuum', emoji: '🧹', title: '알림 청소기', desc: '쏟아지는 메일, 배지, 수정 요청을 작은 청소기로 빨아들여 화면을 다시 맑게 만들자!', cat: 'stress', time: '60초', tag: '정리 쾌감', url: 'games/notification-vacuum/index.html', ready: true },
-      // Classic
-      { id: 'tetris', emoji: '🧱', title: '테트리스', desc: '불멸의 클래식. 블록을 쌓고 줄을 완성해라!', cat: 'classic', time: '3-10분', tag: '블록 퍼즐', url: 'games/tetris/index.html', ready: true },
-      { id: 'snake', emoji: '🐍', title: '스네이크', desc: '뱀을 조종해 먹이를 먹고 최장 기록 도전!', cat: 'classic', time: '2-5분', tag: '성장', url: 'games/snake/index.html', ready: true },
-      { id: 'space-shooter', emoji: '🚀', title: '스페이스 슈터', desc: '우주선으로 적을 격파하고 탄막을 피해라!', cat: 'classic', time: '3-8분', tag: '슈팅', url: 'games/space-shooter/index.html', ready: true },
-      // Casual
-      { id: 'memory-match', emoji: '🃏', title: '카드 뒤집기', desc: '같은 그림 카드 쌍을 찾아내는 메모리 게임', cat: 'casual', time: '2-5분', tag: '기억력', url: 'games/memory-match/index.html', ready: true },
-      { id: 'rps-plus', emoji: '✊', title: '가위바위보+', desc: 'AI와 심리전! 연승하면 AI가 더 강해져!', cat: 'casual', time: '1-3분', tag: '심리전', url: 'games/rps-plus/index.html', ready: true },
-      { id: 'lucky-roulette', emoji: '🎰', title: '행운의 룰렛', desc: '룰렛을 돌려 운을 시험하는 파티 게임!', cat: 'casual', time: '1-5분', tag: '운 시험', url: 'games/lucky-roulette/index.html', ready: true },
-      // Strategy
-      { id: 'tower-defense', emoji: '🏰', title: '타워 디펜스', desc: '타워를 전략적으로 배치해 적을 막아라!', cat: 'strategy', time: '10-20분', tag: '전략 배치', url: 'games/tower-defense/index.html', ready: true },
-      { id: 'resource-tycoon', emoji: '🏘️', title: '자원 관리자', desc: '제한된 자원으로 마을을 성장시켜라!', cat: 'strategy', time: '10-30분', tag: '경영 시뮬', url: 'games/resource-tycoon/index.html', ready: true },
-      // Break Room
-      { id: 'smoke-break', emoji: '🚬', title: '흡연 구역', desc: '잠깐 멍때리며 연기를 흘려보내는 디지털 휴게실', cat: 'break', time: '1-5분', tag: '한숨 타임', url: 'games/smoke-break/index.html', ready: true },
-      { id: 'goam-jar', emoji: '🏺', title: '고암항아리', desc: '이름이나 한마디를 밀어 넣으면 항아리 안에서 메아리치다 잠잠해진다.', cat: 'break', time: '1-3분', tag: '감정 봉인', url: 'games/goam-jar/index.html', ready: true },
+      { id: "dish-smash", emoji: "🍽️", title: "접시 날려라", desc: "날아오는 접시를 클릭해서 산산조각 내자!", cat: "stress", time: "60초", tag: "파괴 쾌감", url: "games/dish-smash/index.html", ready: true },
+      { id: "stress-ball", emoji: "🔴", title: "스트레스볼 연타", desc: "미친 듯이 클릭해서 스트레스볼을 터뜨려!", cat: "stress", time: "무제한", tag: "연타 콤보", url: "games/stress-ball/index.html", ready: true },
+      { id: "rage-type", emoji: "⌨️", title: "분노의 타이핑", desc: "화면의 텍스트를 미친 듯이 쳐서 폭발시켜!", cat: "stress", time: "90초", tag: "타자 폭발", url: "games/rage-type/index.html", ready: true },
+      { id: "bubble-wrap", emoji: "🫧", title: "버블랩 터뜨리기", desc: "무한 버블랩을 뻥뻥 터뜨리는 순수한 쾌감", cat: "stress", time: "무제한", tag: "힐링", url: "games/bubble-wrap/index.html", ready: true },
+      { id: "paper-rip", emoji: "📄", title: "종이 찢기", desc: "성가신 서류를 시원하게 찢어버려!", cat: "stress", time: "1분", tag: "드래그 파괴", url: "games/paper-rip/index.html", ready: true },
+      { id: "boss-throw", emoji: "🎯", title: "상사한테 던지기", desc: "물건을 조준해서 타겟에게 던지자!", cat: "stress", time: "3분", tag: "투척 물리", url: "games/boss-throw/index.html", ready: true },
+      { id: "clock-out-stamp", emoji: "🟥", title: "퇴근 도장 난사", desc: "거대한 퇴근 도장으로 회의, 메신저, 수정 요청을 책상 위에서 밀어버려!", cat: "stress", time: "45초", tag: "권한 역전", url: "games/clock-out-stamp/index.html", ready: true },
+      { id: "notification-vacuum", emoji: "🧹", title: "알림 청소기", desc: "쏟아지는 메일, 배지, 수정 요청을 작은 청소기로 빨아들여 화면을 다시 맑게 만들자!", cat: "stress", time: "60초", tag: "정리 쾌감", url: "games/notification-vacuum/index.html", ready: true },
+      { id: "tetris", emoji: "🧱", title: "테트리스", desc: "불멸의 클래식. 블록을 쌓고 줄을 완성해라!", cat: "classic", time: "3-10분", tag: "블록 퍼즐", url: "games/tetris/index.html", ready: true },
+      { id: "snake", emoji: "🐍", title: "스네이크", desc: "뱀을 조종해 먹이를 먹고 최장 기록 도전!", cat: "classic", time: "2-5분", tag: "성장", url: "games/snake/index.html", ready: true },
+      { id: "space-shooter", emoji: "🚀", title: "스페이스 슈터", desc: "우주선으로 적을 격파하고 탄막을 피해라!", cat: "classic", time: "3-8분", tag: "슈팅", url: "games/space-shooter/index.html", ready: true },
+      { id: "memory-match", emoji: "🃏", title: "카드 뒤집기", desc: "같은 그림 카드 쌍을 찾아내는 메모리 게임", cat: "casual", time: "2-5분", tag: "기억력", url: "games/memory-match/index.html", ready: true },
+      { id: "rps-plus", emoji: "✊", title: "가위바위보+", desc: "AI와 심리전! 연승하면 AI가 더 강해져!", cat: "casual", time: "1-3분", tag: "심리전", url: "games/rps-plus/index.html", ready: true },
+      { id: "lucky-roulette", emoji: "🎰", title: "행운의 룰렛", desc: "룰렛을 돌려 운을 시험하는 파티 게임!", cat: "casual", time: "1-5분", tag: "운 시험", url: "games/lucky-roulette/index.html", ready: true },
+      { id: "tower-defense", emoji: "🏰", title: "타워 디펜스", desc: "타워를 전략적으로 배치해 적을 막아라!", cat: "strategy", time: "10-20분", tag: "전략 배치", url: "games/tower-defense/index.html", ready: true },
+      { id: "resource-tycoon", emoji: "🏘️", title: "자원 관리자", desc: "제한된 자원으로 마을을 성장시켜라!", cat: "strategy", time: "10-30분", tag: "경영 시뮬", url: "games/resource-tycoon/index.html", ready: true },
+      { id: "smoke-break", emoji: "🚬", title: "흡연 구역", desc: "잠깐 멍때리며 연기를 흘려보내는 디지털 휴게실", cat: "break", time: "1-5분", tag: "한숨 타임", url: "games/smoke-break/index.html", ready: true },
+      { id: "goam-jar", emoji: "🏺", title: "고암항아리", desc: "이름이나 한마디를 밀어 넣으면 항아리 안에서 메아리치다 잠잠해진다.", cat: "break", time: "1-3분", tag: "감정 봉인", url: "games/goam-jar/index.html", ready: true }
     ];
 
-    let currentFilter = 'all';
+    const categoryMeta = {
+      all: { label: "전체", title: "오늘 바로 누르기 좋은 게임", note: "설치도 로그인도 없이 바로 시작할 수 있게, 카드 클릭 동선을 최대한 짧게 줄였습니다." },
+      stress: { label: "스트레스 해소", title: "지금 바로 풀어내기 좋은 게임", note: "타격감, 파괴감, 정리 쾌감 위주로 앞쪽에 배치합니다." },
+      classic: { label: "클래식", title: "짧게 몰입하기 좋은 클래식", note: "규칙이 익숙한 게임 위주로 바로 들어갈 수 있게 묶었습니다." },
+      casual: { label: "캐주얼", title: "가볍게 한 판 하기 좋은 캐주얼", note: "부담 없이 눌러도 되는 카드형 게임들만 골라 뒀습니다." },
+      strategy: { label: "전략", title: "조용히 집중하고 싶은 전략", note: "생각을 붙잡아 두는 게임을 앞쪽으로 정리합니다." },
+      break: { label: "휴게실", title: "잠깐 숨 고르기 좋은 휴게실", note: "흡연 구역과 고암항아리처럼 텐션을 낮추는 방을 따로 묶었습니다." }
+    };
 
-    function renderGames(filter = 'all') {
-      const grid = document.getElementById('gamesGrid');
-      const filtered = filter === 'all' ? games : games.filter(g => g.cat === filter);
+    const moodMeta = {
+      all: { label: "Neutral", note: "아직 무드를 고르지 않았습니다." },
+      rage: { label: "Angry", note: "강한 파괴형과 타격형 게임 위주로 정렬합니다." },
+      bored: { label: "Bored", note: "짧게 몰입되는 클래식 흐름으로 바뀝니다." },
+      focus: { label: "Focus", note: "조용히 붙잡고 가는 전략 라인으로 이동합니다." },
+      break: { label: "Chill", note: "속도를 낮추는 휴게실 게임으로 바로 연결합니다." },
+      random: { label: "Random", note: "지금은 전체 게임을 한 번에 다시 보여줍니다." }
+    };
 
-      grid.innerHTML = filtered.map(g => `
-        <a class="game-card ${g.ready ? '' : 'locked'}" href="${g.ready ? g.url : '#'}" ${!g.ready ? 'onclick="event.preventDefault()"' : ''}>
-          <div class="game-card-emoji">${g.emoji}</div>
-          <div class="game-card-title">${g.title}</div>
-          <div class="game-card-desc">${g.desc}</div>
-          <div class="game-card-meta">
-            <span class="game-card-tag">${g.tag}</span>
-            <span>⏱️ ${g.time}</span>
-          </div>
-        </a>
-      `).join('');
+    const visualThemes = {
+      stress: [
+        { bg: "linear-gradient(135deg, #f5d2ff 0%, #d7deff 55%, #bec9ff 100%)", glow: "rgba(255, 190, 244, 0.65)" },
+        { bg: "linear-gradient(135deg, #ffd7d1 0%, #ffd9b2 46%, #fff0d6 100%)", glow: "rgba(255, 160, 120, 0.56)" },
+        { bg: "linear-gradient(135deg, #d6ecff 0%, #d3d8ff 52%, #eef1ff 100%)", glow: "rgba(144, 182, 255, 0.5)" }
+      ],
+      classic: [
+        { bg: "linear-gradient(135deg, #d7f4ff 0%, #dfe5ff 52%, #eaf6ff 100%)", glow: "rgba(118, 210, 255, 0.5)" },
+        { bg: "linear-gradient(135deg, #dbebff 0%, #e8dcff 52%, #f4edff 100%)", glow: "rgba(138, 144, 255, 0.44)" }
+      ],
+      casual: [
+        { bg: "linear-gradient(135deg, #ffe6dd 0%, #ffeecf 56%, #fff8e6 100%)", glow: "rgba(255, 181, 119, 0.48)" },
+        { bg: "linear-gradient(135deg, #ffdef1 0%, #f7e4ff 56%, #f8efff 100%)", glow: "rgba(230, 151, 255, 0.4)" }
+      ],
+      strategy: [
+        { bg: "linear-gradient(135deg, #d9f2ea 0%, #d8e8ff 54%, #eff6ff 100%)", glow: "rgba(101, 185, 154, 0.42)" },
+        { bg: "linear-gradient(135deg, #dff6d4 0%, #e7f7eb 50%, #eefbf5 100%)", glow: "rgba(120, 208, 126, 0.36)" }
+      ],
+      break: [
+        { bg: "linear-gradient(135deg, #f7ead7 0%, #efe5d2 55%, #f9f3ea 100%)", glow: "rgba(190, 151, 110, 0.34)" },
+        { bg: "linear-gradient(135deg, #ece8e1 0%, #ddd7ce 55%, #f5f2ec 100%)", glow: "rgba(165, 150, 132, 0.26)" }
+      ]
+    };
+
+    const hotGameIds = new Set(["dish-smash", "stress-ball", "rage-type", "notification-vacuum"]);
+
+    let currentFilter = "all";
+    let currentMood = "all";
+    let currentRageLevel = 0;
+    let statsState = {
+      totalAngerScore: 0,
+      gamesPlayed: 0,
+      totalImpact: 0,
+      level: 1
+    };
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function getVisual(game, index) {
+      const themes = visualThemes[game.cat] || visualThemes.casual;
+      return themes[index % themes.length];
+    }
+
+    function getFilteredGames(filter) {
+      return filter === "all" ? [...games] : games.filter((game) => game.cat === filter);
+    }
+
+    function renderGames(filter = "all") {
+      const grid = document.getElementById("gamesGrid");
+      const filtered = getFilteredGames(filter);
+
+      grid.innerHTML = filtered.map((game, index) => {
+        const visual = getVisual(game, index);
+        const statusPill = hotGameIds.has(game.id) ? "<span class=\"status-pill\">Hot</span>" : "";
+        const meta = categoryMeta[game.cat] || categoryMeta.all;
+
+        return `
+          <article class="game-card" data-cat="${escapeHtml(game.cat)}">
+            <a class="game-card-link" href="${escapeHtml(game.url)}">
+              <div class="game-thumb" style="--thumb-bg: ${visual.bg}; --thumb-glow: ${visual.glow};">
+                <span class="thumb-badge">${escapeHtml(meta.label)}</span>
+                <span class="thumb-emoji">${escapeHtml(game.emoji)}</span>
+                <span class="thumb-tag">${escapeHtml(game.tag)}</span>
+              </div>
+              <div class="game-body">
+                <div class="game-header">
+                  <div class="game-title-wrap">
+                    <h3 class="game-title">${escapeHtml(game.title)}</h3>
+                    <p class="game-desc">${escapeHtml(game.desc)}</p>
+                  </div>
+                  ${statusPill}
+                </div>
+                <div class="game-footer">
+                  <div class="game-meta">
+                    <span class="meta-chip">⏱ ${escapeHtml(game.time)}</span>
+                    <span class="meta-chip">${escapeHtml(game.tag)}</span>
+                    <span class="meta-chip">${escapeHtml(meta.label)}</span>
+                  </div>
+                  <span class="play-pill" aria-hidden="true">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 24;">play_arrow</span>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </article>
+        `;
+      }).join("");
+
+      document.getElementById("visibleGames").textContent = filtered.length.toLocaleString();
+    }
+
+    function updateFeedCopy() {
+      const meta = categoryMeta[currentFilter] || categoryMeta.all;
+      document.getElementById("feedTitle").textContent = meta.title;
+      document.getElementById("feedNote").textContent = meta.note;
+      document.getElementById("snapshotFilter").textContent = meta.label;
+      document.getElementById("snapshotFilterNote").textContent = meta.note;
+    }
+
+    function updateMoodSnapshot() {
+      const mood = moodMeta[currentMood] || moodMeta.all;
+      document.getElementById("snapshotMood").textContent = mood.label;
+      document.getElementById("snapshotMoodNote").textContent = mood.note;
     }
 
     function filterGames(cat) {
       currentFilter = cat;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+      document.querySelectorAll(".tab-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.cat === cat);
+      });
       renderGames(cat);
+      updateFeedCopy();
     }
 
     function selectMood(mood) {
-      document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('active', b.dataset.mood === mood));
-      const rageLevel = document.getElementById('rageLevel');
+      currentMood = mood;
+      currentRageLevel = mood === "rage" ? currentRageLevel : 0;
 
-      if (mood === 'rage') {
-        rageLevel.classList.add('visible');
-        filterGames('stress');
+      document.querySelectorAll(".mood-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.mood === mood);
+      });
+
+      const ragePanel = document.getElementById("rageLevel");
+      document.querySelectorAll(".rage-lvl-btn").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.level) === currentRageLevel);
+      });
+
+      if (mood === "rage") {
+        ragePanel.classList.add("visible");
+        filterGames("stress");
       } else {
-        rageLevel.classList.remove('visible');
-        if (mood === 'bored') filterGames('classic');
-        else if (mood === 'focus') filterGames('strategy');
-        else if (mood === 'break') filterGames('break');
-        else filterGames('all');
+        ragePanel.classList.remove("visible");
+        if (mood === "bored") filterGames("classic");
+        else if (mood === "focus") filterGames("strategy");
+        else if (mood === "break") filterGames("break");
+        else if (mood === "random") filterGames("all");
+        else filterGames("all");
       }
+
+      updateMoodSnapshot();
     }
 
     function setRageLevel(level) {
-      filterGames('stress');
-      // Could highlight recommended games based on level
+      currentMood = "rage";
+      currentRageLevel = level;
+
+      document.querySelectorAll(".mood-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.mood === "rage");
+      });
+      document.getElementById("rageLevel").classList.add("visible");
+      document.querySelectorAll(".rage-lvl-btn").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.level) === level);
+      });
+
+      filterGames("stress");
+      updateMoodSnapshot();
     }
 
     function loadStats() {
       try {
-        const data = JSON.parse(localStorage.getItem('rage_game_stats') || '{}');
-        document.getElementById('totalScore').textContent = (data.totalAngerScore || 0).toLocaleString();
-        document.getElementById('totalGames').textContent = (data.gamesPlayed || 0).toLocaleString();
-        const smashed = (data.dishesSmashed || 0) + (data.ballsSmashed || 0) + (data.bubblesPopped || 0);
-        document.getElementById('totalSmashed').textContent = smashed.toLocaleString();
-      } catch {}
+        const data = JSON.parse(localStorage.getItem("rage_game_stats") || "{}");
+        const totalAngerScore = Number(data.totalAngerScore || 0);
+        const gamesPlayed = Number(data.gamesPlayed || 0);
+        const totalImpact = Number(data.dishesSmashed || 0)
+          + Number(data.ballsSmashed || 0)
+          + Number(data.bubblesPopped || 0);
+        const level = Math.max(1, Math.floor(totalAngerScore / 250) + 1);
+
+        statsState = { totalAngerScore, gamesPlayed, totalImpact, level };
+
+        document.getElementById("totalScore").textContent = totalAngerScore.toLocaleString();
+        document.getElementById("totalGames").textContent = gamesPlayed.toLocaleString();
+        document.getElementById("playerLevel").textContent = level.toLocaleString();
+        document.getElementById("totalSmashed").textContent = totalImpact.toLocaleString();
+      } catch (error) {
+        document.getElementById("totalScore").textContent = "0";
+        document.getElementById("totalGames").textContent = "0";
+        document.getElementById("playerLevel").textContent = "1";
+        document.getElementById("totalSmashed").textContent = "0";
+      }
     }
 
-    // Init
-    renderGames();
+    function setupBottomNav() {
+      document.querySelectorAll(".nav-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = document.getElementById(button.dataset.target);
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+
+          document.querySelectorAll(".nav-btn").forEach((nav) => {
+            nav.classList.toggle("active", nav === button);
+          });
+        });
+      });
+    }
+
     loadStats();
+    renderGames();
+    updateFeedCopy();
+    updateMoodSnapshot();
+    setupBottomNav();
   </script>
 </body>
 </html>
