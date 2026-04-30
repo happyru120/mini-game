@@ -821,7 +821,7 @@
         <div>
           <p class="eyebrow">Mood Select</p>
           <h2 class="section-title">지금 기분은 어때요?</h2>
-          <span class="section-meta">18 games · 설치 없이 바로 플레이</span>
+          <span class="section-meta" id="sectionMeta">0 games · 설치 없이 바로 플레이</span>
         </div>
         <p class="section-copy">기분 버튼을 누르면 아래 리스트와 카테고리가 바로 바뀝니다. 열받았을 때는 단계까지 골라서 바로 센 게임으로 들어갈 수 있게 했습니다.</p>
       </div>
@@ -850,7 +850,7 @@
       <div class="rage-panel" id="rageLevel">
         <div class="rage-title">
           <strong>얼마나 열 받았어요?</strong>
-          <span>단계를 고르면 스트레스 해소 게임 순서를 조정합니다.</span>
+          <span>단계를 고르면 스트레스 해소 탭으로 바로 이동합니다.</span>
         </div>
         <div class="rage-levels">
           <button class="rage-lvl-btn" data-level="1" onclick="setRageLevel(1)">😐 슬슬 짜증</button>
@@ -919,7 +919,7 @@
         <article class="snapshot-tile">
           <span class="snapshot-label">파괴/정리 수치</span>
           <strong class="snapshot-value" id="totalSmashed">0</strong>
-          <span class="snapshot-subvalue">접시, 버블, 볼, 정리 기록을 합산합니다.</span>
+          <span class="snapshot-subvalue">접시, 버블, 볼, 종이, 알림 기록을 합산합니다.</span>
         </article>
         <article class="snapshot-tile">
           <span class="snapshot-label">무드 상태</span>
@@ -1163,7 +1163,9 @@
         const gamesPlayed = Number(data.gamesPlayed || 0);
         const totalImpact = Number(data.dishesSmashed || 0)
           + Number(data.ballsSmashed || 0)
-          + Number(data.bubblesPopped || 0);
+          + Number(data.bubblesPopped || 0)
+          + Number(data.papersRipped || 0)
+          + Number(data.notificationsCleared || 0);
         const level = Math.max(1, Math.floor(totalAngerScore / 250) + 1);
 
         statsState = { totalAngerScore, gamesPlayed, totalImpact, level };
@@ -1178,6 +1180,12 @@
         document.getElementById("playerLevel").textContent = "1";
         document.getElementById("totalSmashed").textContent = "0";
       }
+    }
+
+    function updateCatalogMeta() {
+      const sectionMeta = document.getElementById("sectionMeta");
+      if (!sectionMeta) return;
+      sectionMeta.textContent = `${games.length} games · 설치 없이 바로 플레이`;
     }
 
     function setupBottomNav() {
@@ -1199,6 +1207,7 @@
     renderGames();
     updateFeedCopy();
     updateMoodSnapshot();
+    updateCatalogMeta();
     setupBottomNav();
   </script>
 </body>
