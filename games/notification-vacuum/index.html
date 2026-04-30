@@ -424,6 +424,10 @@
       pointer-events: none;
     }
 
+    .notification-layer { z-index: 12; }
+    .particle-layer { z-index: 24; }
+    .vacuum-layer { z-index: 28; }
+
     .notification-card {
       position: absolute;
       left: 0;
@@ -575,6 +579,41 @@
       transform: translate(-50%, -50%);
       pointer-events: none;
       will-change: transform;
+    }
+
+    .focus-lens {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.58) 24%, rgba(255, 255, 255, 0.18) 46%, transparent 72%);
+      filter: blur(4px);
+      opacity: 0.62;
+      transition: width 0.12s ease, height 0.12s ease, opacity 0.12s ease;
+    }
+
+    .focus-lens::after {
+      content: '';
+      position: absolute;
+      inset: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(90, 200, 250, 0.22);
+      box-shadow: 0 0 0 10px rgba(90, 200, 250, 0.05);
+    }
+
+    .focus-lens.active {
+      opacity: 0.88;
+    }
+
+    .focus-lens.fever {
+      width: 248px;
+      height: 248px;
+      background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(230, 255, 243, 0.62) 24%, rgba(90, 200, 250, 0.16) 50%, transparent 74%);
     }
 
     .vacuum-shadow {
@@ -788,6 +827,7 @@
       color: var(--apple-label);
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
       pointer-events: none;
+      z-index: 34;
     }
 
     .stage-toast-main {
@@ -1221,6 +1261,16 @@
         height: 98px;
       }
 
+      .focus-lens {
+        width: 176px;
+        height: 176px;
+      }
+
+      .focus-lens.fever {
+        width: 210px;
+        height: 210px;
+      }
+
       .vacuum-body {
         left: 32px;
         width: 78px;
@@ -1345,6 +1395,7 @@
             <div class="notification-layer" id="notificationLayer"></div>
             <div class="particle-layer" id="particleLayer"></div>
             <div class="vacuum-layer">
+              <div class="focus-lens" id="focusLens"></div>
               <div class="vacuum" id="vacuum">
                 <div class="vacuum-aura"></div>
                 <div class="vacuum-shadow"></div>
@@ -1507,7 +1558,7 @@
     const GAME_SECONDS = 60;
     const COMBO_WINDOW = 0.9;
     const FEVER_DURATION = 8;
-    const MAX_ITEMS = 20;
+    const MAX_ITEMS = 16;
 
     const TYPE_CONFIG = {
       badge: {
@@ -1580,6 +1631,7 @@
     const deskStage = document.getElementById('deskStage');
     const notificationLayer = document.getElementById('notificationLayer');
     const particleLayer = document.getElementById('particleLayer');
+    const focusLens = document.getElementById('focusLens');
     const vacuumEl = document.getElementById('vacuum');
     const vacuumDust = document.getElementById('vacuumDust');
     const clearHaze = document.getElementById('clearHaze');
@@ -1795,6 +1847,15 @@
       vacuumEl.style.transform = `translate(${state.vacuum.x - geometry.mouthX}px, ${state.vacuum.y - geometry.mouthY}px)`;
     }
 
+    function renderFocusLens() {
+      const radius = state.feverActive ? 124 : 105;
+      focusLens.style.transform = `translate(${state.vacuum.x}px, ${state.vacuum.y}px) translate(-50%, -50%)`;
+      focusLens.classList.toggle('active', state.running);
+      focusLens.classList.toggle('fever', state.feverActive);
+      focusLens.style.opacity = state.suction ? (state.feverActive ? '0.96' : '0.9') : '0.66';
+      focusLens.style.boxShadow = `0 0 0 ${Math.round(radius * 0.32)}px rgba(255,255,255,${state.suction ? 0.06 : 0.03})`;
+    }
+
     function setupAudio() {
       if (state.audio) return;
       const audio = new (window.AudioContext || window.webkitAudioContext)();
@@ -1872,9 +1933,9 @@
     function getSourcePoint(source) {
       syncStageRect();
       const { width, height } = state.stageRect;
-      if (source === 'tray') return { x: width * 0.18, y: height * 0.75 };
-      if (source === 'phone') return { x: width * 0.84, y: height * 0.78 };
-      if (source === 'watch') return { x: width * 0.72, y: height * 0.80 };
+      if (source === 'tray') return { x: width * 0.18, y: height * 0.67 };
+      if (source === 'phone') return { x: width * 0.84, y: height * 0.70 };
+      if (source === 'watch') return { x: width * 0.72, y: height * 0.71 };
       return { x: width * rand(0.22, 0.78), y: height * rand(0.18, 0.34) };
     }
 
@@ -1906,6 +1967,7 @@
         age: 0,
         progress: 0,
         pulse: 0,
+        focus: 0,
         splitDone: false,
         midPhase: false,
         required: config.required || 1,
@@ -2031,7 +2093,7 @@
 
     function updateClutter(dt) {
       const sum = state.items.reduce((acc, item) => acc + TYPE_CONFIG[item.type].clutter, 0);
-      const target = clamp(sum * 1.45, 0, 100);
+      const target = clamp(sum * 1.28, 0, 100);
       state.clutter = lerp(state.clutter, target, 1 - Math.exp(-dt * 3.2));
     }
 
@@ -2041,6 +2103,7 @@
       vacuumEl.classList.toggle('active', state.suction && state.running);
       vacuumEl.classList.toggle('fever', state.feverActive);
       renderVacuum();
+      renderFocusLens();
       updateHum();
     }
 
@@ -2071,9 +2134,11 @@
       const left = 34;
       const right = width - 34;
       const top = height * 0.12;
-      const bottom = height - 66;
+      const bottom = height - 112;
       const radius = state.feverActive ? 250 : 190;
       const intake = state.feverActive ? 40 : 32;
+      const visualRadius = state.feverActive ? 150 : 128;
+      const safeRadius = state.feverActive ? 112 : 96;
 
       for (const item of [...state.items]) {
         item.age += dt;
@@ -2105,6 +2170,14 @@
         const dy = state.vacuum.y - item.y;
         const dist = Math.hypot(dx, dy) || 1;
         const pullRatio = dist < radius ? 1 - dist / radius : 0;
+        item.focus = dist < visualRadius ? 1 - dist / visualRadius : 0;
+
+        if (!state.suction && dist < safeRadius) {
+          const pushRatio = 1 - dist / safeRadius;
+          item.vx -= (dx / dist) * pushRatio * 280 * dt;
+          item.vy -= (dy / dist) * pushRatio * 220 * dt;
+        }
+
         if (state.suction && pullRatio > 0) {
           const pull = (state.feverActive ? 780 : 620) * pullRatio;
           item.vx += (dx / dist) * pull * dt;
@@ -2143,10 +2216,12 @@
 
     function renderItems() {
       for (const item of state.items) {
-        const scale = 1 - Math.min(0.26, item.progress * 0.16) + item.pulse * 0.06;
-        const opacity = clamp(1 - item.progress * 0.42, 0.26, 1);
+        const focusEase = item.focus || 0;
+        const scale = 1 - Math.min(0.26, item.progress * 0.16) - focusEase * 0.08 + item.pulse * 0.06;
+        const opacity = clamp(1 - item.progress * 0.42 - focusEase * 0.34, 0.16, 1);
         item.el.style.transform = `translate(${item.x - item.width / 2}px, ${item.y - item.height / 2}px) rotate(${item.rotation}rad) scale(${scale})`;
         item.el.style.opacity = opacity.toFixed(3);
+        item.el.style.filter = `blur(${(focusEase * 1.2).toFixed(2)}px)`;
         item.el.classList.toggle('sucked', item.progress > 0.52);
       }
     }
@@ -2226,7 +2301,7 @@
       }
 
       state.spawnTimer -= dt;
-      const spawnDelay = clamp(1.12 - state.clutter / 132, 0.28, 1.12);
+      const spawnDelay = clamp(1.24 - state.clutter / 156, 0.38, 1.24);
       if (state.spawnTimer <= 0 && state.items.length < MAX_ITEMS) {
         spawnItem();
         state.spawnTimer = spawnDelay;
@@ -2282,7 +2357,7 @@
       resultOverlay.classList.remove('visible');
       setToast('조용한 책상은 금방 끝난다. 지금부터 다시 쌓인다.', '몰리는 축을 먼저 보고, 작은 핑으로 콤보를 이어가자.');
       setModeCopy('기본 흡입. 메일과 회의는 묵직하고, 붉은 수정 요청은 한 번 더 붙잡아야 끝난다.');
-      for (let i = 0; i < 4; i += 1) spawnItem(i === 0 ? 'mail' : i === 1 ? 'badge' : i === 2 ? 'ping' : 'meeting');
+      for (let i = 0; i < 3; i += 1) spawnItem(i === 0 ? 'mail' : i === 1 ? 'badge' : 'ping');
       updateHud();
       if (state.audio?.state === 'suspended') state.audio.resume();
     }
