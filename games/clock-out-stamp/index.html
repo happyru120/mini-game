@@ -162,6 +162,7 @@
       -webkit-backdrop-filter: blur(12px);
       color: var(--apple-label);
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+      pointer-events: none;
     }
 
     .stage-toast-main {
@@ -182,7 +183,7 @@
     .side-rail {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .rail-card {
@@ -324,7 +325,7 @@
     .queue-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 0;
       margin-top: 4px;
     }
 
@@ -333,10 +334,11 @@
       grid-template-columns: auto 1fr;
       gap: 10px;
       align-items: start;
-      padding: 10px 12px;
-      border-radius: 16px;
-      background: var(--apple-bg-tertiary);
-      border: 1px solid var(--apple-separator);
+      padding: 10px 0;
+    }
+
+    .queue-item + .queue-item {
+      border-top: 1px solid var(--apple-separator);
     }
 
     .queue-icon {
@@ -368,6 +370,20 @@
       color: var(--apple-label-secondary);
       font-size: 13px;
       line-height: 1.6;
+    }
+
+    .rail-section + .rail-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--apple-separator);
+    }
+
+    .rail-section-title {
+      margin-bottom: 10px;
+      color: var(--apple-label);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
 
     .hint-list code {
@@ -563,7 +579,7 @@
 
       <aside class="side-rail">
         <section class="rail-card">
-          <div class="rail-eyebrow">Session</div>
+          <div class="rail-eyebrow">오늘 기록</div>
           <div class="metric-grid">
             <div class="metric-card">
               <div class="metric-label">점수</div>
@@ -612,52 +628,48 @@
         </section>
 
         <section class="rail-card">
-          <div class="rail-eyebrow">상태</div>
-          <div class="status-main" id="statusMain">도장은 준비됐다. 몰린 곳에 찍으면 더 시원하다.</div>
-          <div class="status-sub" id="statusSub">수정 요청은 두 번 찍어야 완전히 지워진다. 칼퇴권은 근처까지 같이 밀어낸다.</div>
-        </section>
-
-        <section class="rail-card">
-          <div class="rail-eyebrow">들어오는 일</div>
-          <div class="queue-list">
-            <div class="queue-item">
-              <div class="queue-icon">📄</div>
-              <div class="queue-copy">
-                <div class="queue-title">보고서</div>
-                <div class="queue-desc">기본 점수. 많이 몰릴수록 한 번에 정리하기 좋다.</div>
+          <div class="rail-eyebrow">도움말</div>
+          <div class="rail-section">
+            <div class="rail-section-title">들어오는 일</div>
+            <div class="queue-list">
+              <div class="queue-item">
+                <div class="queue-icon">📄</div>
+                <div class="queue-copy">
+                  <div class="queue-title">보고서</div>
+                  <div class="queue-desc">기본 점수. 많이 몰릴수록 한 번에 정리하기 좋다.</div>
+                </div>
               </div>
-            </div>
-            <div class="queue-item">
-              <div class="queue-icon">💬</div>
-              <div class="queue-copy">
-                <div class="queue-title">메신저 핑</div>
-                <div class="queue-desc">빠르지만 가볍다. 콤보를 이어붙이기 좋은 타입.</div>
+              <div class="queue-item">
+                <div class="queue-icon">💬</div>
+                <div class="queue-copy">
+                  <div class="queue-title">메신저 핑</div>
+                  <div class="queue-desc">빠르지만 가볍다. 콤보를 이어붙이기 좋은 타입.</div>
+                </div>
               </div>
-            </div>
-            <div class="queue-item">
-              <div class="queue-icon">📅</div>
-              <div class="queue-copy">
-                <div class="queue-title">회의 초대</div>
-                <div class="queue-desc">오래 두면 핑으로 쪼개진다. 보이면 빨리 눌러야 한다.</div>
+              <div class="queue-item">
+                <div class="queue-icon">📅</div>
+                <div class="queue-copy">
+                  <div class="queue-title">회의 초대</div>
+                  <div class="queue-desc">오래 두면 핑으로 쪼개진다. 보이면 빨리 눌러야 한다.</div>
+                </div>
               </div>
-            </div>
-            <div class="queue-item">
-              <div class="queue-icon">✍️</div>
-              <div class="queue-copy">
-                <div class="queue-title">수정 요청 / 칼퇴권</div>
-                <div class="queue-desc">수정 요청은 두 번, 황금 칼퇴권은 주변까지 같이 정리한다.</div>
+              <div class="queue-item">
+                <div class="queue-icon">✍️</div>
+                <div class="queue-copy">
+                  <div class="queue-title">수정 요청 / 칼퇴권</div>
+                  <div class="queue-desc">수정 요청은 두 번, 황금 칼퇴권은 주변까지 같이 정리한다.</div>
+                </div>
               </div>
             </div>
           </div>
-        </section>
-
-        <section class="rail-card">
-          <div class="rail-eyebrow">조작</div>
-          <div class="hint-list">
-            <div><code>클릭</code> 또는 <code>탭</code>: 현재 위치에 내려찍기</div>
-            <div><code>Space</code>: 현재 위치에 즉시 한 번 더 찍기</div>
-            <div><code>M</code>: 도장음 토글</div>
-            <div>한 번에 여러 장을 찍으면 멀티 히트 보너스가 붙는다.</div>
+          <div class="rail-section">
+            <div class="rail-section-title">조작</div>
+            <div class="hint-list">
+              <div><code>클릭</code> 또는 <code>탭</code>: 현재 위치에 내려찍기</div>
+              <div><code>Space</code>: 현재 위치에 즉시 한 번 더 찍기</div>
+              <div><code>M</code>: 도장음 토글</div>
+              <div>한 번에 여러 장을 찍으면 멀티 히트 보너스가 붙는다.</div>
+            </div>
           </div>
         </section>
       </aside>
@@ -687,6 +699,7 @@
         </div>
       </div>
       <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="submitScore()">기록 남기기</button>
         <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
         <button class="btn btn-primary" onclick="restartGame()">다시 찍기</button>
         <a href="../../index.html" class="btn btn-secondary">다른 게임</a>
@@ -704,9 +717,13 @@
     const W = canvas.width;
     const H = canvas.height;
     const GAME_DURATION = 45;
-    const POINTER_FOLLOW = 0.36;
-    const POINTER_FOLLOW_FAST = 0.62;
+    const POINTER_FOLLOW = 16;
+    const POINTER_FOLLOW_FAST = 28;
     const STAMP_FACE_OFFSET_Y = 64;
+    const STAMP_ROTATION = -0.24;
+    const PAD_RX = 88;
+    const PAD_RY = 60;
+    const FEVER_PAD_SCALE = 1.22;
 
     const startOverlay = document.getElementById('startOverlay');
     const resultOverlay = document.getElementById('resultOverlay');
@@ -721,8 +738,6 @@
     const feverValue = document.getElementById('feverValue');
     const phaseChip = document.getElementById('phaseChip');
     const bestChip = document.getElementById('bestChip');
-    const statusMain = document.getElementById('statusMain');
-    const statusSub = document.getElementById('statusSub');
     const stageToastMain = document.getElementById('stageToastMain');
     const stageToastSub = document.getElementById('stageToastSub');
     const soundButton = document.getElementById('soundButton');
@@ -756,7 +771,7 @@
       bestScore: 0,
       clutterPeak: 0,
       pointer: { x: W * 0.60, y: H * 0.50, displayX: W * 0.60, displayY: H * 0.50 },
-      stamp: { press: 0, cooldown: 0, rotate: -0.24 },
+      stamp: { press: 0, cooldown: 0, rotate: STAMP_ROTATION },
       items: [],
       particles: [],
       ripples: [],
@@ -779,6 +794,10 @@
 
     function lerp(a, b, t) {
       return a + (b - a) * t;
+    }
+
+    function damp(current, target, lambda, dt) {
+      return lerp(current, target, 1 - Math.exp(-lambda * dt));
     }
 
     function rand(min, max) {
@@ -824,10 +843,41 @@
     function updateMessage(main, sub, stageMain = main, stageSub = sub) {
       state.messageMain = main;
       state.messageSub = sub;
-      statusMain.textContent = main;
-      statusSub.textContent = sub;
       stageToastMain.textContent = stageMain;
       stageToastSub.textContent = stageSub;
+    }
+
+    function isCompactViewport() {
+      return window.innerWidth < 760;
+    }
+
+    function getStampImpactScale() {
+      let scale = state.feverTime > 0 ? FEVER_PAD_SCALE : 1;
+      if (isCompactViewport()) scale *= 1.12;
+      return scale;
+    }
+
+    function clampPointer(point) {
+      const scale = isCompactViewport() ? 1.12 : 1;
+      const marginX = PAD_RX * scale + 10;
+      const marginTop = PAD_RY * scale + 34;
+      const marginBottom = PAD_RY * scale + 82;
+      return {
+        x: clamp(point.x, marginX, W - marginX),
+        y: clamp(point.y, marginTop, H - marginBottom)
+      };
+    }
+
+    function isShortcutBlocked() {
+      const active = document.activeElement;
+      const typing = active && (
+        active.tagName === 'INPUT' ||
+        active.tagName === 'TEXTAREA' ||
+        active.tagName === 'SELECT' ||
+        active.tagName === 'BUTTON' ||
+        active.isContentEditable
+      );
+      return typing || !!document.querySelector('.rs-visible');
     }
 
     function ensureAudio() {
@@ -933,12 +983,12 @@
 
     function getSpawnType() {
       const elapsed = GAME_DURATION - state.timeLeft;
+      if (elapsed > 34 && Math.random() < 0.085) return 'gold';
       const pool = ['report', 'report', 'ping'];
       if (elapsed > 8) pool.push('meeting');
       if (elapsed > 14) pool.push('sticky');
       if (elapsed > 20) pool.push('meeting', 'revision');
       if (elapsed > 30) pool.push('revision', 'sticky');
-      if (elapsed > 34 && Math.random() < 0.12) pool.push('gold');
       return pick(pool);
     }
 
@@ -1115,10 +1165,18 @@
       return extraClears;
     }
 
-    function itemHitByStamp(item, x, y, radiusX, radiusY) {
-      const dx = (item.x - x) / (radiusX + item.w * 0.34);
-      const dy = (item.y - y) / (radiusY + item.h * 0.34);
-      return (dx * dx) + (dy * dy) <= 1;
+    function itemHitByStamp(item, x, y, scale) {
+      const dx = item.x - x;
+      const dy = item.y - y;
+      const cos = Math.cos(-STAMP_ROTATION);
+      const sin = Math.sin(-STAMP_ROTATION);
+      const localX = dx * cos - dy * sin;
+      const localY = dx * sin + dy * cos;
+      const radiusX = PAD_RX * scale + item.w * 0.34;
+      const radiusY = PAD_RY * scale + item.h * 0.34;
+      const nx = localX / radiusX;
+      const ny = localY / radiusY;
+      return (nx * nx) + (ny * ny) <= 1;
     }
 
     function slamAt(x, y) {
@@ -1129,16 +1187,14 @@
       state.pointer.displayX = x;
       state.pointer.displayY = y;
       state.stamp.press = 1;
-      state.stamp.cooldown = state.feverTime > 0 ? 0.16 : 0.26;
+      state.stamp.cooldown = state.feverTime > 0 ? 0.16 : (isCompactViewport() ? 0.22 : 0.26);
 
-      const scale = state.feverTime > 0 ? 1.22 : 1;
-      const radiusX = 88 * scale;
-      const radiusY = 60 * scale;
+      const scale = getStampImpactScale();
       const impacted = [];
 
       for (const item of state.items) {
         if (item.stamped) continue;
-        if (itemHitByStamp(item, x, y, radiusX, radiusY)) {
+        if (itemHitByStamp(item, x, y, scale)) {
           impacted.push(item);
         }
       }
@@ -1318,9 +1374,12 @@
     }
 
     function update(dt) {
-      const follow = state.stamp.press > 0 ? POINTER_FOLLOW_FAST : POINTER_FOLLOW;
-      state.pointer.displayX = lerp(state.pointer.displayX, state.pointer.x, follow);
-      state.pointer.displayY = lerp(state.pointer.displayY, state.pointer.y, follow);
+      const dx = state.pointer.x - state.pointer.displayX;
+      const dy = state.pointer.y - state.pointer.displayY;
+      const distance = Math.hypot(dx, dy);
+      const speed = (state.stamp.press > 0 ? POINTER_FOLLOW_FAST : POINTER_FOLLOW) + Math.min(16, distance * 0.08);
+      state.pointer.displayX = damp(state.pointer.displayX, state.pointer.x, speed, dt);
+      state.pointer.displayY = damp(state.pointer.displayY, state.pointer.y, speed, dt);
       state.stamp.press = Math.max(0, state.stamp.press - dt * 4.6);
       state.stamp.cooldown = Math.max(0, state.stamp.cooldown - dt);
 
@@ -1378,7 +1437,8 @@
       const elapsed = GAME_DURATION - state.timeLeft;
       let base = elapsed < 15 ? 0.82 : elapsed < 30 ? 0.66 : 0.56;
       if (state.feverTime > 0) base *= 0.88;
-      return Math.max(0.26, base + Math.random() * 0.12);
+      base *= 1 - Math.min(0.16, getClutterRatio() * 0.16);
+      return Math.max(0.24, base + Math.random() * 0.12);
     }
 
     function drawDeskBackground() {
@@ -1386,25 +1446,25 @@
       const comboHeat = clamp(state.bestCombo / 20, 0, 1);
 
       const deskGradient = ctx.createLinearGradient(0, 0, W, H);
-      deskGradient.addColorStop(0, '#443235');
-      deskGradient.addColorStop(0.55, '#5a403d');
-      deskGradient.addColorStop(1, feverTint > 0 ? '#7a4d39' : '#664844');
+      deskGradient.addColorStop(0, '#d7cdc3');
+      deskGradient.addColorStop(0.55, '#c7b8aa');
+      deskGradient.addColorStop(1, feverTint > 0 ? '#c59d82' : '#b7a08b');
       ctx.fillStyle = deskGradient;
       ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.fillStyle = 'rgba(112, 92, 78, 0.08)';
       for (let i = 0; i < 26; i += 1) {
         ctx.fillRect(i * 38, 0, 1, H);
       }
 
       const rightGlow = ctx.createRadialGradient(W * 0.82, 110, 40, W * 0.82, 110, 280);
-      rightGlow.addColorStop(0, feverTint > 0 ? 'rgba(255, 177, 108, 0.38)' : 'rgba(255, 177, 108, 0.18)');
+      rightGlow.addColorStop(0, feverTint > 0 ? 'rgba(255, 177, 108, 0.34)' : 'rgba(255, 177, 108, 0.18)');
       rightGlow.addColorStop(1, 'rgba(255, 177, 108, 0)');
       ctx.fillStyle = rightGlow;
       ctx.fillRect(0, 0, W, H);
 
       roundRect(220, 28, 460, 122, 24);
-      ctx.fillStyle = '#14171d';
+      ctx.fillStyle = '#81766f';
       ctx.fill();
 
       roundRect(245, 45, 410, 88, 18);
@@ -1414,49 +1474,49 @@
         monitor.addColorStop(0.45, '#ff9963');
         monitor.addColorStop(1, '#5a3251');
       } else {
-        monitor.addColorStop(0, '#232f43');
-        monitor.addColorStop(1, '#1a2130');
+        monitor.addColorStop(0, '#cfd8e9');
+        monitor.addColorStop(1, '#a9b7cf');
       }
       ctx.fillStyle = monitor;
       ctx.fill();
 
       if (feverTint > 0 || comboHeat > 0.6) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
         ctx.beginPath();
         ctx.arc(570, 84, 26, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = 'rgba(255, 245, 234, 0.20)';
+        ctx.fillStyle = 'rgba(255, 245, 234, 0.24)';
         ctx.fillRect(268, 98, 190, 3);
       } else {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
         for (let row = 0; row < 4; row += 1) {
           ctx.fillRect(268, 66 + row * 15, 240, 4);
         }
-        ctx.fillStyle = 'rgba(0, 122, 255, 0.18)';
+        ctx.fillStyle = 'rgba(0, 122, 255, 0.16)';
         ctx.fillRect(526, 64, 98, 44);
       }
 
-      ctx.fillStyle = '#0f1115';
+      ctx.fillStyle = 'rgba(85, 77, 72, 0.72)';
       roundRect(400, 150, 100, 10, 4);
       ctx.fill();
       roundRect(430, 160, 40, 38, 8);
       ctx.fill();
 
       roundRect(112, 210, 680, 312, 26);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.10)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
       ctx.fill();
       roundRect(128, 226, 648, 280, 22);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.strokeStyle = 'rgba(71, 61, 55, 0.10)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+      ctx.fillStyle = 'rgba(101, 81, 66, 0.12)';
       ctx.beginPath();
       ctx.ellipse(130, 100, 54, 18, -0.20, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
       ctx.arc(132, 96, 24, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.52)';
       ctx.fill();
       ctx.beginPath();
       ctx.arc(132, 96, 18, 0, Math.PI * 2);
@@ -1465,9 +1525,9 @@
       ctx.stroke();
 
       roundRect(140, H - 110, W - 280, 86, 24);
-      ctx.fillStyle = 'rgba(15, 17, 21, 0.72)';
+      ctx.fillStyle = 'rgba(105, 98, 92, 0.56)';
       ctx.fill();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.26)';
       for (let row = 0; row < 4; row += 1) {
         for (let col = 0; col < 14; col += 1) {
           roundRect(164 + col * 42, H - 94 + row * 16, 32, 10, 4);
@@ -1729,7 +1789,7 @@
     function drawStampCursor() {
       const x = state.pointer.displayX;
       const y = state.pointer.displayY;
-      const feverScale = state.feverTime > 0 ? 1.18 : 1;
+      const feverScale = getStampImpactScale();
       const hoverLift = 28 + Math.sin(state.runningTime * 4.2) * 2;
       const press = state.stamp.press;
       const lift = (1 - press) * hoverLift;
@@ -1743,7 +1803,7 @@
       ctx.lineWidth = 2;
       ctx.setLineDash([10, 8]);
       ctx.beginPath();
-      ctx.ellipse(0, 0, 88 * feverScale, 60 * feverScale, -0.06, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, PAD_RX * feverScale, PAD_RY * feverScale, STAMP_ROTATION, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -1755,7 +1815,7 @@
 
       ctx.save();
       ctx.translate(0, -STAMP_FACE_OFFSET_Y - lift);
-      ctx.rotate(state.stamp.rotate);
+      ctx.rotate(STAMP_ROTATION);
       ctx.scale(feverScale, feverScale);
 
       const stemGradient = ctx.createLinearGradient(0, -66, 0, 18);
@@ -1831,6 +1891,11 @@
       scoreValue.textContent = state.score.toLocaleString();
       timeValue.textContent = Math.ceil(state.timeLeft).toString();
       comboValue.textContent = state.combo > 0 ? `x${getMultiplier()}` : 'x1';
+      if (state.combo > 0) {
+        comboValue.textContent = `${state.combo}콤보 · x${getMultiplier()}`;
+      } else {
+        comboValue.textContent = '0콤보';
+      }
       clearValue.textContent = `${state.cleared}개`;
       const clutter = getClutterRatio();
       const stressPct = Math.round(clutter * 100);
@@ -1839,8 +1904,6 @@
       feverFill.style.width = `${state.feverTime > 0 ? 100 : state.feverMeter}%`;
       feverValue.textContent = state.feverTime > 0 ? `${state.feverTime.toFixed(1)}초` : `${Math.round(state.feverMeter)}%`;
       phaseChip.textContent = getPhaseLabel();
-      statusMain.textContent = state.messageMain;
-      statusSub.textContent = state.messageSub;
       bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
       soundButton.textContent = state.soundEnabled ? '도장음 ON' : '도장음 OFF';
     }
@@ -1864,13 +1927,14 @@
       resultOverlay.style.display = 'flex';
       updateMessage(
         '오늘 업무 종료. 결과창에서 기록을 남길 수 있다.',
-        '랭킹도 바로 이어서 열 수 있다.',
+        '원하면 기록을 남기고 랭킹도 바로 확인할 수 있다.',
         '오늘 업무 종료.',
         '결과를 정리하는 중이다.'
       );
-      window.setTimeout(() => {
-        recordSystem.showSubmitFlow(GAME_ID, state.score);
-      }, 260);
+    }
+
+    function submitScore() {
+      recordSystem.showSubmitFlow(GAME_ID, state.score);
     }
 
     function loop(timestamp) {
@@ -1935,23 +1999,29 @@
     }
 
     canvas.addEventListener('pointermove', (event) => {
-      const point = canvasPointFromEvent(event);
-      state.pointer.x = clamp(point.x, 100, W - 100);
-      state.pointer.y = clamp(point.y, 120, H - 130);
+      const point = clampPointer(canvasPointFromEvent(event));
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+      state.pointer.displayX = point.x;
+      state.pointer.displayY = point.y;
     });
 
     canvas.addEventListener('pointerdown', (event) => {
-      const point = canvasPointFromEvent(event);
-      state.pointer.x = clamp(point.x, 100, W - 100);
-      state.pointer.y = clamp(point.y, 120, H - 130);
+      const point = clampPointer(canvasPointFromEvent(event));
+      state.pointer.x = point.x;
+      state.pointer.y = point.y;
+      state.pointer.displayX = point.x;
+      state.pointer.displayY = point.y;
       slamAt(state.pointer.x, state.pointer.y);
     });
 
     document.addEventListener('keydown', (event) => {
-      if (event.isComposing) return;
+      if (event.isComposing || isShortcutBlocked()) return;
       if (event.key === ' ') {
         event.preventDefault();
-        slamAt(state.pointer.x, state.pointer.y);
+        state.pointer.displayX = state.pointer.x;
+        state.pointer.displayY = state.pointer.y;
+        slamAt(state.pointer.displayX, state.pointer.displayY);
       }
       if (event.key.toLowerCase() === 'm') {
         toggleSound();
@@ -1960,6 +2030,7 @@
 
     window.startGame = startGame;
     window.restartGame = restartGame;
+    window.submitScore = submitScore;
     window.toggleSound = toggleSound;
 
     loadBestScore();
