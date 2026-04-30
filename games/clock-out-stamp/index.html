@@ -7,21 +7,12 @@
   <meta name="description" content="거대한 퇴근 도장으로 보고서, 메신저, 회의 초대를 책상 위에서 밀어버리는 45초 스트레스 해소 게임">
   <link rel="stylesheet" href="../../shared/styles/common.css">
   <style>
-    :root {
-      --desk-red: #d83a2e;
-      --desk-red-dark: #a8251d;
-      --desk-orange: #ff9b54;
-      --desk-ink: rgba(212, 47, 40, 0.22);
-      --rail-bg: rgba(18, 15, 19, 0.88);
-      --rail-border: rgba(255, 255, 255, 0.08);
-    }
-
     body {
       min-height: 100vh;
       background:
-        radial-gradient(circle at top, rgba(255, 149, 0, 0.12), transparent 20%),
-        radial-gradient(circle at 82% 18%, rgba(255, 59, 48, 0.10), transparent 18%),
-        linear-gradient(180deg, #151114 0%, #09090b 100%);
+        radial-gradient(circle at top, rgba(0, 122, 255, 0.10), transparent 22%),
+        radial-gradient(circle at 82% 18%, rgba(255, 149, 0, 0.10), transparent 18%),
+        var(--apple-bg);
       color: var(--apple-label);
     }
 
@@ -39,20 +30,18 @@
     }
 
     .card-shell {
-      background: rgba(28, 24, 28, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 26px;
-      box-shadow:
-        0 28px 80px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      background: var(--apple-bg-secondary);
+      border: 1px solid var(--apple-separator);
+      border-radius: 24px;
+      box-shadow: var(--shadow-md);
       overflow: hidden;
     }
 
     .scene-shell {
       padding: 24px;
       background:
-        radial-gradient(circle at 82% 16%, rgba(255, 191, 120, 0.10), transparent 22%),
-        linear-gradient(180deg, rgba(33, 28, 31, 0.98) 0%, rgba(20, 18, 20, 0.98) 100%);
+        radial-gradient(circle at 82% 16%, rgba(255, 191, 120, 0.12), transparent 22%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 244, 248, 0.98) 100%);
     }
 
     .scene-header {
@@ -71,13 +60,14 @@
 
     .scene-eyebrow {
       margin-bottom: 10px;
-      color: rgba(255, 245, 232, 0.54);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       letter-spacing: 0.24em;
       text-transform: uppercase;
     }
 
     .scene-title {
+      color: var(--apple-label);
       font-size: 40px;
       line-height: 1.04;
       letter-spacing: -0.05em;
@@ -86,7 +76,7 @@
 
     .scene-subtitle {
       max-width: 620px;
-      color: rgba(235, 235, 245, 0.68);
+      color: var(--apple-label-secondary);
       font-size: 15px;
       line-height: 1.72;
     }
@@ -95,16 +85,16 @@
       flex: 0 0 auto;
       padding: 14px 16px;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: rgba(255, 245, 232, 0.72);
+      background: var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
+      color: var(--apple-label-secondary);
       font-size: 13px;
       line-height: 1.6;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      box-shadow: var(--shadow-sm);
     }
 
     .scene-note strong {
-      color: #ffd9ba;
+      color: var(--apple-label);
       display: block;
       margin-bottom: 4px;
       font-size: 14px;
@@ -115,9 +105,10 @@
       padding: 18px;
       border-radius: 24px;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
-        rgba(9, 10, 12, 0.58);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 243, 247, 0.96)),
+        var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
     }
 
     .stage-shell::before {
@@ -126,8 +117,8 @@
       inset: 18px;
       border-radius: 18px;
       background:
-        radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.04), transparent 18%),
-        radial-gradient(circle at 82% 22%, rgba(255, 159, 99, 0.12), transparent 22%);
+        radial-gradient(circle at 20% 18%, rgba(0, 122, 255, 0.06), transparent 18%),
+        radial-gradient(circle at 82% 22%, rgba(255, 149, 0, 0.12), transparent 22%);
       pointer-events: none;
     }
 
@@ -138,8 +129,9 @@
       overflow: hidden;
       background: #1c1719;
       box-shadow:
-        0 18px 40px rgba(0, 0, 0, 0.26),
+        0 18px 32px rgba(0, 0, 0, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.08);
     }
 
     .stamp-canvas {
@@ -164,12 +156,12 @@
       gap: 12px;
       padding: 12px 14px;
       border-radius: 18px;
-      background: rgba(18, 13, 15, 0.76);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.90);
+      border: 1px solid rgba(60, 60, 67, 0.12);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      color: rgba(255, 245, 232, 0.90);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+      color: var(--apple-label);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     }
 
     .stage-toast-main {
@@ -181,7 +173,7 @@
 
     .stage-toast-sub {
       min-width: 0;
-      color: rgba(255, 245, 232, 0.64);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       line-height: 1.5;
       text-align: right;
@@ -196,16 +188,14 @@
     .rail-card {
       padding: 18px;
       border-radius: 24px;
-      background: var(--rail-bg);
-      border: 1px solid var(--rail-border);
-      box-shadow:
-        0 18px 36px rgba(0, 0, 0, 0.22),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      background: var(--apple-bg-secondary);
+      border: 1px solid var(--apple-separator);
+      box-shadow: var(--shadow-sm);
     }
 
     .rail-eyebrow {
       margin-bottom: 10px;
-      color: rgba(255, 245, 232, 0.46);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -220,18 +210,18 @@
     .metric-card {
       padding: 14px;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
     }
 
     .metric-label {
-      color: rgba(255, 245, 232, 0.54);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       margin-bottom: 6px;
     }
 
     .metric-value {
-      color: #fff9f3;
+      color: var(--apple-label);
       font-size: 28px;
       line-height: 1;
       font-weight: 800;
@@ -263,13 +253,13 @@
     }
 
     .meter-title {
-      color: #fff8f2;
+      color: var(--apple-label);
       font-size: 14px;
       font-weight: 700;
     }
 
     .meter-value {
-      color: rgba(255, 245, 232, 0.64);
+      color: var(--apple-label-secondary);
       font-size: 12px;
     }
 
@@ -278,8 +268,8 @@
       height: 14px;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: var(--apple-fill);
+      border: 1px solid rgba(60, 60, 67, 0.08);
     }
 
     .meter-fill {
@@ -301,7 +291,7 @@
     }
 
     .status-main {
-      color: #fff7f0;
+      color: var(--apple-label);
       font-size: 18px;
       line-height: 1.55;
       font-weight: 700;
@@ -309,7 +299,7 @@
     }
 
     .status-sub {
-      color: rgba(255, 245, 232, 0.62);
+      color: var(--apple-label-secondary);
       font-size: 13px;
       line-height: 1.65;
     }
@@ -324,9 +314,9 @@
     .info-chip {
       padding: 8px 10px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: rgba(255, 245, 232, 0.82);
+      background: rgba(0, 122, 255, 0.10);
+      border: 1px solid rgba(0, 122, 255, 0.12);
+      color: var(--apple-blue);
       font-size: 12px;
       line-height: 1.2;
     }
@@ -345,8 +335,8 @@
       align-items: start;
       padding: 10px 12px;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: var(--apple-bg-tertiary);
+      border: 1px solid var(--apple-separator);
     }
 
     .queue-icon {
@@ -359,14 +349,14 @@
     }
 
     .queue-title {
-      color: #fff7f0;
+      color: var(--apple-label);
       font-size: 13px;
       font-weight: 700;
       margin-bottom: 4px;
     }
 
     .queue-desc {
-      color: rgba(255, 245, 232, 0.58);
+      color: var(--apple-label-secondary);
       font-size: 12px;
       line-height: 1.5;
     }
@@ -375,7 +365,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      color: rgba(255, 245, 232, 0.74);
+      color: var(--apple-label-secondary);
       font-size: 13px;
       line-height: 1.6;
     }
@@ -440,11 +430,15 @@
     .start-rule {
       padding: 12px;
       border-radius: 16px;
-      background: rgba(0, 122, 255, 0.08);
-      color: var(--apple-label);
-      border: 1px solid rgba(0, 122, 255, 0.10);
+      background: var(--apple-bg-tertiary);
+      color: var(--apple-label-secondary);
+      border: 1px solid var(--apple-separator);
       font-size: 13px;
       line-height: 1.55;
+    }
+
+    .start-rule strong {
+      color: var(--apple-label);
     }
 
     .countdown {
@@ -710,6 +704,9 @@
     const W = canvas.width;
     const H = canvas.height;
     const GAME_DURATION = 45;
+    const POINTER_FOLLOW = 0.36;
+    const POINTER_FOLLOW_FAST = 0.62;
+    const STAMP_FACE_OFFSET_Y = 64;
 
     const startOverlay = document.getElementById('startOverlay');
     const resultOverlay = document.getElementById('resultOverlay');
@@ -1129,6 +1126,8 @@
 
       state.pointer.x = x;
       state.pointer.y = y;
+      state.pointer.displayX = x;
+      state.pointer.displayY = y;
       state.stamp.press = 1;
       state.stamp.cooldown = state.feverTime > 0 ? 0.16 : 0.26;
 
@@ -1319,8 +1318,9 @@
     }
 
     function update(dt) {
-      state.pointer.displayX = lerp(state.pointer.displayX, state.pointer.x, 0.18);
-      state.pointer.displayY = lerp(state.pointer.displayY, state.pointer.y, 0.18);
+      const follow = state.stamp.press > 0 ? POINTER_FOLLOW_FAST : POINTER_FOLLOW;
+      state.pointer.displayX = lerp(state.pointer.displayX, state.pointer.x, follow);
+      state.pointer.displayY = lerp(state.pointer.displayY, state.pointer.y, follow);
       state.stamp.press = Math.max(0, state.stamp.press - dt * 4.6);
       state.stamp.cooldown = Math.max(0, state.stamp.cooldown - dt);
 
@@ -1730,8 +1730,10 @@
       const x = state.pointer.displayX;
       const y = state.pointer.displayY;
       const feverScale = state.feverTime > 0 ? 1.18 : 1;
-      const hoverLift = 36 + Math.sin(state.runningTime * 4.2) * 3;
+      const hoverLift = 28 + Math.sin(state.runningTime * 4.2) * 2;
       const press = state.stamp.press;
+      const lift = (1 - press) * hoverLift;
+      const deskShadowY = 34 - lift * 0.16;
 
       ctx.save();
       ctx.translate(x, y);
@@ -1746,15 +1748,15 @@
       ctx.setLineDash([]);
 
       ctx.globalAlpha = 1;
-      ctx.save();
-      ctx.translate(0, -hoverLift * (1 - press * 0.78));
-      ctx.rotate(state.stamp.rotate);
-      ctx.scale(feverScale, feverScale);
-
       ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
       ctx.beginPath();
-      ctx.ellipse(12, 104, 72, 22, 0, 0, Math.PI * 2);
+      ctx.ellipse(12, deskShadowY, 72, 22, 0, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.save();
+      ctx.translate(0, -STAMP_FACE_OFFSET_Y - lift);
+      ctx.rotate(state.stamp.rotate);
+      ctx.scale(feverScale, feverScale);
 
       const stemGradient = ctx.createLinearGradient(0, -66, 0, 18);
       stemGradient.addColorStop(0, '#ffd4bf');
