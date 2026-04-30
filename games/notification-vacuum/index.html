@@ -139,6 +139,7 @@
         0 18px 32px rgba(125, 144, 160, 0.14);
       touch-action: none;
       user-select: none;
+      cursor: none;
     }
 
     .desk-stage::before {
@@ -418,7 +419,8 @@
 
     .notification-layer,
     .particle-layer,
-    .vacuum-layer {
+    .vacuum-layer,
+    .cursor-layer {
       position: absolute;
       inset: 0;
       pointer-events: none;
@@ -427,6 +429,7 @@
     .notification-layer { z-index: 12; }
     .particle-layer { z-index: 24; }
     .vacuum-layer { z-index: 28; }
+    .cursor-layer { z-index: 40; }
 
     .notification-card {
       position: absolute;
@@ -614,6 +617,64 @@
       height: 212px;
       background:
         radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(230, 255, 243, 0.62) 24%, rgba(90, 200, 250, 0.16) 50%, transparent 74%);
+    }
+
+    .aim-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(255, 255, 255, 0.96);
+      background:
+        radial-gradient(circle, rgba(0, 122, 255, 0.95) 0 24%, rgba(255, 255, 255, 0.94) 26% 38%, transparent 40%);
+      box-shadow:
+        0 0 0 3px rgba(0, 122, 255, 0.22),
+        0 6px 18px rgba(0, 122, 255, 0.30);
+      opacity: 0;
+      transition: transform 0.08s ease, opacity 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+    }
+
+    .aim-cursor::before,
+    .aim-cursor::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: rgba(255, 255, 255, 0.96);
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+    }
+
+    .aim-cursor::before {
+      width: 2px;
+      height: 30px;
+    }
+
+    .aim-cursor::after {
+      width: 30px;
+      height: 2px;
+    }
+
+    .aim-cursor.visible {
+      opacity: 1;
+    }
+
+    .aim-cursor.active {
+      transform: translate(-50%, -50%) scale(1.12);
+      box-shadow:
+        0 0 0 5px rgba(0, 122, 255, 0.18),
+        0 8px 22px rgba(0, 122, 255, 0.34);
+    }
+
+    .aim-cursor.fever {
+      background:
+        radial-gradient(circle, rgba(52, 199, 89, 0.96) 0 24%, rgba(255, 255, 255, 0.94) 26% 38%, transparent 40%);
+      box-shadow:
+        0 0 0 4px rgba(52, 199, 89, 0.18),
+        0 8px 22px rgba(52, 199, 89, 0.30);
     }
 
     .vacuum-shadow {
@@ -1271,6 +1332,19 @@
         height: 182px;
       }
 
+      .aim-cursor {
+        width: 18px;
+        height: 18px;
+      }
+
+      .aim-cursor::before {
+        height: 24px;
+      }
+
+      .aim-cursor::after {
+        width: 24px;
+      }
+
       .vacuum-body {
         left: 32px;
         width: 78px;
@@ -1410,6 +1484,9 @@
                 <div class="vacuum-nozzle"></div>
                 <div class="vacuum-mouth"></div>
               </div>
+            </div>
+            <div class="cursor-layer">
+              <div class="aim-cursor" id="aimCursor"></div>
             </div>
 
             <div class="stage-toast" aria-live="polite">
@@ -1632,6 +1709,7 @@
     const notificationLayer = document.getElementById('notificationLayer');
     const particleLayer = document.getElementById('particleLayer');
     const focusLens = document.getElementById('focusLens');
+    const aimCursor = document.getElementById('aimCursor');
     const vacuumEl = document.getElementById('vacuum');
     const vacuumDust = document.getElementById('vacuumDust');
     const clearHaze = document.getElementById('clearHaze');
@@ -1661,6 +1739,7 @@
       running: false,
       ended: false,
       soundEnabled: true,
+      pointerVisible: false,
       pointer: { x: 0, y: 0 },
       vacuum: { x: 0, y: 0 },
       stageRect: null,
@@ -1854,6 +1933,13 @@
       focusLens.classList.toggle('fever', state.feverActive);
       focusLens.style.opacity = state.suction ? (state.feverActive ? '0.64' : '0.52') : '0.24';
       focusLens.style.boxShadow = `0 0 0 ${Math.round(radius * 0.32)}px rgba(255,255,255,${state.suction ? 0.06 : 0.03})`;
+    }
+
+    function renderAimCursor() {
+      aimCursor.style.transform = `translate(${state.pointer.x}px, ${state.pointer.y}px) translate(-50%, -50%)`;
+      aimCursor.classList.toggle('visible', state.pointerVisible);
+      aimCursor.classList.toggle('active', state.suction && state.running);
+      aimCursor.classList.toggle('fever', state.feverActive);
     }
 
     function setupAudio() {
@@ -2104,6 +2190,7 @@
       vacuumEl.classList.toggle('fever', state.feverActive);
       renderVacuum();
       renderFocusLens();
+      renderAimCursor();
       updateHum();
     }
 
@@ -2352,7 +2439,9 @@
       state.pointer.y = state.stageRect.height * 0.80;
       state.vacuum.x = state.pointer.x;
       state.vacuum.y = state.pointer.y;
+      state.pointerVisible = true;
       renderVacuum();
+      renderAimCursor();
       startOverlay.classList.remove('visible');
       resultOverlay.classList.remove('visible');
       setToast('조용한 책상은 금방 끝난다. 지금부터 다시 쌓인다.', '몰리는 축을 먼저 보고, 작은 핑으로 콤보를 이어가자.');
@@ -2398,7 +2487,9 @@
 
     function handlePointerMove(event) {
       const point = stagePointFromEvent(event);
+      state.pointerVisible = true;
       setPointer(point);
+      renderAimCursor();
     }
 
     function startSuctionPulse(event) {
@@ -2425,6 +2516,10 @@
 
     function bindEvents() {
       deskStage.addEventListener('pointermove', handlePointerMove);
+      deskStage.addEventListener('pointerenter', (event) => {
+        state.pointerVisible = true;
+        handlePointerMove(event);
+      });
       deskStage.addEventListener('pointerdown', (event) => {
         deskStage.setPointerCapture?.(event.pointerId);
         startSuctionPulse(event);
@@ -2433,6 +2528,7 @@
       deskStage.addEventListener('pointercancel', stopSuction);
       deskStage.addEventListener('pointerleave', () => {
         if (!state.running) return;
+        state.pointerVisible = false;
         const geometry = getVacuumGeometry();
         state.pointer.x = clamp(
           state.pointer.x,
@@ -2444,6 +2540,7 @@
           Math.max(state.stageRect.height * 0.36, geometry.mouthY + 6),
           state.stageRect.height - (geometry.height - geometry.mouthY) - 6,
         );
+        renderAimCursor();
       });
 
       window.addEventListener('pointerup', stopSuction);
