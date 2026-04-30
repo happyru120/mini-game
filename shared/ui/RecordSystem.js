@@ -16,6 +16,7 @@ const GAME_NAMES = {
   'bubble-wrap': '버블랩 터뜨리기',
   'paper-rip': '종이 찢기',
   'boss-throw': '상사한테 던지기',
+  'clock-out-stamp': '퇴근 도장 난사',
   'tetris': '테트리스',
   'snake': '스네이크',
   'space-shooter': '스페이스 슈터',
@@ -29,6 +30,7 @@ const GAME_NAMES = {
 const GAME_EMOJIS = {
   'dish-smash': '🍽️', 'stress-ball': '🔴', 'rage-type': '⌨️',
   'bubble-wrap': '🫧', 'paper-rip': '📄', 'boss-throw': '🎯',
+  'clock-out-stamp': '🟥',
   'tetris': '🧱', 'snake': '🐍', 'space-shooter': '🚀',
   'memory-match': '🃏', 'rps-plus': '✊', 'lucky-roulette': '🎰',
   'tower-defense': '🏰', 'resource-tycoon': '🏘️',

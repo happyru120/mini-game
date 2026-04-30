@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>퇴근 도장 난사 - Clock Out Stamp</title>
+  <meta name="description" content="거대한 퇴근 도장으로 보고서, 메신저, 회의 초대를 책상 위에서 밀어버리는 45초 스트레스 해소 게임">
+  <link rel="stylesheet" href="../../shared/styles/common.css">
+  <style>
+    :root {
+      --desk-red: #d83a2e;
+      --desk-red-dark: #a8251d;
+      --desk-orange: #ff9b54;
+      --desk-ink: rgba(212, 47, 40, 0.22);
+      --rail-bg: rgba(18, 15, 19, 0.88);
+      --rail-border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(255, 149, 0, 0.12), transparent 20%),
+        radial-gradient(circle at 82% 18%, rgba(255, 59, 48, 0.10), transparent 18%),
+        linear-gradient(180deg, #151114 0%, #09090b 100%);
+      color: var(--apple-label);
+    }
+
+    .stamp-room {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px 16px 40px;
+    }
+
+    .room-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.42fr) minmax(280px, 330px);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card-shell {
+      background: rgba(28, 24, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 26px;
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .scene-shell {
+      padding: 24px;
+      background:
+        radial-gradient(circle at 82% 16%, rgba(255, 191, 120, 0.10), transparent 22%),
+        linear-gradient(180deg, rgba(33, 28, 31, 0.98) 0%, rgba(20, 18, 20, 0.98) 100%);
+    }
+
+    .scene-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .scene-copy {
+      flex: 1 1 440px;
+      min-width: 0;
+    }
+
+    .scene-eyebrow {
+      margin-bottom: 10px;
+      color: rgba(255, 245, 232, 0.54);
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    .scene-title {
+      font-size: 40px;
+      line-height: 1.04;
+      letter-spacing: -0.05em;
+      margin-bottom: 10px;
+    }
+
+    .scene-subtitle {
+      max-width: 620px;
+      color: rgba(235, 235, 245, 0.68);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .scene-note {
+      flex: 0 0 auto;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 245, 232, 0.72);
+      font-size: 13px;
+      line-height: 1.6;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .scene-note strong {
+      color: #ffd9ba;
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .stage-shell {
+      position: relative;
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        rgba(9, 10, 12, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stage-shell::before {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.04), transparent 18%),
+        radial-gradient(circle at 82% 22%, rgba(255, 159, 99, 0.12), transparent 22%);
+      pointer-events: none;
+    }
+
+    .canvas-frame {
+      position: relative;
+      z-index: 2;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #1c1719;
+      box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .stamp-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      border-radius: 20px;
+      box-shadow: none;
+      cursor: none;
+      touch-action: none;
+    }
+
+    .stage-toast {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(18, 13, 15, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: rgba(255, 245, 232, 0.90);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .stage-toast-main {
+      min-width: 0;
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .stage-toast-sub {
+      min-width: 0;
+      color: rgba(255, 245, 232, 0.64);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .side-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .rail-card {
+      padding: 18px;
+      border-radius: 24px;
+      background: var(--rail-bg);
+      border: 1px solid var(--rail-border);
+      box-shadow:
+        0 18px 36px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .rail-eyebrow {
+      margin-bottom: 10px;
+      color: rgba(255, 245, 232, 0.46);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .metric-label {
+      color: rgba(255, 245, 232, 0.54);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      color: #fff9f3;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .metric-value.tiny {
+      font-size: 22px;
+    }
+
+    .meter-card {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .meter-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .meter-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .meter-title {
+      color: #fff8f2;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .meter-value {
+      color: rgba(255, 245, 232, 0.64);
+      font-size: 12px;
+    }
+
+    .meter-track {
+      position: relative;
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .meter-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.18s ease;
+    }
+
+    .meter-fill.stress {
+      background: linear-gradient(90deg, #ffb86a 0%, #ff7e4d 55%, #ff3b30 100%);
+      box-shadow: 0 0 18px rgba(255, 109, 58, 0.28);
+    }
+
+    .meter-fill.fever {
+      background: linear-gradient(90deg, #ffd765 0%, #ffb854 50%, #ff6b4d 100%);
+      box-shadow: 0 0 18px rgba(255, 176, 75, 0.30);
+    }
+
+    .status-main {
+      color: #fff7f0;
+      font-size: 18px;
+      line-height: 1.55;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .status-sub {
+      color: rgba(255, 245, 232, 0.62);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .info-chip {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 245, 232, 0.82);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .queue-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .queue-copy {
+      min-width: 0;
+    }
+
+    .queue-title {
+      color: #fff7f0;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .queue-desc {
+      color: rgba(255, 245, 232, 0.58);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .hint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: rgba(255, 245, 232, 0.74);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hint-list code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255, 180, 101, 0.10);
+      color: #ffb86a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+
+    .kickoff-card {
+      width: min(560px, calc(100vw - 32px));
+      padding: 28px 26px;
+      text-align: center;
+    }
+
+    .stamp-sigil {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 104px;
+      height: 104px;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(255, 202, 177, 0.28), transparent 36%),
+        linear-gradient(180deg, #ff6f4d 0%, #ca2f23 100%);
+      color: #fff6ee;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.08em;
+      box-shadow:
+        0 22px 40px rgba(255, 59, 48, 0.20),
+        inset 0 2px 0 rgba(255, 255, 255, 0.20);
+    }
+
+    .kickoff-title {
+      font-size: 36px;
+      line-height: 1.04;
+      letter-spacing: -0.05em;
+      margin-bottom: 10px;
+    }
+
+    .kickoff-copy {
+      color: var(--apple-label-secondary);
+      font-size: 15px;
+      line-height: 1.72;
+      margin-bottom: 18px;
+    }
+
+    .start-rules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+      text-align: left;
+    }
+
+    .start-rule {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(0, 122, 255, 0.08);
+      color: var(--apple-label);
+      border: 1px solid rgba(0, 122, 255, 0.10);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .countdown {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 160;
+      font-size: 120px;
+      font-weight: 800;
+      color: #ff6f4d;
+      pointer-events: none;
+      text-shadow: 0 12px 40px rgba(255, 59, 48, 0.24);
+      animation: bounceIn 0.5s ease-out;
+    }
+
+    @media (max-width: 960px) {
+      .room-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .scene-header {
+        flex-direction: column;
+      }
+
+      .scene-note {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .scene-shell,
+      .rail-card {
+        padding: 18px;
+      }
+
+      .scene-title {
+        font-size: 32px;
+      }
+
+      .stage-shell {
+        padding: 12px;
+      }
+
+      .stage-toast {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .stage-toast-sub {
+        text-align: left;
+      }
+
+      .start-rules,
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="start-overlay" id="startOverlay">
+    <div class="overlay-card kickoff-card">
+      <div class="stamp-sigil">퇴근</div>
+      <div class="kickoff-title">퇴근 도장 난사</div>
+      <div class="kickoff-copy">
+        거대한 붉은 도장으로 보고서, 메신저, 회의 초대를 책상 위에서 밀어버리세요.<br>
+        45초 안에 책상을 정리할수록 콤보와 칼퇴 게이지가 같이 오른다.
+      </div>
+      <div class="start-rules">
+        <div class="start-rule"><strong>클릭/탭</strong><br>현재 위치에 도장을 내려찍기</div>
+        <div class="start-rule"><strong><code>Space</code></strong><br>마우스 없이 바로 한 번 더 찍기</div>
+        <div class="start-rule"><strong>멀티 히트</strong><br>여러 장을 한 번에 찍으면 점수가 크게 뛴다</div>
+        <div class="start-rule"><strong>칼퇴 모드</strong><br>게이지가 차면 도장이 커지고 책상이 더 빨리 비워진다</div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="startGame()">도장 찍으러 가기</button>
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">랭킹 보기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stamp-room">
+    <div class="top-bar" style="max-width:1180px; padding-left:0; padding-right:0;">
+      <a href="../../index.html" class="back-btn">← 돌아가기</a>
+      <button class="sound-btn" id="soundButton" onclick="toggleSound()">도장음 ON</button>
+    </div>
+
+    <div class="room-layout">
+      <main class="card-shell scene-shell">
+        <div class="scene-header">
+          <div class="scene-copy">
+            <div class="scene-eyebrow">Clock Out Stamp</div>
+            <div class="scene-title">오늘은 내가 찍는다.<br>회의도, 수정도, 메신저도.</div>
+            <div class="scene-subtitle">
+              포인터를 따라다니는 거대한 퇴근 도장을 내려찍어 책상 위 잡무를 밀어내세요.
+              여러 장을 한 번에 찍을수록 점수와 콤보가 붙고, 게이지가 차면 짧은 칼퇴 모드가 열립니다.
+            </div>
+          </div>
+
+          <div class="scene-note">
+            <strong>45초 스코어어택</strong>
+            보고서, 메신저, 회의 초대, 수정 요청이 책상에 쌓입니다.<br>
+            몰린 곳을 골라 한 번에 찍는 게 핵심입니다.
+          </div>
+        </div>
+
+        <div class="stage-shell">
+          <div class="canvas-frame">
+            <canvas id="gameCanvas" class="stamp-canvas" width="900" height="620"></canvas>
+            <div class="stage-toast">
+              <div class="stage-toast-main" id="stageToastMain">책상이 비어야 퇴근이다.</div>
+              <div class="stage-toast-sub" id="stageToastSub">몰린 곳을 골라 한 번에 찍으면 콤보가 길어진다.</div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="side-rail">
+        <section class="rail-card">
+          <div class="rail-eyebrow">Session</div>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-label">점수</div>
+              <div class="metric-value" id="scoreValue">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">남은 시간</div>
+              <div class="metric-value" id="timeValue">45</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">콤보</div>
+              <div class="metric-value" id="comboValue">x1</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">정리한 건수</div>
+              <div class="metric-value tiny" id="clearValue">0개</div>
+            </div>
+          </div>
+
+          <div class="meter-card">
+            <div class="meter-block">
+              <div class="meter-head">
+                <div class="meter-title">책상 압박</div>
+                <div class="meter-value" id="stressValue">낮음</div>
+              </div>
+              <div class="meter-track">
+                <div class="meter-fill stress" id="stressFill"></div>
+              </div>
+            </div>
+
+            <div class="meter-block">
+              <div class="meter-head">
+                <div class="meter-title">칼퇴 게이지</div>
+                <div class="meter-value" id="feverValue">0%</div>
+              </div>
+              <div class="meter-track">
+                <div class="meter-fill fever" id="feverFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <div class="info-chip" id="phaseChip">정리 시작</div>
+            <div class="info-chip" id="bestChip">최고 0점</div>
+          </div>
+        </section>
+
+        <section class="rail-card">
+          <div class="rail-eyebrow">상태</div>
+          <div class="status-main" id="statusMain">도장은 준비됐다. 몰린 곳에 찍으면 더 시원하다.</div>
+          <div class="status-sub" id="statusSub">수정 요청은 두 번 찍어야 완전히 지워진다. 칼퇴권은 근처까지 같이 밀어낸다.</div>
+        </section>
+
+        <section class="rail-card">
+          <div class="rail-eyebrow">들어오는 일</div>
+          <div class="queue-list">
+            <div class="queue-item">
+              <div class="queue-icon">📄</div>
+              <div class="queue-copy">
+                <div class="queue-title">보고서</div>
+                <div class="queue-desc">기본 점수. 많이 몰릴수록 한 번에 정리하기 좋다.</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="queue-icon">💬</div>
+              <div class="queue-copy">
+                <div class="queue-title">메신저 핑</div>
+                <div class="queue-desc">빠르지만 가볍다. 콤보를 이어붙이기 좋은 타입.</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="queue-icon">📅</div>
+              <div class="queue-copy">
+                <div class="queue-title">회의 초대</div>
+                <div class="queue-desc">오래 두면 핑으로 쪼개진다. 보이면 빨리 눌러야 한다.</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="queue-icon">✍️</div>
+              <div class="queue-copy">
+                <div class="queue-title">수정 요청 / 칼퇴권</div>
+                <div class="queue-desc">수정 요청은 두 번, 황금 칼퇴권은 주변까지 같이 정리한다.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-card">
+          <div class="rail-eyebrow">조작</div>
+          <div class="hint-list">
+            <div><code>클릭</code> 또는 <code>탭</code>: 현재 위치에 내려찍기</div>
+            <div><code>Space</code>: 현재 위치에 즉시 한 번 더 찍기</div>
+            <div><code>M</code>: 도장음 토글</div>
+            <div>한 번에 여러 장을 찍으면 멀티 히트 보너스가 붙는다.</div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <div class="countdown" id="countdownEl" style="display:none;"></div>
+
+  <div class="result-overlay" id="resultOverlay" style="display:none;">
+    <div class="result-card">
+      <div style="font-size:56px; margin-bottom:10px;">🟥</div>
+      <div style="font-size:16px; color:var(--apple-label-secondary);">오늘의 퇴근 도장 기록</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="result-stats" id="resultStats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="resultClears">0</div>
+          <div class="result-stat-label">정리한 건수</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="resultCombo">0</div>
+          <div class="result-stat-label">최고 콤보</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="resultFever">0</div>
+          <div class="result-stat-label">칼퇴 모드</div>
+        </div>
+      </div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary" onclick="window._showLeaderboard()">🏆 랭킹</button>
+        <button class="btn btn-primary" onclick="restartGame()">다시 찍기</button>
+        <a href="../../index.html" class="btn btn-secondary">다른 게임</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { recordSystem } from '../../shared/ui/RecordSystem.js';
+
+    const GAME_ID = 'clock-out-stamp';
+    const BEST_KEY = 'clock_out_stamp_best';
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const GAME_DURATION = 45;
+
+    const startOverlay = document.getElementById('startOverlay');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const countdownEl = document.getElementById('countdownEl');
+    const scoreValue = document.getElementById('scoreValue');
+    const timeValue = document.getElementById('timeValue');
+    const comboValue = document.getElementById('comboValue');
+    const clearValue = document.getElementById('clearValue');
+    const stressFill = document.getElementById('stressFill');
+    const stressValue = document.getElementById('stressValue');
+    const feverFill = document.getElementById('feverFill');
+    const feverValue = document.getElementById('feverValue');
+    const phaseChip = document.getElementById('phaseChip');
+    const bestChip = document.getElementById('bestChip');
+    const statusMain = document.getElementById('statusMain');
+    const statusSub = document.getElementById('statusSub');
+    const stageToastMain = document.getElementById('stageToastMain');
+    const stageToastSub = document.getElementById('stageToastSub');
+    const soundButton = document.getElementById('soundButton');
+    const finalScoreEl = document.getElementById('finalScore');
+    const resultMessageEl = document.getElementById('resultMessage');
+    const resultClearsEl = document.getElementById('resultClears');
+    const resultComboEl = document.getElementById('resultCombo');
+    const resultFeverEl = document.getElementById('resultFever');
+
+    const ITEM_DEFS = {
+      report: { label: '보고서', points: 100, w: 156, h: 98, color: '#f9f5ef', accent: '#d7d1cb', speed: 92 },
+      ping: { label: '메신저 핑', points: 150, w: 126, h: 64, color: '#e0efff', accent: '#007aff', speed: 118 },
+      meeting: { label: '회의 초대', points: 200, w: 166, h: 96, color: '#f0e8ff', accent: '#7b5cff', speed: 88 },
+      revision: { label: '수정 요청', points: 350, w: 162, h: 102, color: '#fff0ef', accent: '#ff3b30', speed: 82, hp: 2 },
+      sticky: { label: '회신 부탁', points: 240, w: 132, h: 102, color: '#fff4bf', accent: '#f2b400', speed: 86 },
+      gold: { label: '칼퇴권', points: 480, w: 122, h: 76, color: '#fff0b9', accent: '#ff9500', speed: 102 }
+    };
+
+    const state = {
+      gameState: 'start',
+      soundEnabled: true,
+      score: 0,
+      cleared: 0,
+      timeLeft: GAME_DURATION,
+      combo: 0,
+      bestCombo: 0,
+      feverMeter: 0,
+      feverTime: 0,
+      feverCount: 0,
+      lastStatusAt: 0,
+      bestScore: 0,
+      clutterPeak: 0,
+      pointer: { x: W * 0.60, y: H * 0.50, displayX: W * 0.60, displayY: H * 0.50 },
+      stamp: { press: 0, cooldown: 0, rotate: -0.24 },
+      items: [],
+      particles: [],
+      ripples: [],
+      marks: [],
+      popups: [],
+      runningTime: 0,
+      spawnTimer: 0.4,
+      toastTimer: 0,
+      messageMain: '도장은 준비됐다. 몰린 곳에 찍으면 더 시원하다.',
+      messageSub: '수정 요청은 두 번 찍어야 완전히 지워진다. 칼퇴권은 근처까지 같이 밀어낸다.',
+      audioContext: null,
+      rafStarted: false
+    };
+
+    window._showLeaderboard = () => recordSystem.showLeaderboard(GAME_ID);
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function pick(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function loadBestScore() {
+      try {
+        state.bestScore = Number(localStorage.getItem(BEST_KEY) || 0);
+      } catch {
+        state.bestScore = 0;
+      }
+      bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
+    }
+
+    function saveBestScore(nextScore) {
+      if (nextScore <= state.bestScore) return;
+      state.bestScore = nextScore;
+      bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
+      try {
+        localStorage.setItem(BEST_KEY, String(nextScore));
+      } catch {}
+    }
+
+    function updateMessage(main, sub, stageMain = main, stageSub = sub) {
+      state.messageMain = main;
+      state.messageSub = sub;
+      statusMain.textContent = main;
+      statusSub.textContent = sub;
+      stageToastMain.textContent = stageMain;
+      stageToastSub.textContent = stageSub;
+    }
+
+    function ensureAudio() {
+      if (!state.soundEnabled) return null;
+      if (!state.audioContext) {
+        state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (state.audioContext.state === 'suspended') {
+        state.audioContext.resume();
+      }
+      return state.audioContext;
+    }
+
+    function playTone(freq, duration, delay = 0, gainValue = 0.03, type = 'sine', ramp = 0.82) {
+      const audio = ensureAudio();
+      if (!audio) return;
+      const startAt = audio.currentTime + delay;
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startAt);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(35, freq * ramp), startAt + duration);
+
+      gain.gain.setValueAtTime(gainValue, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+
+      osc.connect(gain);
+      gain.connect(audio.destination);
+      osc.start(startAt);
+      osc.stop(startAt + duration);
+    }
+
+    function playStampSlam() {
+      playTone(130, 0.15, 0, 0.045, 'triangle', 0.72);
+      playTone(90, 0.20, 0.04, 0.035, 'sawtooth', 0.80);
+    }
+
+    function playClearSound(clearCount) {
+      playTone(510, 0.08, 0, 0.025, 'square');
+      playTone(360, 0.12, 0.02, 0.022, 'triangle');
+      if (clearCount > 1) {
+        playTone(640, 0.10, 0.04, 0.022, 'sine');
+      }
+    }
+
+    function playMissSound() {
+      playTone(220, 0.08, 0, 0.018, 'triangle', 0.94);
+    }
+
+    function playComboSound(multiplier) {
+      playTone(540, 0.08, 0, 0.022, 'triangle');
+      playTone(640 + multiplier * 40, 0.10, 0.03, 0.022, 'sine');
+    }
+
+    function playFeverSound() {
+      playTone(320, 0.14, 0, 0.028, 'triangle');
+      playTone(480, 0.18, 0.06, 0.026, 'sine');
+      playTone(620, 0.20, 0.10, 0.022, 'square');
+    }
+
+    function resetRun() {
+      state.gameState = 'countdown';
+      state.score = 0;
+      state.cleared = 0;
+      state.timeLeft = GAME_DURATION;
+      state.combo = 0;
+      state.bestCombo = 0;
+      state.feverMeter = 0;
+      state.feverTime = 0;
+      state.feverCount = 0;
+      state.lastStatusAt = 0;
+      state.items = [];
+      state.particles = [];
+      state.ripples = [];
+      state.marks = [];
+      state.popups = [];
+      state.runningTime = 0;
+      state.spawnTimer = 0.35;
+      state.clutterPeak = 0;
+      state.pointer.x = W * 0.60;
+      state.pointer.y = H * 0.50;
+      state.pointer.displayX = state.pointer.x;
+      state.pointer.displayY = state.pointer.y;
+      state.stamp.press = 0;
+      state.stamp.cooldown = 0;
+      updateMessage(
+        '도장은 준비됐다. 몰린 곳에 찍으면 더 시원하다.',
+        '수정 요청은 두 번 찍어야 완전히 지워진다. 칼퇴권은 근처까지 같이 밀어낸다.',
+        '책상이 비어야 퇴근이다.',
+        '몰린 곳을 골라 한 번에 찍으면 콤보가 길어진다.'
+      );
+      seedDesk();
+      updateUI();
+    }
+
+    function seedDesk() {
+      spawnItem('report');
+      spawnItem('ping');
+      spawnItem('meeting');
+      spawnItem('sticky');
+    }
+
+    function getSpawnType() {
+      const elapsed = GAME_DURATION - state.timeLeft;
+      const pool = ['report', 'report', 'ping'];
+      if (elapsed > 8) pool.push('meeting');
+      if (elapsed > 14) pool.push('sticky');
+      if (elapsed > 20) pool.push('meeting', 'revision');
+      if (elapsed > 30) pool.push('revision', 'sticky');
+      if (elapsed > 34 && Math.random() < 0.12) pool.push('gold');
+      return pick(pool);
+    }
+
+    function spawnItem(type, forcedX = null, forcedY = null) {
+      const def = ITEM_DEFS[type];
+      const x = forcedX ?? rand(160, W - 150);
+      const y = forcedY ?? rand(-110, -30);
+      const targetY = rand(150, H - 170);
+      state.items.push({
+        id: `${type}-${Math.random().toString(36).slice(2, 8)}`,
+        type,
+        x,
+        y,
+        baseX: x,
+        targetY,
+        w: def.w,
+        h: def.h,
+        color: def.color,
+        accent: def.accent,
+        alpha: 1,
+        age: 0,
+        rot: rand(-0.14, 0.14),
+        sway: rand(12, 22),
+        swayPhase: rand(0, Math.PI * 2),
+        speed: def.speed + rand(-8, 14),
+        hp: def.hp || 1,
+        maxHp: def.hp || 1,
+        stamped: false,
+        flash: 0,
+        splitDone: false,
+        vx: 0,
+        vy: 0,
+        rotVel: 0
+      });
+    }
+
+    function getMultiplier() {
+      if (state.combo >= 20) return 4;
+      if (state.combo >= 12) return 3;
+      if (state.combo >= 5) return 2;
+      return 1;
+    }
+
+    function getClutterRatio() {
+      const activeItems = state.items.filter((item) => !item.stamped).length;
+      return clamp(activeItems / 11, 0, 1);
+    }
+
+    function getPhaseLabel() {
+      const elapsed = GAME_DURATION - state.timeLeft;
+      if (state.feverTime > 0) return '칼퇴 모드';
+      if (elapsed < 12) return '정리 시작';
+      if (elapsed < 28) return '업무 몰림';
+      if (elapsed < 40) return '퇴근 직전';
+      return '막판 압박';
+    }
+
+    function activateFever() {
+      state.feverMeter = 0;
+      state.feverTime = 5;
+      state.feverCount += 1;
+      updateMessage(
+        '칼퇴 모드 발동. 도장이 더 넓고 빨라졌다.',
+        '지금은 찍는 범위가 커지고 잉크 충격파가 같이 퍼진다.',
+        '칼퇴 모드 발동.',
+        '큰 도장으로 책상을 밀어내는 시간이다.'
+      );
+      spawnPopup(state.pointer.x, state.pointer.y - 80, '칼퇴 모드', '#ffcf5e', 28);
+      playFeverSound();
+    }
+
+    function spawnInkBurst(x, y, count, color, spread = 120) {
+      for (let i = 0; i < count; i += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = rand(40, spread);
+        state.particles.push({
+          kind: 'ink',
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - rand(10, 60),
+          size: rand(4, 12),
+          rot: rand(-Math.PI, Math.PI),
+          rotVel: rand(-4, 4),
+          alpha: rand(0.5, 0.95),
+          decay: rand(0.9, 1.4),
+          color
+        });
+      }
+    }
+
+    function spawnPaperBurst(x, y, count, color) {
+      for (let i = 0; i < count; i += 1) {
+        const angle = rand(-Math.PI, 0);
+        const speed = rand(40, 140);
+        state.particles.push({
+          kind: 'paper',
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: rand(8, 16),
+          rot: rand(-Math.PI, Math.PI),
+          rotVel: rand(-5, 5),
+          alpha: rand(0.6, 0.96),
+          decay: rand(1.2, 1.8),
+          color
+        });
+      }
+    }
+
+    function createMark(x, y, scale = 1, text = '퇴근') {
+      state.marks.push({
+        x,
+        y,
+        scale,
+        rot: rand(-0.24, 0.24),
+        alpha: 0.38,
+        decay: rand(0.18, 0.26),
+        text
+      });
+    }
+
+    function spawnRipple(x, y, strong = false) {
+      state.ripples.push({
+        x,
+        y,
+        radius: strong ? 28 : 22,
+        maxRadius: strong ? 180 : 134,
+        alpha: strong ? 0.42 : 0.32,
+        decay: strong ? 0.94 : 1.10
+      });
+    }
+
+    function spawnPopup(x, y, text, color = '#fff6ec', size = 22) {
+      state.popups.push({
+        x,
+        y,
+        text,
+        color,
+        size,
+        vy: rand(20, 34),
+        alpha: 1,
+        driftX: rand(-10, 10)
+      });
+    }
+
+    function clearItem(item, impactX, impactY) {
+      item.stamped = true;
+      item.vx = rand(-90, 90);
+      item.vy = -rand(60, 160);
+      item.rotVel = rand(-3.2, 3.2);
+      spawnPaperBurst(item.x, item.y, 6, item.color);
+      if (item.type === 'gold') {
+        spawnInkBurst(item.x, item.y, 12, 'rgba(255, 189, 77, 0.56)', 160);
+      } else {
+        spawnInkBurst(item.x, item.y, 9, 'rgba(214, 47, 40, 0.42)', 120);
+      }
+      createMark(lerp(item.x, impactX, 0.2), lerp(item.y, impactY, 0.2), item.type === 'gold' ? 1.18 : 0.96);
+    }
+
+    function clearNearby(x, y, radius, exceptId = '') {
+      let extraClears = 0;
+      for (const item of state.items) {
+        if (item.stamped || item.id === exceptId) continue;
+        const dx = item.x - x;
+        const dy = item.y - y;
+        const reach = radius + Math.max(item.w, item.h) * 0.3;
+        if ((dx * dx) + (dy * dy) <= reach * reach) {
+          clearItem(item, x, y);
+          extraClears += 1;
+        }
+      }
+      return extraClears;
+    }
+
+    function itemHitByStamp(item, x, y, radiusX, radiusY) {
+      const dx = (item.x - x) / (radiusX + item.w * 0.34);
+      const dy = (item.y - y) / (radiusY + item.h * 0.34);
+      return (dx * dx) + (dy * dy) <= 1;
+    }
+
+    function slamAt(x, y) {
+      if (state.gameState !== 'playing' || state.stamp.cooldown > 0) return;
+
+      state.pointer.x = x;
+      state.pointer.y = y;
+      state.stamp.press = 1;
+      state.stamp.cooldown = state.feverTime > 0 ? 0.16 : 0.26;
+
+      const scale = state.feverTime > 0 ? 1.22 : 1;
+      const radiusX = 88 * scale;
+      const radiusY = 60 * scale;
+      const impacted = [];
+
+      for (const item of state.items) {
+        if (item.stamped) continue;
+        if (itemHitByStamp(item, x, y, radiusX, radiusY)) {
+          impacted.push(item);
+        }
+      }
+
+      playStampSlam();
+      spawnRipple(x, y, state.feverTime > 0);
+      spawnInkBurst(x, y, state.feverTime > 0 ? 16 : 10, 'rgba(214, 47, 40, 0.46)', state.feverTime > 0 ? 160 : 120);
+
+      if (!impacted.length) {
+        state.combo = 0;
+        state.lastStatusAt = 0;
+        playMissSound();
+        createMark(x, y, 0.82, '텅');
+        updateMessage(
+          '헛도장. 조금 더 몰린 자리를 노려야 한다.',
+          '문서가 겹친 자리나 메신저가 몰린 자리에서 멀티 히트를 노리면 점수가 튄다.',
+          '헛도장.',
+          '조금 더 몰린 곳을 골라야 한다.'
+        );
+        return;
+      }
+
+      state.combo += 1;
+      state.bestCombo = Math.max(state.bestCombo, state.combo);
+      state.lastStatusAt = 0;
+
+      let slamBase = 0;
+      let clearedThisSlam = 0;
+      let crackedThisSlam = 0;
+      let multiplierBeforeBonus = getMultiplier();
+
+      for (const item of impacted) {
+        if (item.type === 'revision' && item.hp > 1) {
+          item.hp -= 1;
+          item.flash = 0.35;
+          item.rot += rand(-0.08, 0.08);
+          slamBase += 120;
+          crackedThisSlam += 1;
+          spawnPopup(item.x, item.y - 18, '반쯤 찍힘', '#ff9c74', 16);
+          state.feverMeter = clamp(state.feverMeter + 10, 0, 100);
+          continue;
+        }
+
+        clearItem(item, x, y);
+        slamBase += ITEM_DEFS[item.type].points;
+        clearedThisSlam += 1;
+        state.cleared += 1;
+        state.feverMeter = clamp(state.feverMeter + (item.type === 'gold' ? 100 : 12 + Math.min(4, clearedThisSlam)), 0, 100);
+
+        if (item.type === 'gold') {
+          const splash = clearNearby(item.x, item.y, 130, item.id);
+          if (splash > 0) {
+            slamBase += splash * 90;
+            state.cleared += splash;
+          }
+          spawnPopup(item.x, item.y - 34, '칼퇴권', '#ffd76b', 24);
+        }
+      }
+
+      if (clearedThisSlam > 1) {
+        slamBase += 90 * (clearedThisSlam - 1);
+      }
+
+      const totalPoints = Math.round(slamBase * multiplierBeforeBonus);
+      state.score += totalPoints;
+      spawnPopup(x, y - 30, `+${totalPoints}`, state.feverTime > 0 ? '#ffd76b' : '#fff7f0', clearedThisSlam > 2 ? 28 : 24);
+      playClearSound(clearedThisSlam);
+
+      if (state.feverMeter >= 100 && state.feverTime <= 0) {
+        activateFever();
+      }
+
+      if (state.combo === 5 || state.combo === 12 || state.combo === 20) {
+        playComboSound(getMultiplier());
+        spawnPopup(x, y - 72, `x${getMultiplier()} 콤보`, '#ffb86a', 22);
+      }
+
+      if (clearedThisSlam >= 3) {
+        updateMessage(
+          '한 번에 쓸어냈다. 지금 리듬이 좋다.',
+          '멀티 히트 보너스가 붙었다. 비슷하게 겹친 묶음을 계속 노리면 된다.',
+          '멀티 히트.',
+          '여러 장을 한 번에 정리했다.'
+        );
+      } else if (crackedThisSlam > 0 && clearedThisSlam === 0) {
+        updateMessage(
+          '수정 요청이 반쯤 눌렸다. 한 번만 더 찍으면 끝난다.',
+          '빨간 서류는 두 번 필요하다. 먼저 흐트러지지 않게 자리를 봐두는 게 좋다.',
+          '수정 요청이 반쯤 찍혔다.',
+          '다음 도장을 이어서 넣어야 한다.'
+        );
+      } else if (clearedThisSlam > 0) {
+        updateMessage(
+          '업무 몇 장이 책상에서 밀려났다.',
+          '콤보가 끊기기 전에 바로 다음 묶음을 찍으면 배수가 붙는다.',
+          `${clearedThisSlam}개 정리.`,
+          '리듬을 놓치지 말고 바로 이어가면 된다.'
+        );
+      }
+    }
+
+    function updateItems(dt) {
+      for (const item of state.items) {
+        item.age += dt;
+        item.flash = Math.max(0, item.flash - dt * 1.8);
+
+        if (item.stamped) {
+          item.x += item.vx * dt;
+          item.y += item.vy * dt;
+          item.vy += 280 * dt;
+          item.rot += item.rotVel * dt;
+          item.alpha -= dt * 2.1;
+          continue;
+        }
+
+        if (item.y < item.targetY) {
+          item.y = Math.min(item.targetY, item.y + item.speed * dt);
+        }
+
+        item.x += Math.sin(item.age * 1.4 + item.swayPhase) * item.sway * dt * 0.22;
+        item.rot += Math.sin(item.age * 1.1 + item.swayPhase) * 0.0014;
+
+        if (item.type === 'meeting' && !item.splitDone && item.age > 6.2) {
+          item.splitDone = true;
+          spawnItem('ping', clamp(item.x - 36, 110, W - 110), item.y - 10);
+          spawnItem('ping', clamp(item.x + 42, 110, W - 110), item.y - 28);
+          updateMessage(
+            '회의 초대가 메신저 핑 둘로 쪼개졌다.',
+            '오래 두면 책상이 더 어지러워진다. 회의 초대는 먼저 정리하는 편이 낫다.',
+            '회의가 쪼개졌다.',
+            '늦게 잡으면 핑이 늘어난다.'
+          );
+        }
+      }
+
+      state.items = state.items.filter((item) => item.alpha > 0);
+    }
+
+    function updateParticles(dt) {
+      for (const particle of state.particles) {
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vy += particle.kind === 'paper' ? 360 * dt : 220 * dt;
+        particle.vx *= 0.99;
+        particle.rot += particle.rotVel * dt;
+        particle.alpha -= dt * particle.decay;
+      }
+
+      state.particles = state.particles.filter((particle) => particle.alpha > 0);
+    }
+
+    function updateRipples(dt) {
+      for (const ripple of state.ripples) {
+        ripple.radius += ripple.maxRadius * dt * 1.7;
+        ripple.alpha -= dt * ripple.decay;
+      }
+
+      state.ripples = state.ripples.filter((ripple) => ripple.alpha > 0);
+    }
+
+    function updateMarks(dt) {
+      for (const mark of state.marks) {
+        mark.alpha -= dt * mark.decay;
+      }
+
+      state.marks = state.marks.filter((mark) => mark.alpha > 0);
+    }
+
+    function updatePopups(dt) {
+      for (const popup of state.popups) {
+        popup.y -= popup.vy * dt;
+        popup.x += popup.driftX * dt;
+        popup.alpha -= dt * 1.2;
+      }
+
+      state.popups = state.popups.filter((popup) => popup.alpha > 0);
+    }
+
+    function update(dt) {
+      state.pointer.displayX = lerp(state.pointer.displayX, state.pointer.x, 0.18);
+      state.pointer.displayY = lerp(state.pointer.displayY, state.pointer.y, 0.18);
+      state.stamp.press = Math.max(0, state.stamp.press - dt * 4.6);
+      state.stamp.cooldown = Math.max(0, state.stamp.cooldown - dt);
+
+      updateParticles(dt);
+      updateRipples(dt);
+      updateMarks(dt);
+      updatePopups(dt);
+
+      if (state.gameState !== 'playing') {
+        updateUI();
+        return;
+      }
+
+      state.runningTime += dt;
+      state.timeLeft = Math.max(0, state.timeLeft - dt);
+      state.feverTime = Math.max(0, state.feverTime - dt);
+      if (state.combo > 0) {
+        state.lastStatusAt += dt;
+        if (state.lastStatusAt > 0.82) {
+          state.combo = 0;
+          state.lastStatusAt = 0;
+        }
+      }
+
+      state.spawnTimer -= dt;
+      if (state.spawnTimer <= 0) {
+        spawnItem(getSpawnType());
+        if (state.timeLeft < 16 && Math.random() < 0.26) {
+          spawnItem(pick(['report', 'ping', 'meeting']));
+        }
+        state.spawnTimer = getSpawnDelay();
+      }
+
+      updateItems(dt);
+
+      const clutter = getClutterRatio();
+      state.clutterPeak = Math.max(state.clutterPeak, clutter);
+      if (clutter > 0.88 && state.runningTime % 1 < dt) {
+        updateMessage(
+          '책상이 거의 막혔다. 지금은 비우는 우선순위가 먼저다.',
+          '점수보다 공간을 먼저 내야 다음 묶음도 들어온다. 큰 묶음을 찾자.',
+          '책상이 막히고 있다.',
+          '큰 묶음을 먼저 정리해야 한다.'
+        );
+      }
+
+      if (state.timeLeft <= 0) {
+        endGame();
+      }
+
+      updateUI();
+    }
+
+    function getSpawnDelay() {
+      const elapsed = GAME_DURATION - state.timeLeft;
+      let base = elapsed < 15 ? 0.82 : elapsed < 30 ? 0.66 : 0.56;
+      if (state.feverTime > 0) base *= 0.88;
+      return Math.max(0.26, base + Math.random() * 0.12);
+    }
+
+    function drawDeskBackground() {
+      const feverTint = state.feverTime > 0 ? 1 : 0;
+      const comboHeat = clamp(state.bestCombo / 20, 0, 1);
+
+      const deskGradient = ctx.createLinearGradient(0, 0, W, H);
+      deskGradient.addColorStop(0, '#443235');
+      deskGradient.addColorStop(0.55, '#5a403d');
+      deskGradient.addColorStop(1, feverTint > 0 ? '#7a4d39' : '#664844');
+      ctx.fillStyle = deskGradient;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      for (let i = 0; i < 26; i += 1) {
+        ctx.fillRect(i * 38, 0, 1, H);
+      }
+
+      const rightGlow = ctx.createRadialGradient(W * 0.82, 110, 40, W * 0.82, 110, 280);
+      rightGlow.addColorStop(0, feverTint > 0 ? 'rgba(255, 177, 108, 0.38)' : 'rgba(255, 177, 108, 0.18)');
+      rightGlow.addColorStop(1, 'rgba(255, 177, 108, 0)');
+      ctx.fillStyle = rightGlow;
+      ctx.fillRect(0, 0, W, H);
+
+      roundRect(220, 28, 460, 122, 24);
+      ctx.fillStyle = '#14171d';
+      ctx.fill();
+
+      roundRect(245, 45, 410, 88, 18);
+      const monitor = ctx.createLinearGradient(0, 45, 0, 133);
+      if (feverTint > 0 || comboHeat > 0.6) {
+        monitor.addColorStop(0, '#ffcf85');
+        monitor.addColorStop(0.45, '#ff9963');
+        monitor.addColorStop(1, '#5a3251');
+      } else {
+        monitor.addColorStop(0, '#232f43');
+        monitor.addColorStop(1, '#1a2130');
+      }
+      ctx.fillStyle = monitor;
+      ctx.fill();
+
+      if (feverTint > 0 || comboHeat > 0.6) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+        ctx.beginPath();
+        ctx.arc(570, 84, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 245, 234, 0.20)';
+        ctx.fillRect(268, 98, 190, 3);
+      } else {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        for (let row = 0; row < 4; row += 1) {
+          ctx.fillRect(268, 66 + row * 15, 240, 4);
+        }
+        ctx.fillStyle = 'rgba(0, 122, 255, 0.18)';
+        ctx.fillRect(526, 64, 98, 44);
+      }
+
+      ctx.fillStyle = '#0f1115';
+      roundRect(400, 150, 100, 10, 4);
+      ctx.fill();
+      roundRect(430, 160, 40, 38, 8);
+      ctx.fill();
+
+      roundRect(112, 210, 680, 312, 26);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.10)';
+      ctx.fill();
+      roundRect(128, 226, 648, 280, 22);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+      ctx.beginPath();
+      ctx.ellipse(130, 100, 54, 18, -0.20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(132, 96, 24, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(132, 96, 18, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(130, 70, 40, 0.18)';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      roundRect(140, H - 110, W - 280, 86, 24);
+      ctx.fillStyle = 'rgba(15, 17, 21, 0.72)';
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      for (let row = 0; row < 4; row += 1) {
+        for (let col = 0; col < 14; col += 1) {
+          roundRect(164 + col * 42, H - 94 + row * 16, 32, 10, 4);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawMarks() {
+      for (const mark of state.marks) {
+        ctx.save();
+        ctx.translate(mark.x, mark.y);
+        ctx.rotate(mark.rot);
+        ctx.scale(mark.scale, mark.scale);
+        ctx.globalAlpha = mark.alpha;
+        ctx.strokeStyle = 'rgba(214, 47, 40, 0.55)';
+        ctx.lineWidth = 4;
+        roundRect(-54, -28, 108, 56, 8);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(214, 47, 40, 0.14)';
+        ctx.fill();
+        ctx.fillStyle = 'rgba(190, 32, 24, 0.74)';
+        ctx.font = '900 28px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(mark.text, 0, 2);
+        ctx.restore();
+      }
+    }
+
+    function drawReport(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+      roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 18);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(27, 30, 34, 0.08)';
+      for (let row = 0; row < 5; row += 1) {
+        ctx.fillRect(-item.w * 0.32, -item.h * 0.20 + row * 14, item.w * 0.56, 4);
+      }
+      ctx.fillStyle = '#62718a';
+      ctx.fillRect(-item.w * 0.32, -item.h * 0.30, item.w * 0.24, 9);
+      ctx.fillStyle = 'rgba(214, 47, 40, 0.10)';
+      ctx.fillRect(item.w * 0.20, -item.h * 0.44, 16, 26);
+      ctx.restore();
+    }
+
+    function drawPing(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 22);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = item.accent;
+      ctx.beginPath();
+      ctx.arc(-item.w * 0.32, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+      ctx.fillRect(-item.w * 0.14, -8, item.w * 0.42, 6);
+      ctx.fillRect(-item.w * 0.14, 6, item.w * 0.30, 6);
+      ctx.restore();
+    }
+
+    function drawMeeting(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+      roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 20);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = item.accent;
+      ctx.fillRect(-item.w / 2, -item.h / 2, item.w, 16);
+      ctx.fillStyle = 'rgba(46, 32, 70, 0.78)';
+      ctx.font = '700 14px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('회의 초대', -item.w * 0.34, -2);
+      ctx.strokeStyle = 'rgba(123, 92, 255, 0.38)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(item.w * 0.26, 6, 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(item.w * 0.26, 6);
+      ctx.lineTo(item.w * 0.26, -2);
+      ctx.lineTo(item.w * 0.34, 6);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRevision(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+      roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 18);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = item.accent;
+      ctx.fillRect(-item.w * 0.34, -item.h * 0.28, item.w * 0.42, 8);
+      ctx.fillRect(-item.w * 0.28, -item.h * 0.02, item.w * 0.48, 5);
+      ctx.fillRect(-item.w * 0.18, item.h * 0.16, item.w * 0.40, 5);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+      ctx.font = '800 14px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('수정 요청', -item.w * 0.34, item.h * 0.32);
+      if (item.hp === 1) {
+        ctx.strokeStyle = 'rgba(214, 47, 40, 0.72)';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-item.w * 0.12, -item.h * 0.26);
+        ctx.lineTo(item.w * 0.18, item.h * 0.10);
+        ctx.lineTo(item.w * 0.34, item.h * 0.30);
+        ctx.stroke();
+      }
+      if (item.flash > 0) {
+        ctx.fillStyle = `rgba(255, 140, 110, ${item.flash * 0.36})`;
+        roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 18);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawSticky(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      const colors = ['#ffe97f', '#fff2a6', '#ffe3a5'];
+      const offsets = [
+        { x: -22, y: -8, rot: -0.14 },
+        { x: 18, y: -4, rot: 0.10 },
+        { x: 0, y: 18, rot: 0.04 }
+      ];
+      offsets.forEach((offset, index) => {
+        ctx.save();
+        ctx.translate(offset.x, offset.y);
+        ctx.rotate(offset.rot);
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 8;
+        roundRect(-34, -26, 68, 52, 12);
+        ctx.fillStyle = colors[index];
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.14)';
+        ctx.fillRect(-22, -8, 40, 4);
+        ctx.fillRect(-16, 6, 28, 4);
+        ctx.restore();
+      });
+      ctx.restore();
+    }
+
+    function drawGold(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rot);
+      ctx.globalAlpha = item.alpha;
+      ctx.shadowColor = 'rgba(255, 181, 74, 0.30)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 10;
+      roundRect(-item.w / 2, -item.h / 2, item.w, item.h, 18);
+      const gold = ctx.createLinearGradient(-item.w / 2, 0, item.w / 2, 0);
+      gold.addColorStop(0, '#ffcf5e');
+      gold.addColorStop(1, '#ffb144');
+      ctx.fillStyle = gold;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.34)';
+      ctx.lineWidth = 2;
+      roundRect(-item.w / 2 + 6, -item.h / 2 + 6, item.w - 12, item.h - 12, 14);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(137, 80, 18, 0.82)';
+      ctx.font = '900 18px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('칼퇴권', 0, 0);
+      ctx.restore();
+    }
+
+    function drawItems() {
+      const ordered = [...state.items].sort((a, b) => a.y - b.y);
+      for (const item of ordered) {
+        if (item.type === 'report') drawReport(item);
+        if (item.type === 'ping') drawPing(item);
+        if (item.type === 'meeting') drawMeeting(item);
+        if (item.type === 'revision') drawRevision(item);
+        if (item.type === 'sticky') drawSticky(item);
+        if (item.type === 'gold') drawGold(item);
+      }
+    }
+
+    function drawParticles() {
+      for (const particle of state.particles) {
+        ctx.save();
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate(particle.rot);
+        ctx.globalAlpha = particle.alpha;
+        ctx.fillStyle = particle.color;
+        if (particle.kind === 'paper') {
+          roundRect(-particle.size / 2, -particle.size / 3, particle.size, particle.size * 0.66, 3);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawRipples() {
+      for (const ripple of state.ripples) {
+        ctx.save();
+        ctx.globalAlpha = ripple.alpha;
+        ctx.strokeStyle = 'rgba(214, 47, 40, 0.74)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.ellipse(ripple.x, ripple.y, ripple.radius, ripple.radius * 0.62, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawPopups() {
+      for (const popup of state.popups) {
+        ctx.save();
+        ctx.globalAlpha = popup.alpha;
+        ctx.fillStyle = popup.color;
+        ctx.font = `900 ${popup.size}px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.26)';
+        ctx.shadowBlur = 16;
+        ctx.fillText(popup.text, popup.x, popup.y);
+        ctx.restore();
+      }
+    }
+
+    function drawStampCursor() {
+      const x = state.pointer.displayX;
+      const y = state.pointer.displayY;
+      const feverScale = state.feverTime > 0 ? 1.18 : 1;
+      const hoverLift = 36 + Math.sin(state.runningTime * 4.2) * 3;
+      const press = state.stamp.press;
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      ctx.globalAlpha = 0.18 + (state.stamp.cooldown > 0 ? 0.08 : 0);
+      ctx.strokeStyle = state.feverTime > 0 ? 'rgba(255, 202, 102, 0.46)' : 'rgba(255, 130, 92, 0.34)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 88 * feverScale, 60 * feverScale, -0.06, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.globalAlpha = 1;
+      ctx.save();
+      ctx.translate(0, -hoverLift * (1 - press * 0.78));
+      ctx.rotate(state.stamp.rotate);
+      ctx.scale(feverScale, feverScale);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+      ctx.beginPath();
+      ctx.ellipse(12, 104, 72, 22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const stemGradient = ctx.createLinearGradient(0, -66, 0, 18);
+      stemGradient.addColorStop(0, '#ffd4bf');
+      stemGradient.addColorStop(1, '#c63a2a');
+
+      roundRect(-22, -38, 44, 70, 18);
+      ctx.fillStyle = stemGradient;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, -50, 30, 0, Math.PI * 2);
+      ctx.fillStyle = '#d84a36';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, -54, 20, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd9c4';
+      ctx.fill();
+
+      const baseGradient = ctx.createLinearGradient(0, 20, 0, 92);
+      baseGradient.addColorStop(0, '#ff7e4d');
+      baseGradient.addColorStop(1, '#b7281f');
+      roundRect(-84, 24, 168, 82, 20);
+      ctx.fillStyle = baseGradient;
+      ctx.fill();
+
+      roundRect(-72, 36, 144, 58, 16);
+      ctx.fillStyle = '#fff2ea';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(214, 47, 40, 0.42)';
+      ctx.lineWidth = 3;
+      roundRect(-72, 36, 144, 58, 16);
+      ctx.stroke();
+
+      ctx.fillStyle = '#c73124';
+      ctx.font = '900 32px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('퇴근', 0, 66);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function drawOverlayClock() {
+      if (state.gameState !== 'playing') return;
+      ctx.save();
+      ctx.globalAlpha = 0.65;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      roundRect(26, 24, 110, 42, 18);
+      ctx.fill();
+      ctx.fillStyle = '#fff6ef';
+      ctx.font = '700 18px -apple-system, Apple SD Gothic Neo, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const display = state.feverTime > 0 ? '17:59' : state.timeLeft > 15 ? '17:41' : '17:57';
+      ctx.fillText(display, 81, 45);
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      drawDeskBackground();
+      drawMarks();
+      drawItems();
+      drawParticles();
+      drawRipples();
+      drawOverlayClock();
+      drawStampCursor();
+      drawPopups();
+    }
+
+    function updateUI() {
+      scoreValue.textContent = state.score.toLocaleString();
+      timeValue.textContent = Math.ceil(state.timeLeft).toString();
+      comboValue.textContent = state.combo > 0 ? `x${getMultiplier()}` : 'x1';
+      clearValue.textContent = `${state.cleared}개`;
+      const clutter = getClutterRatio();
+      const stressPct = Math.round(clutter * 100);
+      stressFill.style.width = `${stressPct}%`;
+      stressValue.textContent = stressPct < 35 ? '낮음' : stressPct < 70 ? '올라감' : '위험';
+      feverFill.style.width = `${state.feverTime > 0 ? 100 : state.feverMeter}%`;
+      feverValue.textContent = state.feverTime > 0 ? `${state.feverTime.toFixed(1)}초` : `${Math.round(state.feverMeter)}%`;
+      phaseChip.textContent = getPhaseLabel();
+      statusMain.textContent = state.messageMain;
+      statusSub.textContent = state.messageSub;
+      bestChip.textContent = `최고 ${state.bestScore.toLocaleString()}점`;
+      soundButton.textContent = state.soundEnabled ? '도장음 ON' : '도장음 OFF';
+    }
+
+    function getResultMessage() {
+      if (state.score >= 18000) return '문서도 핑도 회의도 다 눌러버렸다. 오늘만큼은 칼퇴 확정.';
+      if (state.score >= 12000) return '일 더미가 꽤 비었다. 퇴근 도장 각이 제대로 나왔다.';
+      if (state.score >= 8000) return '책상은 아직 어수선하지만, 그래도 몇 장은 확실히 밀어냈다.';
+      return '도장 맛은 봤다. 다음엔 더 몰린 곳을 한 번에 노리는 편이 좋다.';
+    }
+
+    function endGame() {
+      if (state.gameState !== 'playing') return;
+      state.gameState = 'result';
+      saveBestScore(state.score);
+      finalScoreEl.textContent = state.score.toLocaleString();
+      resultMessageEl.textContent = getResultMessage();
+      resultClearsEl.textContent = `${state.cleared}`;
+      resultComboEl.textContent = `${state.bestCombo}`;
+      resultFeverEl.textContent = `${state.feverCount}`;
+      resultOverlay.style.display = 'flex';
+      updateMessage(
+        '오늘 업무 종료. 결과창에서 기록을 남길 수 있다.',
+        '랭킹도 바로 이어서 열 수 있다.',
+        '오늘 업무 종료.',
+        '결과를 정리하는 중이다.'
+      );
+      window.setTimeout(() => {
+        recordSystem.showSubmitFlow(GAME_ID, state.score);
+      }, 260);
+    }
+
+    function loop(timestamp) {
+      if (!state.lastFrame) state.lastFrame = timestamp;
+      const dt = Math.min(0.033, (timestamp - state.lastFrame) / 1000);
+      state.lastFrame = timestamp;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function beginCountdown() {
+      const steps = ['3', '2', '1', '퇴근'];
+      let index = 0;
+      countdownEl.style.display = 'flex';
+      countdownEl.textContent = steps[index];
+      const timer = window.setInterval(() => {
+        index += 1;
+        if (index >= steps.length) {
+          window.clearInterval(timer);
+          countdownEl.style.display = 'none';
+          state.gameState = 'playing';
+          updateMessage(
+            '도장을 내려찍을 준비 완료. 몰린 자리를 먼저 비워야 한다.',
+            '문서 여러 장을 한 번에 찍으면 멀티 히트 보너스가 붙는다.',
+            '퇴근 도장 시작.',
+            '가장 몰린 자리부터 눌러야 한다.'
+          );
+          return;
+        }
+        countdownEl.textContent = steps[index];
+      }, 720);
+    }
+
+    function canvasPointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (W / rect.width),
+        y: (event.clientY - rect.top) * (H / rect.height)
+      };
+    }
+
+    function startGame() {
+      startOverlay.style.display = 'none';
+      resultOverlay.style.display = 'none';
+      resetRun();
+      beginCountdown();
+    }
+
+    function restartGame() {
+      resultOverlay.style.display = 'none';
+      resetRun();
+      beginCountdown();
+    }
+
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      updateUI();
+      if (state.soundEnabled) {
+        playTone(480, 0.08, 0, 0.03);
+      }
+    }
+
+    canvas.addEventListener('pointermove', (event) => {
+      const point = canvasPointFromEvent(event);
+      state.pointer.x = clamp(point.x, 100, W - 100);
+      state.pointer.y = clamp(point.y, 120, H - 130);
+    });
+
+    canvas.addEventListener('pointerdown', (event) => {
+      const point = canvasPointFromEvent(event);
+      state.pointer.x = clamp(point.x, 100, W - 100);
+      state.pointer.y = clamp(point.y, 120, H - 130);
+      slamAt(state.pointer.x, state.pointer.y);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.isComposing) return;
+      if (event.key === ' ') {
+        event.preventDefault();
+        slamAt(state.pointer.x, state.pointer.y);
+      }
+      if (event.key.toLowerCase() === 'm') {
+        toggleSound();
+      }
+    });
+
+    window.startGame = startGame;
+    window.restartGame = restartGame;
+    window.toggleSound = toggleSound;
+
+    loadBestScore();
+    updateUI();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
