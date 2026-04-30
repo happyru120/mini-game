@@ -406,7 +406,7 @@
     .clear-haze {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.36), transparent 58%);
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.16), transparent 58%);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease;
@@ -585,13 +585,13 @@
       position: absolute;
       left: 0;
       top: 0;
-      width: 210px;
-      height: 210px;
+      width: 176px;
+      height: 176px;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       background:
         radial-gradient(circle, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.58) 24%, rgba(255, 255, 255, 0.18) 46%, transparent 72%);
-      filter: blur(4px);
+      filter: blur(2px);
       opacity: 0.62;
       transition: width 0.12s ease, height 0.12s ease, opacity 0.12s ease;
     }
@@ -610,8 +610,8 @@
     }
 
     .focus-lens.fever {
-      width: 248px;
-      height: 248px;
+      width: 212px;
+      height: 212px;
       background:
         radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(230, 255, 243, 0.62) 24%, rgba(90, 200, 250, 0.16) 50%, transparent 74%);
     }
@@ -818,9 +818,9 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      padding: 12px 14px;
+      padding: 8px 10px;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.90);
+      background: rgba(255, 255, 255, 0.76);
       border: 1px solid rgba(60, 60, 67, 0.12);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -1262,13 +1262,13 @@
       }
 
       .focus-lens {
-        width: 176px;
-        height: 176px;
+        width: 152px;
+        height: 152px;
       }
 
       .focus-lens.fever {
-        width: 210px;
-        height: 210px;
+        width: 182px;
+        height: 182px;
       }
 
       .vacuum-body {
@@ -1826,7 +1826,7 @@
       );
       const y = clamp(
         event.clientY - state.stageRect.top,
-        Math.max(state.stageRect.height * 0.42, geometry.mouthY + 6),
+        Math.max(state.stageRect.height * 0.36, geometry.mouthY + 6),
         state.stageRect.height - (geometry.height - geometry.mouthY) - 6,
       );
       return { x, y };
@@ -1848,11 +1848,11 @@
     }
 
     function renderFocusLens() {
-      const radius = state.feverActive ? 124 : 105;
+      const radius = state.feverActive ? 102 : 86;
       focusLens.style.transform = `translate(${state.vacuum.x}px, ${state.vacuum.y}px) translate(-50%, -50%)`;
       focusLens.classList.toggle('active', state.running);
       focusLens.classList.toggle('fever', state.feverActive);
-      focusLens.style.opacity = state.suction ? (state.feverActive ? '0.96' : '0.9') : '0.66';
+      focusLens.style.opacity = state.suction ? (state.feverActive ? '0.64' : '0.52') : '0.24';
       focusLens.style.boxShadow = `0 0 0 ${Math.round(radius * 0.32)}px rgba(255,255,255,${state.suction ? 0.06 : 0.03})`;
     }
 
@@ -2030,7 +2030,7 @@
     function triggerGlow(x, y) {
       addParticle('glint-mark', x, y, { size: 24, life: 0.35 });
       clearHaze.classList.add('active');
-      state.hazeTick = 0.18;
+      state.hazeTick = 0.10;
     }
 
     function absorbItem(item) {
@@ -2098,8 +2098,8 @@
     }
 
     function updateSuction(dt) {
-      state.vacuum.x = lerp(state.vacuum.x, state.pointer.x, 1 - Math.exp(-dt * 18));
-      state.vacuum.y = lerp(state.vacuum.y, state.pointer.y, 1 - Math.exp(-dt * 18));
+      state.vacuum.x = lerp(state.vacuum.x, state.pointer.x, 1 - Math.exp(-dt * 25));
+      state.vacuum.y = lerp(state.vacuum.y, state.pointer.y, 1 - Math.exp(-dt * 25));
       vacuumEl.classList.toggle('active', state.suction && state.running);
       vacuumEl.classList.toggle('fever', state.feverActive);
       renderVacuum();
@@ -2135,8 +2135,8 @@
       const right = width - 34;
       const top = height * 0.12;
       const bottom = height - 112;
-      const radius = state.feverActive ? 250 : 190;
-      const intake = state.feverActive ? 40 : 32;
+      const radius = state.feverActive ? 270 : 210;
+      const intake = state.feverActive ? 48 : 40;
       const visualRadius = state.feverActive ? 164 : 142;
       const safeRadius = state.feverActive ? 124 : 108;
 
@@ -2179,7 +2179,7 @@
         }
 
         if (state.suction && pullRatio > 0) {
-          const pull = (state.feverActive ? 780 : 620) * pullRatio;
+          const pull = (state.feverActive ? 860 : 700) * pullRatio;
           item.vx += (dx / dist) * pull * dt;
           item.vy += (dy / dist) * pull * dt;
           item.progress += TYPE_CONFIG[item.type].progressPerSecond * pullRatio * dt * (state.feverActive ? 1.26 : 1);
@@ -2196,7 +2196,7 @@
           playTone(560, 0.12, 'triangle', 0.025);
         }
 
-        if (item.progress >= item.required || (dist < intake && item.progress > 0.42)) {
+        if (item.progress >= item.required || (dist < intake && item.progress > 0.32)) {
           absorbItem(item);
           continue;
         }
@@ -2405,6 +2405,10 @@
       if (!state.running) return;
       const point = stagePointFromEvent(event);
       setPointer(point);
+      state.vacuum.x = point.x;
+      state.vacuum.y = point.y;
+      renderVacuum();
+      renderFocusLens();
       state.suction = true;
       triggerPulse(point.x, point.y, 1.22);
       updateHum();
@@ -2437,7 +2441,7 @@
         );
         state.pointer.y = clamp(
           state.pointer.y,
-          Math.max(state.stageRect.height * 0.42, geometry.mouthY + 6),
+          Math.max(state.stageRect.height * 0.36, geometry.mouthY + 6),
           state.stageRect.height - (geometry.height - geometry.mouthY) - 6,
         );
       });
