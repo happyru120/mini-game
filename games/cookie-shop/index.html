@@ -288,6 +288,15 @@
       font-size: 14px;
       margin-top: 8px;
     }
+    .scene-fade {
+      position: absolute; inset: 0;
+      background: var(--cs-cream);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .38s ease;
+      z-index: 40;
+    }
+    .scene-fade.on { opacity: 1; }
 
     /* ---------- stars ---------- */
     .star-track {
@@ -377,6 +386,7 @@
 
       <div class="cs-toast" id="toast"></div>
       <div class="town-hint" id="townHint" style="display:none;">🚶 방향키·WASD 또는 화면 탭으로 이동 · 건물 앞에 서면 들어가요</div>
+      <div class="scene-fade" id="sceneFade"></div>
 
       <div class="float-layer" id="floatLayer"></div>
     </div>
@@ -433,6 +443,26 @@
       playDiscover() { this.init(); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.16, 'sine', 0.2), i * 90)); }
       playBake() { this.init(); this._tone(392, 0.1, 'triangle', 0.16); setTimeout(() => this._tone(494, 0.12, 'triangle', 0.13), 90); }
       playFail() { this.init(); this._tone(330, 0.1, 'sine', 0.15); setTimeout(() => this._tone(262, 0.14, 'sine', 0.13), 100); }
+      // gentle lo-fi background loop (procedural, no files)
+      startBgm() {
+        if (this._bgm) return;
+        this.init();
+        const notes = [262, 294, 330, 392, 440, 523];
+        let step = 0;
+        this._bgm = setInterval(() => {
+          if (!soundEnabled || this.ctx?.state !== 'running') return;
+          step++;
+          if (step % 2 === 1) {
+            this._tone(notes[Math.floor(Math.random() * notes.length)], 1.1, 'sine', 0.035);
+          }
+          if (step % 8 === 2) this._tone(131, 1.8, 'triangle', 0.045);
+          if (step % 8 === 6) this._tone(98, 1.8, 'triangle', 0.04);
+        }, 640);
+      }
+      stopBgm() {
+        clearInterval(this._bgm);
+        this._bgm = null;
+      }
     }
     const sound = new ShopSound();
     const scoreManager = new ScoreManager();
@@ -643,29 +673,167 @@
           room.add(stool);
           SEATS.push({ x: sx, z: sz, taken: false });
         }
+        // flower vase on each table
+        const vase = cyl(0.09, 0.12, 0.22, '#8FA98B', tx, 1.2, tz, 12);
+        room.add(vase);
+        for (let f = 0; f < 3; f++) {
+          const flower = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), mat(['#E08A9B', '#E8C06B', '#FFF9EE'][f]));
+          flower.position.set(tx - 0.05 + f * 0.05, 1.38 + (f % 2) * 0.05, tz + (f % 2 ? 0.05 : -0.04));
+          room.add(flower);
+        }
+      }
+    }
+
+    // ---- interior dressing ----
+    {
+      // chalkboard menu
+      const mcv = document.createElement('canvas');
+      mcv.width = 256; mcv.height = 176;
+      const mc = mcv.getContext('2d');
+      mc.fillStyle = '#3E3A34';
+      mc.fillRect(0, 0, 256, 176);
+      mc.strokeStyle = '#B98F63'; mc.lineWidth = 10;
+      mc.strokeRect(5, 5, 246, 166);
+      mc.fillStyle = '#FFF6E6';
+      mc.font = '700 30px sans-serif';
+      mc.textAlign = 'center';
+      mc.fillText('M E N U', 128, 46);
+      mc.font = '15px sans-serif';
+      mc.textAlign = 'left';
+      mc.fillStyle = '#E8DCC0';
+      ['🍪 오늘의 쿠키 ....... 10', '🥛 우유 한 잔 ......... 4', '💛 단골 할인 ......... -2'].forEach((line, i) => {
+        mc.fillText(line, 26, 84 + i * 30);
+      });
+      const menuBoard = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 1.45, 0.08),
+        [mat('#5C4A3A'), mat('#5C4A3A'), mat('#5C4A3A'), mat('#5C4A3A'),
+         new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(mcv), roughness: 0.9 }), mat('#5C4A3A')]
+      );
+      menuBoard.position.set(3.9, 3.0, -5.32);
+      room.add(menuBoard);
+      // pastel wall frames
+      for (const [fx, fy, inner] of [[5.6, 3.6, '#E08A9B'], [5.9, 2.5, '#8FA98B']]) {
+        const frame = box(0.62, 0.62, 0.06, '#B98F63', fx, fy, -5.33);
+        const art = box(0.46, 0.46, 0.07, inner, fx, fy, -5.32);
+        art.castShadow = false;
+        room.add(frame, art);
+      }
+      // cake stands on the counter
+      for (const [cx, cakeColor] of [[-0.2, '#E08A9B'], [0.5, '#B8C9A8']]) {
+        const base = cyl(0.26, 0.3, 0.07, '#F2E7D4', cx, 1.3, -1.4, 18);
+        const cake = cyl(0.16, 0.18, 0.16, cakeColor, cx, 1.42, -1.4, 18);
+        const dome = new THREE.Mesh(
+          new THREE.SphereGeometry(0.27, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+          mat('#FFFFFF', { transparent: true, opacity: 0.2, roughness: 0.1 })
+        );
+        dome.position.set(cx, 1.34, -1.4);
+        dome.castShadow = false;
+        room.add(base, cake, dome);
+      }
+      // soft light shaft from the window
+      const shaft = box(5.4, 2.3, 2.9, '#FFF6DC', -3.9, 1.95, 0.6, { transparent: true, opacity: 0.07 });
+      shaft.rotation.z = -0.35;
+      shaft.castShadow = false;
+      shaft.receiveShadow = false;
+      room.add(shaft);
+    }
+
+    // ---- 3D emotes (hearts / anger) ----
+    const emotes = [];
+    function spawnEmote(pos, char, targetScene = scene) {
+      const cv = document.createElement('canvas');
+      cv.width = 64; cv.height = 64;
+      const c = cv.getContext('2d');
+      c.font = '48px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(char, 32, 36);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false }));
+      sp.position.copy(pos);
+      sp.scale.set(0.6, 0.6, 1);
+      targetScene.add(sp);
+      emotes.push({ sp, t: 0, parent: targetScene });
+    }
+    function updateEmotes(dt) {
+      for (let i = emotes.length - 1; i >= 0; i--) {
+        const e = emotes[i];
+        e.t += dt;
+        e.sp.position.y += dt * 0.9;
+        e.sp.material.opacity = Math.max(0, 1 - e.t / 1.1);
+        const s = 0.6 + Math.sin(Math.min(1, e.t * 3) * Math.PI * 0.5) * 0.15;
+        e.sp.scale.set(s, s, 1);
+        if (e.t > 1.1) {
+          e.parent.remove(e.sp);
+          emotes.splice(i, 1);
+        }
       }
     }
 
     // ---- 황구 cameo (the shop dog) ----
     const dog = new THREE.Group();
     {
-      const body = box(0.72, 0.42, 0.4, '#E0A93F', 0, 0.42, 0);
-      const head = box(0.36, 0.34, 0.34, '#E0A93F', 0.42, 0.68, 0);
-      const snout = box(0.14, 0.14, 0.2, '#F5DCA4', 0.62, 0.62, 0);
-      const earL = box(0.09, 0.18, 0.06, '#B8842E', 0.36, 0.9, 0.1);
-      const earR = box(0.09, 0.18, 0.06, '#B8842E', 0.36, 0.9, -0.1);
-      const tail = box(0.3, 0.08, 0.08, '#E0A93F', -0.46, 0.62, 0);
-      tail.name = 'tail';
-      const legs = [
-        box(0.1, 0.24, 0.1, '#B8842E', 0.25, 0.12, 0.12),
-        box(0.1, 0.24, 0.1, '#B8842E', 0.25, 0.12, -0.12),
-        box(0.1, 0.24, 0.1, '#B8842E', -0.25, 0.12, 0.12),
-        box(0.1, 0.24, 0.1, '#B8842E', -0.25, 0.12, -0.12),
-      ];
-      dog.add(body, head, snout, earL, earR, tail, ...legs);
+      // rounded body
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, 0.4, 6, 12), mat('#E0A93F'));
+      body.rotation.z = Math.PI / 2;
+      body.position.set(0, 0.42, 0);
+      body.castShadow = true;
+      // chest patch
+      const chest = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), mat('#F5DCA4'));
+      chest.position.set(0.22, 0.34, 0);
+      // head + snout + nose
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 14), mat('#E0A93F'));
+      head.position.set(0.44, 0.68, 0);
+      head.castShadow = true;
+      const snout = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), mat('#F5DCA4'));
+      snout.scale.set(1.35, 0.8, 0.95);
+      snout.position.set(0.6, 0.62, 0);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), mat('#3A2A1A'));
+      nose.position.set(0.72, 0.64, 0);
+      // eyes
+      const eyes = [];
+      for (const ez of [-0.09, 0.09]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), mat('#2E2620'));
+        eye.position.set(0.58, 0.74, ez);
+        eyes.push(eye);
+      }
+      // pointy jindo ears
+      const ears = [];
+      for (const ez of [-0.1, 0.1]) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 8), mat('#B8842E'));
+        ear.position.set(0.38, 0.9, ez);
+        ear.rotation.x = ez * 1.4;
+        ears.push(ear);
+      }
+      // curled-up tail (pivot group for wagging)
+      const tailPivot = new THREE.Group();
+      tailPivot.name = 'tail';
+      tailPivot.position.set(-0.4, 0.56, 0);
+      const tailMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.22, 4, 8), mat('#E0A93F'));
+      tailMesh.rotation.x = -0.7;
+      tailMesh.position.set(-0.06, 0.12, 0);
+      tailPivot.add(tailMesh);
+      // legs with pivots for walk animation
+      dog.userData.legs = [];
+      for (const [lx, lz] of [[0.24, 0.11], [0.24, -0.11], [-0.24, 0.11], [-0.24, -0.11]]) {
+        const pivot = new THREE.Group();
+        pivot.position.set(lx, 0.3, lz);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.3, 8), mat('#B8842E'));
+        leg.position.y = -0.15;
+        leg.castShadow = true;
+        pivot.add(leg);
+        dog.add(pivot);
+        dog.userData.legs.push(pivot);
+      }
+      dog.add(body, chest, head, snout, nose, ...eyes, ...ears, tailPivot);
       dog.position.set(-4.6, 0, 0.6);
       dog.rotation.y = 0.7;
       scene.add(dog);
+    }
+    function animateDogWalk(phase, moving) {
+      dog.userData.legs.forEach((leg, i) => {
+        const s = moving ? Math.sin(phase + (i % 2 ? Math.PI : 0)) : 0;
+        leg.rotation.x += (s * 0.6 - leg.rotation.x) * 0.9;
+      });
     }
 
     // ---- customers ----
@@ -680,18 +848,108 @@
     const SKIN = ['#F2D5B8', '#E8C4A0', '#D9B08C'];
     const HAIR = ['#4E3A2A', '#2E2620', '#8A5A3A', '#B8B0A4', '#6E4E5E'];
 
-    function makePerson(bodyColor, skin, hair) {
+    function makePerson(bodyColor, skin, hair, opts = {}) {
       const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.72, 14), mat(bodyColor));
-      body.position.y = 0.62;
+      const u = g.userData;
+
+      // legs (pivot at hip so they can swing)
+      const mkLeg = (x) => {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0.36, 0);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.36, 10), mat('#5C4A3A'));
+        leg.position.y = -0.18;
+        leg.castShadow = true;
+        pivot.add(leg);
+        g.add(pivot);
+        return pivot;
+      };
+      u.legL = mkLeg(-0.11);
+      u.legR = mkLeg(0.11);
+
+      // body (capsule)
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.5, 6, 14), mat(bodyColor));
+      body.position.y = 0.82;
       body.castShadow = true;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 14), mat(skin));
-      head.position.y = 1.24;
+      g.add(body);
+
+      // arms (pivot at shoulder)
+      const mkArm = (x) => {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 1.06, 0);
+        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.3, 4, 10), mat(bodyColor));
+        arm.position.y = -0.2;
+        arm.castShadow = true;
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), mat(skin));
+        hand.position.y = -0.4;
+        pivot.add(arm, hand);
+        pivot.rotation.z = x < 0 ? 0.12 : -0.12;
+        g.add(pivot);
+        return pivot;
+      };
+      u.armL = mkArm(-0.31);
+      u.armR = mkArm(0.31);
+
+      // head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 18, 16), mat(skin));
+      head.position.y = 1.52;
       head.castShadow = true;
-      const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair));
-      hairCap.position.y = 1.28;
-      g.add(body, head, hairCap);
+      g.add(head);
+
+      // face — two tiny eyes + blush
+      for (const ex of [-0.09, 0.09]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), mat('#2E2620'));
+        eye.position.set(ex, 1.55, 0.215);
+        g.add(eye);
+      }
+      for (const bx of [-0.15, 0.15]) {
+        const blush = new THREE.Mesh(new THREE.CircleGeometry(0.035, 10), mat('#E8A8A0'));
+        blush.position.set(bx, 1.48, 0.212);
+        blush.lookAt(bx * 3, 1.5, 2);
+        g.add(blush);
+      }
+
+      // hair / headwear
+      if (opts.beanie) {
+        const beanie = new THREE.Mesh(new THREE.SphereGeometry(0.255, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(opts.beanieColor || '#D9704C'));
+        beanie.position.y = 1.58;
+        const fold = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.07, 16), mat(opts.beanieColor || '#D9704C'));
+        fold.position.y = 1.56;
+        g.add(beanie, fold);
+      } else {
+        const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.58), mat(hair));
+        hairCap.position.y = 1.56;
+        g.add(hairCap);
+      }
+      if (opts.glasses) {
+        for (const gx of [-0.09, 0.09]) {
+          const lens = new THREE.Mesh(new THREE.CircleGeometry(0.055, 12), mat('#FFFDF8', { transparent: true, opacity: 0.55 }));
+          lens.position.set(gx, 1.55, 0.235);
+          const rim = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.062, 14), mat('#3B2F26'));
+          rim.position.set(gx, 1.55, 0.24);
+          g.add(lens, rim);
+        }
+        const bridge = box(0.06, 0.015, 0.01, '#3B2F26', 0, 1.55, 0.24);
+        bridge.castShadow = false;
+        g.add(bridge);
+      }
+      if (opts.bag) {
+        const bag = box(0.16, 0.24, 0.11, opts.bagColor || '#B98F63', 0.36, 0.78, 0);
+        const strap = box(0.03, 0.36, 0.03, '#8A6136', 0.34, 1.06, 0);
+        strap.rotation.z = -0.35;
+        g.add(bag, strap);
+      }
       return g;
+    }
+
+    function animateWalk(g, phase, moving) {
+      const u = g.userData;
+      if (!u.legL) return;
+      const s = moving ? Math.sin(phase) : 0;
+      const ease = moving ? 1 : 0.85;
+      u.legL.rotation.x += ((s * 0.65) - u.legL.rotation.x) * ease;
+      u.legR.rotation.x += ((-s * 0.65) - u.legR.rotation.x) * ease;
+      u.armL.rotation.x += ((-s * 0.5) - u.armL.rotation.x) * ease;
+      u.armR.rotation.x += ((s * 0.5) - u.armR.rotation.x) * ease;
     }
 
     function makeBubbleTexture() {
@@ -714,8 +972,16 @@
         const g = makePerson(
           PALETTE[Math.floor(Math.random() * PALETTE.length)],
           SKIN[Math.floor(Math.random() * SKIN.length)],
-          HAIR[Math.floor(Math.random() * HAIR.length)]
+          HAIR[Math.floor(Math.random() * HAIR.length)],
+          {
+            glasses: Math.random() < 0.28,
+            beanie: Math.random() < 0.22,
+            beanieColor: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+            bag: Math.random() < 0.3,
+            bagColor: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          }
         );
+        g.scale.setScalar(0.88 + Math.random() * 0.22);
         this.group = g;
 
         // order bubble sprite
@@ -723,7 +989,7 @@
         const sm = new THREE.SpriteMaterial({ map: this.bubble.tex, transparent: true, depthTest: false });
         this.sprite = new THREE.Sprite(sm);
         this.sprite.scale.set(1.05, 1.05, 1);
-        this.sprite.position.y = 2.05;
+        this.sprite.position.y = 2.3;
         this.sprite.visible = false;
         g.add(this.sprite);
 
@@ -771,13 +1037,14 @@
         const p = this.group.position;
         const dx = target.x - p.x, dz = target.z - p.z;
         const d = Math.hypot(dx, dz);
-        if (d < 0.08) return true;
+        if (d < 0.08) { animateWalk(this.group, 0, false); return true; }
         const step = this.speed * dt;
         p.x += (dx / d) * Math.min(step, d);
         p.z += (dz / d) * Math.min(step, d);
         this.group.rotation.y = Math.atan2(dx, dz);
         this.walkT += dt * 10;
-        this.group.position.y = Math.abs(Math.sin(this.walkT)) * 0.06;
+        this.group.position.y = Math.abs(Math.sin(this.walkT)) * 0.05;
+        animateWalk(this.group, this.walkT, true);
         return false;
       }
 
@@ -1034,6 +1301,211 @@
       townScene.add(fLabel);
     }
 
+    // ---- town life & ambience ----
+    const townFX = { butterflies: [], villagers: [], puffs: [], drops: [], clouds: [] };
+    {
+      // neighbor houses (decor)
+      buildHouse(-11.6, -7.2, '#EFE0D8', '#8FA98B', 3.4, 2.8, 2.2);
+      buildHouse(11.7, -7.8, '#E9E4DA', '#7E93AD', 3.6, 3.0, 2.4);
+
+      // picket fences framing the spawn path
+      const fence = (x0, z0, count, dx, dz) => {
+        for (let i = 0; i < count; i++) {
+          const px = x0 + dx * i, pz = z0 + dz * i;
+          const post = box(0.09, 0.55, 0.09, '#EDE4D2', px, 0.275, pz);
+          post.castShadow = false;
+          townScene.add(post);
+        }
+        const rail = box(Math.abs(dx * (count - 1)) + 0.2 || 0.12, 0.07, Math.abs(dz * (count - 1)) + 0.2 || 0.12,
+          '#EDE4D2', x0 + dx * (count - 1) / 2, 0.42, z0 + dz * (count - 1) / 2);
+        rail.castShadow = false;
+        townScene.add(rail);
+      };
+      fence(-1.4, 4.6, 5, 0, 0.55);
+      fence(2.4, 4.6, 5, 0, 0.55);
+      fence(-8.6, 0.6, 6, 0.55, 0);
+      fence(8.6, 0.8, 5, 0.55, 0);
+
+      // flower patches
+      const flowerColors = ['#E08A9B', '#E8C06B', '#FFF9EE', '#B49BC9'];
+      const patch = (cx, cz, n) => {
+        for (let i = 0; i < n; i++) {
+          const fx = cx + (Math.random() - 0.5) * 1.6;
+          const fz = cz + (Math.random() - 0.5) * 1.2;
+          const stem = cyl(0.02, 0.02, 0.22, '#7E9B78', fx, 0.11, fz, 6);
+          stem.castShadow = false;
+          const bloom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat(flowerColors[i % 4]));
+          bloom.position.set(fx, 0.26, fz);
+          bloom.castShadow = false;
+          townScene.add(stem, bloom);
+        }
+      };
+      patch(-4.2, 3.8, 7); patch(5.2, 4.4, 6); patch(-8.8, -1.6, 6); patch(9.4, -0.9, 6); patch(-3.6, -6.3, 5);
+
+      // bushes & stones
+      for (const [bx, bz, s] of [[-4.2, -4.0, 0.55], [8.6, -5.6, 0.6], [-8.4, -5.8, 0.5], [3.2, 5.8, 0.5]]) {
+        const bush = new THREE.Mesh(new THREE.SphereGeometry(s, 12, 10), mat('#8FA98B'));
+        bush.position.set(bx, s * 0.7, bz);
+        bush.castShadow = true;
+        const bush2 = new THREE.Mesh(new THREE.SphereGeometry(s * 0.7, 12, 10), mat('#7E9B78'));
+        bush2.position.set(bx + s * 0.7, s * 0.5, bz + 0.2);
+        bush2.castShadow = true;
+        townScene.add(bush, bush2);
+      }
+      for (const [sx, sz] of [[-6.8, 1.9], [7.6, 3.2], [-1.9, -7.6]]) {
+        const stone = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), mat('#B8B0A4'));
+        stone.position.set(sx, 0.12, sz);
+        stone.scale.y = 0.55;
+        townScene.add(stone);
+      }
+
+      // chimney + smoke puffs on our shop
+      const chimney = box(0.5, 1.0, 0.5, '#A85A48', -5.3, 3.9, -5.9);
+      const chimneyRim = box(0.6, 0.14, 0.6, '#8A4A3A', -5.3, 4.42, -5.9);
+      townScene.add(chimney, chimneyRim);
+      for (let i = 0; i < 5; i++) {
+        const puff = new THREE.Mesh(
+          new THREE.SphereGeometry(0.22, 10, 8),
+          new THREE.MeshStandardMaterial({ color: '#FFFDF8', transparent: true, opacity: 0.5, roughness: 1 })
+        );
+        puff.castShadow = false;
+        townScene.add(puff);
+        townFX.puffs.push({ mesh: puff, t: i / 5 });
+      }
+
+      // fountain jet & droplets
+      const jet = cyl(0.06, 0.09, 0.9, '#BFE0E8', 0.5, 1.5, 1.8, 10, { transparent: true, opacity: 0.75 });
+      jet.castShadow = false;
+      townScene.add(jet);
+      townFX.jet = jet;
+      for (let i = 0; i < 8; i++) {
+        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6),
+          new THREE.MeshStandardMaterial({ color: '#BFE0E8', transparent: true, opacity: 0.85 }));
+        drop.castShadow = false;
+        townScene.add(drop);
+        townFX.drops.push({ mesh: drop, phase: i / 8, angle: (i / 8) * Math.PI * 2 });
+      }
+
+      // drifting clouds
+      for (let i = 0; i < 4; i++) {
+        const cg = new THREE.Group();
+        const baseR = 0.9 + Math.random() * 0.7;
+        for (let j = 0; j < 3; j++) {
+          const puff = new THREE.Mesh(new THREE.SphereGeometry(baseR * (1 - j * 0.22), 12, 10),
+            new THREE.MeshStandardMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.85, roughness: 1 }));
+          puff.position.set(j * baseR * 0.9 - baseR, (j % 2) * 0.3, 0);
+          puff.castShadow = false;
+          cg.add(puff);
+        }
+        cg.position.set(-14 + i * 8 + Math.random() * 3, 10.5 + Math.random() * 3, -9 + Math.random() * 8);
+        townScene.add(cg);
+        townFX.clouds.push({ g: cg, speed: 0.25 + Math.random() * 0.2 });
+      }
+
+      // butterflies
+      for (let i = 0; i < 3; i++) {
+        const bg = new THREE.Group();
+        const wingColor = ['#E8C06B', '#E08A9B', '#B49BC9'][i];
+        const wings = [];
+        for (const side of [-1, 1]) {
+          const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.12),
+            new THREE.MeshStandardMaterial({ color: wingColor, side: THREE.DoubleSide }));
+          wing.position.x = side * 0.08;
+          wing.castShadow = false;
+          bg.add(wing);
+          wings.push(wing);
+        }
+        townScene.add(bg);
+        townFX.butterflies.push({
+          g: bg, wings,
+          cx: [-4, 5, -8.5][i], cz: [3.6, 4.2, -1.8][i],
+          t: Math.random() * 10, speed: 0.5 + Math.random() * 0.4,
+        });
+      }
+
+      // wandering villagers
+      for (let i = 0; i < 3; i++) {
+        const v = makePerson(
+          PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          SKIN[Math.floor(Math.random() * SKIN.length)],
+          HAIR[Math.floor(Math.random() * HAIR.length)],
+          { glasses: i === 1, beanie: i === 2, beanieColor: '#8FA98B', bag: i === 0 }
+        );
+        v.scale.setScalar(0.9 + i * 0.06);
+        v.position.set(-3 + i * 3.5, 0, 2 + i * 1.2);
+        townScene.add(v);
+        townFX.villagers.push({ g: v, target: null, pause: Math.random() * 2, phase: Math.random() * 6 });
+      }
+    }
+
+    function updateTownAmbient(dt) {
+      // smoke
+      for (const p of townFX.puffs) {
+        p.t += dt * 0.28;
+        if (p.t > 1) p.t -= 1;
+        p.mesh.position.set(-5.3 + Math.sin(p.t * 6) * 0.15 + p.t * 0.5, 4.5 + p.t * 2.1, -5.9);
+        const s = 0.4 + p.t * 1.3;
+        p.mesh.scale.setScalar(s);
+        p.mesh.material.opacity = 0.45 * (1 - p.t);
+      }
+      // fountain
+      if (townFX.jet) townFX.jet.scale.y = 0.9 + Math.sin(time * 5) * 0.12;
+      for (const d of townFX.drops) {
+        const t = (time * 0.7 + d.phase) % 1;
+        const r = 0.25 + t * 1.0;
+        d.mesh.position.set(
+          0.5 + Math.cos(d.angle) * r,
+          1.9 + Math.sin(t * Math.PI) * 0.7 - t * 1.1,
+          1.8 + Math.sin(d.angle) * r
+        );
+        d.mesh.material.opacity = 0.85 * (1 - t * 0.7);
+      }
+      // clouds
+      for (const c of townFX.clouds) {
+        c.g.position.x += c.speed * dt;
+        if (c.g.position.x > 18) c.g.position.x = -18;
+      }
+      // butterflies
+      for (const b of townFX.butterflies) {
+        b.t += dt * b.speed;
+        b.g.position.set(
+          b.cx + Math.sin(b.t * 0.9) * 1.6 + Math.sin(b.t * 2.3) * 0.4,
+          0.7 + Math.sin(b.t * 1.7) * 0.35,
+          b.cz + Math.cos(b.t * 0.7) * 1.3
+        );
+        const flap = Math.sin(time * 18) * 1.0;
+        b.wings[0].rotation.y = flap;
+        b.wings[1].rotation.y = -flap;
+      }
+      // villagers
+      for (const v of townFX.villagers) {
+        if (v.pause > 0) {
+          v.pause -= dt;
+          animateWalk(v.g, 0, false);
+          continue;
+        }
+        if (!v.target) {
+          // wander the plaza area, away from building footprints
+          v.target = new THREE.Vector3(-8 + Math.random() * 16, 0, -1.8 + Math.random() * 7.2);
+        }
+        const p = v.g.position;
+        const dx = v.target.x - p.x, dz = v.target.z - p.z;
+        const d = Math.hypot(dx, dz);
+        if (d < 0.15) {
+          v.target = null;
+          v.pause = 1.2 + Math.random() * 2.6;
+          continue;
+        }
+        const sp = 1.15;
+        p.x += (dx / d) * sp * dt;
+        p.z += (dz / d) * sp * dt;
+        v.g.rotation.y = Math.atan2(dx, dz);
+        v.phase += dt * 8;
+        p.y = Math.abs(Math.sin(v.phase)) * 0.04;
+        animateWalk(v.g, v.phase, true);
+      }
+    }
+
     // ---- POIs & doorstep rings ----
     const POIS = [
       { id: 'shop',   pos: new THREE.Vector3(-6.2, 0, -3.0) },
@@ -1055,9 +1527,10 @@
     const playerChar = new THREE.Group();
     {
       const person = makePerson('#E8A13C', '#F2D5B8', '#4E3A2A');
-      const hatBrim = cyl(0.24, 0.24, 0.05, '#FFF9EE', 0, 1.44, 0, 14);
-      const hatTop = cyl(0.19, 0.22, 0.24, '#FFF9EE', 0, 1.58, 0, 14);
-      const apron = box(0.36, 0.42, 0.07, '#FFF9EE', 0, 0.56, 0.29);
+      Object.assign(playerChar.userData, person.userData); // expose limb pivots for animateWalk
+      const hatBrim = cyl(0.24, 0.24, 0.05, '#FFF9EE', 0, 1.72, 0, 14);
+      const hatTop = cyl(0.19, 0.22, 0.24, '#FFF9EE', 0, 1.86, 0, 14);
+      const apron = box(0.36, 0.42, 0.07, '#FFF9EE', 0, 0.72, 0.28);
       playerChar.add(person, hatBrim, hatTop, apron);
       playerChar.position.set(0.5, 0, 3.2);
       townScene.add(playerChar);
@@ -1069,6 +1542,7 @@
     let walkPhase = 0;
     let poiOpen = null;
     let poiCooldown = 0;
+    let playerServeT = 0;
 
     window.addEventListener('keydown', (e) => {
       if (gameState !== 'morning' || poiOpen) return;
@@ -1101,6 +1575,7 @@
 
     function updateTown(dt) {
       poiCooldown -= dt;
+      updateTownAmbient(dt);
       const p = playerChar.position;
       let dx = 0, dz = 0;
       if (!poiOpen) {
@@ -1133,13 +1608,15 @@
       // bounds
       p.x = Math.max(-13, Math.min(13, p.x));
       p.z = Math.max(-11.5, Math.min(8.5, p.z));
-      // walk bob
+      // walk bob + limb animation
       if (moving) {
         walkPhase += dt * 11;
         playerChar.position.y = Math.abs(Math.sin(walkPhase)) * 0.07;
       } else {
         playerChar.position.y *= 0.8;
       }
+      animateWalk(playerChar, walkPhase, moving);
+      animateDogWalk(walkPhase * 1.15, moving);
 
       // dog follows behind
       const back = new THREE.Vector3(Math.sin(playerChar.rotation.y), 0, Math.cos(playerChar.rotation.y)).multiplyScalar(-1.15);
@@ -1195,6 +1672,15 @@
     // ============================================================
     // Morning phase
     // ============================================================
+    function fadeTransition(cb) {
+      const f = $('sceneFade');
+      f.classList.add('on');
+      setTimeout(() => {
+        cb();
+        setTimeout(() => f.classList.remove('on'), 60);
+      }, 400);
+    }
+
     let toastTimer = null;
     function showToast(html, ms = 5200) {
       const t = $('toast');
@@ -1234,6 +1720,7 @@
       }
 
       // reset town actors
+      townScene.add(playerChar);
       playerChar.position.set(0.5, 0, 3.2);
       playerChar.rotation.y = Math.PI;
       townScene.add(dog);
@@ -1489,15 +1976,23 @@
       $('morningPanel').style.display = 'none';
       $('townHint').style.display = 'none';
       poiOpen = null;
-      phase3D = 'shop';
-      scene.add(dog);
-      dog.position.set(-4.6, 0, 0.6);
-      dog.rotation.set(0, 0.7, 0);
-      startDay();
+      poiCooldown = 999; // stop doorstep re-trigger during the fade out of town
+      fadeTransition(() => {
+        phase3D = 'shop';
+        scene.add(dog);
+        dog.position.set(-4.6, 0, 0.6);
+        dog.rotation.set(0, 0.7, 0);
+        // baker takes their place behind the counter
+        scene.add(playerChar);
+        playerChar.position.set(-0.9, 0, -2.55);
+        playerChar.rotation.y = 0;
+        startDay();
+      });
     };
 
     function startDay() {
       gameState = 'day';
+      $('morningPanel').style.display = 'none';
       served = 0; angryCount = 0; dayRevenue = 0; dayRepDelta = 0;
       dayTimer = DAY_LENGTH;
       customers = [];
@@ -1631,8 +2126,9 @@
       c.sitTimer = 0.55;
       c.sprite.visible = false;
       compactQueue();
+      playerServeT = 0.4;
 
-      const from = new THREE.Vector3(-1.0, 1.5, -1.4);
+      const from = new THREE.Vector3(-0.9, 1.5, -2.0);
       const to = c.group.position.clone().setY(1.1);
       flyCookie(r, from, to, () => {
         money += price;
@@ -1642,6 +2138,7 @@
         dayRepDelta += gain;
         served++; totalServed++;
         floatText(c.group.position.clone().setY(2.2), `+${price} 🪙`);
+        spawnEmote(c.group.position.clone().setY(2.0), '💗');
         if (soundEnabled) sound.playCoin();
         renderServeBar();
         updateHud();
@@ -1654,7 +2151,7 @@
       angryCount++;
       rep = Math.max(0, rep - 3);
       dayRepDelta -= 3;
-      floatText(c.group.position.clone().setY(2.2), '💢', '#FF8A70');
+      spawnEmote(c.group.position.clone().setY(2.0), '💢');
       if (soundEnabled) sound.playAngry();
       compactQueue();
     }
@@ -1693,7 +2190,7 @@
         $('eveningPanel').style.display = 'none';
         if (isWin) endGame(true);
         else if (isLastDay) endGame(false);
-        else { day++; startMorning(); }
+        else fadeTransition(() => { day++; startMorning(); });
       };
     }
 
@@ -1764,6 +2261,18 @@
       camera.position.y = CAM_BASE.y + Math.sin(time * 0.2) * 0.08;
       camera.lookAt(-0.4, 1.0, -0.4);
       dog.position.y = Math.abs(Math.sin(time * 2.2)) * 0.02;
+      animateDogWalk(0, false);
+      updateEmotes(dt);
+
+      // baker idle / serve flourish behind the counter
+      if (gameState === 'day' || gameState === 'evening') {
+        if (playerServeT > 0) {
+          playerServeT -= dt;
+          playerChar.userData.armR.rotation.x = -1.25;
+        } else {
+          animateWalk(playerChar, 0, false);
+        }
+      }
 
       if (gameState === 'day') updateDay(dt);
       else updateFlyers(dt);
@@ -1780,6 +2289,7 @@
     window.startGame = function () {
       sound.init();
       sound.resume();
+      if (soundEnabled) sound.startBgm();
       document.getElementById('startScreen').style.display = 'none';
       document.getElementById('gameOverScreen').style.display = 'none';
       initGame();
@@ -1799,7 +2309,13 @@
     window.toggleSound = function () {
       soundEnabled = !soundEnabled;
       document.querySelector('.sound-btn').textContent = soundEnabled ? '사운드 ON' : '사운드 OFF';
-      if (soundEnabled) { sound.init(); sound.resume(); }
+      if (soundEnabled) {
+        sound.init();
+        sound.resume();
+        if (gameState !== 'start') sound.startBgm();
+      } else {
+        sound.stopBgm();
+      }
     };
 
     // idle preview render behind the start overlay
