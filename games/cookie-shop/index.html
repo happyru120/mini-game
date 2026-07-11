@@ -250,6 +250,45 @@
       100% { opacity: 0; transform: translateY(-44px) scale(1); }
     }
 
+    /* ---------- town mode ---------- */
+    .cs-toast {
+      position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
+      max-width: 78%;
+      background: rgba(255, 253, 248, 0.96);
+      border: 1px solid var(--cs-line);
+      color: var(--cs-ink);
+      border-radius: 16px;
+      padding: 11px 18px;
+      font-size: 13px; font-weight: 700; line-height: 1.55;
+      box-shadow: var(--cs-shadow);
+      z-index: 18;
+      text-align: center;
+      opacity: 0;
+      transition: opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+    }
+    .cs-toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+    .town-hint {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      background: rgba(59, 47, 38, 0.55);
+      color: #FFF6E6;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 12px; font-weight: 700;
+      z-index: 10;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .cs-btn.close {
+      background: var(--cs-cream);
+      color: var(--cs-ink);
+      border: 1px solid var(--cs-line);
+      width: 100%;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
     /* ---------- stars ---------- */
     .star-track {
       height: 8px; background: var(--cs-cream); border: 1px solid var(--cs-line);
@@ -309,19 +348,17 @@
             </div>
           </div>
           <div class="cs-sub" id="mTrend" style="margin-top:8px;"></div>
-          <div class="cs-sub" id="mNews"></div>
 
-          <div class="cs-tabs">
-            <button class="cs-tab on" data-tab="shop" onclick="window._tab('shop')">상점</button>
-            <button class="cs-tab" data-tab="lab" onclick="window._tab('lab')">연구</button>
+          <div class="cs-tabs" id="poiTabs" style="display:none;">
+            <button class="cs-tab on" data-tab="lab" onclick="window._tab('lab')">레시피 연구</button>
             <button class="cs-tab" data-tab="bake" onclick="window._tab('bake')">베이킹<span class="n" id="bakeN" style="display:none;">0</span></button>
-            <button class="cs-tab" data-tab="trip" onclick="window._tab('trip')">탐험</button>
           </div>
 
-          <div id="tabBody"></div>
+          <div id="tabBody" style="margin-top:12px;"></div>
 
           <div style="margin-top:16px;">
-            <button class="cs-btn primary" id="openBtn" onclick="window._openShop()">영업 시작</button>
+            <button class="cs-btn primary" id="openBtn" onclick="window._openShop()" style="display:none;">영업 시작</button>
+            <button class="cs-btn close" id="poiCloseBtn" onclick="window._closePoi()">나가기</button>
           </div>
         </div>
       </div>
@@ -337,6 +374,9 @@
           </div>
         </div>
       </div>
+
+      <div class="cs-toast" id="toast"></div>
+      <div class="town-hint" id="townHint" style="display:none;">🚶 방향키·WASD 또는 화면 탭으로 이동 · 건물 앞에 서면 들어가요</div>
 
       <div class="float-layer" id="floatLayer"></div>
     </div>
@@ -640,6 +680,20 @@
     const SKIN = ['#F2D5B8', '#E8C4A0', '#D9B08C'];
     const HAIR = ['#4E3A2A', '#2E2620', '#8A5A3A', '#B8B0A4', '#6E4E5E'];
 
+    function makePerson(bodyColor, skin, hair) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.72, 14), mat(bodyColor));
+      body.position.y = 0.62;
+      body.castShadow = true;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 14), mat(skin));
+      head.position.y = 1.24;
+      head.castShadow = true;
+      const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair));
+      hairCap.position.y = 1.28;
+      g.add(body, head, hairCap);
+      return g;
+    }
+
     function makeBubbleTexture() {
       const cv = document.createElement('canvas');
       cv.width = 128; cv.height = 128;
@@ -657,20 +711,12 @@
         this.walkT = 0;
         this.speed = 2.1 + Math.random() * 0.5;
 
-        const g = new THREE.Group();
-        const bodyColor = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-        const skin = SKIN[Math.floor(Math.random() * SKIN.length)];
-        const hair = HAIR[Math.floor(Math.random() * HAIR.length)];
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.72, 14), mat(bodyColor));
-        body.position.y = 0.62;
-        body.castShadow = true;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 14), mat(skin));
-        head.position.y = 1.24;
-        head.castShadow = true;
-        const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair));
-        hairCap.position.y = 1.28;
+        const g = makePerson(
+          PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          SKIN[Math.floor(Math.random() * SKIN.length)],
+          HAIR[Math.floor(Math.random() * HAIR.length)]
+        );
         this.group = g;
-        g.add(body, head, hairCap);
 
         // order bubble sprite
         this.bubble = makeBubbleTexture();
@@ -820,6 +866,313 @@
     }
 
     // ============================================================
+    // TOWN — walkable morning map
+    // ============================================================
+    let phase3D = 'shop'; // which scene is on screen: 'shop' | 'town'
+
+    const townScene = new THREE.Scene();
+    townScene.background = new THREE.Color('#DCE9D8');
+    townScene.fog = new THREE.Fog('#DCE9D8', 22, 40);
+    const townCam = new THREE.PerspectiveCamera(42, W / H, 0.1, 80);
+    const TOWN_CAM_OFFSET = new THREE.Vector3(0.6, 7.6, 8.6);
+
+    {
+      const hemi2 = new THREE.HemisphereLight('#FFF6E6', '#9BB08A', 0.85);
+      townScene.add(hemi2);
+      const sun2 = new THREE.DirectionalLight('#FFEFC8', 1.35);
+      sun2.position.set(-8, 12, 6);
+      sun2.castShadow = true;
+      sun2.shadow.mapSize.set(1024, 1024);
+      sun2.shadow.camera.left = -16; sun2.shadow.camera.right = 16;
+      sun2.shadow.camera.top = 16; sun2.shadow.camera.bottom = -16;
+      townScene.add(sun2);
+    }
+
+    function labelSprite(text) {
+      const cv = document.createElement('canvas');
+      cv.width = 256; cv.height = 80;
+      const c = cv.getContext('2d');
+      c.fillStyle = 'rgba(255,253,248,0.95)';
+      c.strokeStyle = '#E9DFCE'; c.lineWidth = 5;
+      c.beginPath(); c.roundRect(6, 8, 244, 62, 22); c.fill(); c.stroke();
+      c.fillStyle = '#3B2F26';
+      c.font = '700 28px sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(text, 128, 40);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false }));
+      sp.scale.set(3.0, 0.94, 1);
+      return sp;
+    }
+
+    // ---- ground & plaza ----
+    {
+      const ground = new THREE.Mesh(new THREE.BoxGeometry(36, 0.2, 30), mat('#A3BE97'));
+      ground.position.set(0, -0.1, -2.5);
+      ground.receiveShadow = true;
+      townScene.add(ground);
+      // paths
+      const path = (w, d, x, z, ry = 0) => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, d), mat('#DACBAF'));
+        p.position.set(x, 0.01, z);
+        p.rotation.y = ry;
+        p.receiveShadow = true;
+        townScene.add(p);
+      };
+      path(2.2, 9, 0.5, 0);           // plaza -> player spawn
+      path(7.5, 2.0, -3.6, -2.8, 0.35); // to shop
+      path(6.5, 2.0, 4.2, -2.6, -0.3);  // to market
+      path(2.0, 6.5, 0.4, -6.5);        // to forest
+      // fountain
+      const fBase = cyl(1.7, 1.9, 0.5, '#CFC5B4', 0.5, 0.25, 1.8, 28);
+      const fWater = cyl(1.35, 1.35, 0.14, '#9FC4CC', 0.5, 0.52, 1.8, 28, { emissive: '#BFE0E8', emissiveIntensity: 0.35 });
+      const fCol = cyl(0.22, 0.3, 1.0, '#CFC5B4', 0.5, 0.9, 1.8, 16);
+      const fTop = cyl(0.5, 0.55, 0.12, '#CFC5B4', 0.5, 1.42, 1.8, 20);
+      townScene.add(fBase, fWater, fCol, fTop);
+      // benches
+      for (const [bx, bz, r] of [[-2.2, 3.4, 0.4], [3.4, 3.2, -0.4]]) {
+        const seat = box(1.5, 0.12, 0.5, '#B98F63', bx, 0.42, bz);
+        seat.rotation.y = r;
+        const l1 = box(0.12, 0.42, 0.44, '#8A6136', bx - 0.55, 0.21, bz);
+        const l2 = box(0.12, 0.42, 0.44, '#8A6136', bx + 0.55, 0.21, bz);
+        l1.rotation.y = r; l2.rotation.y = r;
+        townScene.add(seat, l1, l2);
+      }
+      // lamp posts
+      for (const [lx, lz] of [[-2.6, -0.6], [4.0, -0.4], [-2.4, 5.2]]) {
+        const pole = cyl(0.06, 0.08, 2.6, '#6B5B4A', lx, 1.3, lz, 10);
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), mat('#FFE9B8', { emissive: '#FFD98A', emissiveIntensity: 0.7 }));
+        bulb.position.set(lx, 2.7, lz);
+        townScene.add(pole, bulb);
+      }
+      // scattered trees
+      const tree = (tx, tz, s = 1) => {
+        const trunk = cyl(0.14 * s, 0.18 * s, 0.9 * s, '#8A6136', tx, 0.45 * s, tz, 10);
+        const c1 = new THREE.Mesh(new THREE.ConeGeometry(0.9 * s, 1.5 * s, 10), mat('#7E9B78'));
+        c1.position.set(tx, 1.5 * s, tz); c1.castShadow = true;
+        const c2 = new THREE.Mesh(new THREE.ConeGeometry(0.65 * s, 1.2 * s, 10), mat('#8FA98B'));
+        c2.position.set(tx, 2.3 * s, tz); c2.castShadow = true;
+        townScene.add(trunk, c1, c2);
+      };
+      tree(-10.5, 2.5, 1.1); tree(-11.5, -4.5); tree(10.8, 1.8, 1.2); tree(11.5, -5.2);
+      tree(-9.8, -8.5, 0.9); tree(9.2, -9.0, 1.1); tree(-4.5, 5.8, 0.9); tree(6.8, 6.2);
+      // forest cluster (expedition entrance)
+      tree(-1.8, -11.5, 1.3); tree(0.4, -12.3, 1.5); tree(2.6, -11.6, 1.2); tree(-3.4, -12.6, 1.1); tree(4.4, -12.4, 1.3);
+    }
+
+    // ---- buildings ----
+    function buildHouse(x, z, wallColor, roofColor, w = 4.2, d = 3.4, h = 2.6) {
+      const g = new THREE.Group();
+      const body = box(w, h, d, wallColor, 0, h / 2, 0);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.78, 1.7, 4), mat(roofColor));
+      roof.position.y = h + 0.85;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      const door = box(0.95, 1.5, 0.1, '#8A6136', 0, 0.75, d / 2 + 0.02);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), mat('#E8C06B'));
+      knob.position.set(0.3, 0.75, d / 2 + 0.09);
+      g.add(body, roof, door, knob);
+      for (const wx of [-w * 0.28, w * 0.28]) {
+        const win = box(0.8, 0.7, 0.08, '#FFF4D9', wx, 1.6, d / 2 + 0.02, { emissive: '#FFEDBE', emissiveIntensity: 0.5 });
+        win.castShadow = false;
+        const bar = box(0.86, 0.07, 0.1, '#B8A488', wx, 1.6, d / 2 + 0.04);
+        g.add(win, bar);
+      }
+      g.position.set(x, 0, z);
+      townScene.add(g);
+      return g;
+    }
+
+    {
+      // our cookie shop
+      const shopB = buildHouse(-6.2, -5.2, '#F6EEDF', '#C9705A');
+      // striped awning
+      for (let i = 0; i < 5; i++) {
+        const strip = box(0.5, 0.07, 1.1, i % 2 ? '#FFF9EE' : '#E8A13C', -1.25 + i * 0.52, 2.35, 2.05);
+        strip.rotation.x = -0.28;
+        strip.castShadow = false;
+        shopB.add(strip);
+      }
+      const shopLabel = labelSprite('🍪 우리 쿠키샵');
+      shopLabel.position.set(-6.2, 4.9, -5.2);
+      townScene.add(shopLabel);
+
+      // market stall
+      const mk = new THREE.Group();
+      const counter = box(3.6, 1.0, 1.6, '#B98F63', 0, 0.5, 0);
+      mk.add(counter);
+      for (const [px, pz] of [[-1.7, -0.7], [1.7, -0.7], [-1.7, 0.7], [1.7, 0.7]]) {
+        mk.add(cyl(0.07, 0.07, 2.5, '#8A6136', px, 1.25, pz, 8));
+      }
+      for (let i = 0; i < 6; i++) {
+        const strip = box(0.66, 0.07, 2.3, i % 2 ? '#FFF9EE' : '#8FA98B', -1.65 + i * 0.66, 2.52, 0);
+        strip.rotation.x = -0.12;
+        strip.castShadow = false;
+        mk.add(strip);
+      }
+      // produce crates
+      for (const [cx, col] of [[-1.0, '#E08A9B'], [0, '#E3B23C'], [1.0, '#9BB08A']]) {
+        const crate = box(0.7, 0.4, 0.7, '#C9A87C', cx, 1.2, 0.1);
+        mk.add(crate);
+        for (let j = 0; j < 3; j++) {
+          const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), mat(col));
+          fruit.position.set(cx - 0.18 + j * 0.18, 1.46, 0.1 + (j % 2 ? 0.12 : -0.08));
+          mk.add(fruit);
+        }
+      }
+      mk.position.set(6.6, 0, -4.4);
+      townScene.add(mk);
+      const mkLabel = labelSprite('🧺 마켓');
+      mkLabel.position.set(6.6, 3.6, -4.4);
+      townScene.add(mkLabel);
+
+      // forest sign
+      const post = cyl(0.08, 0.1, 1.5, '#8A6136', 0.4, 0.75, -8.9, 10);
+      const sign = box(1.7, 0.8, 0.12, '#B98F63', 0.4, 1.6, -8.9);
+      townScene.add(post, sign);
+      const fLabel = labelSprite('🌲 탐험 숲');
+      fLabel.position.set(0.4, 2.8, -8.9);
+      townScene.add(fLabel);
+    }
+
+    // ---- POIs & doorstep rings ----
+    const POIS = [
+      { id: 'shop',   pos: new THREE.Vector3(-6.2, 0, -3.0) },
+      { id: 'market', pos: new THREE.Vector3(6.6, 0, -2.9) },
+      { id: 'forest', pos: new THREE.Vector3(0.4, 0, -7.9) },
+    ];
+    for (const poi of POIS) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.55, 0.85, 28),
+        new THREE.MeshBasicMaterial({ color: '#E8A13C', transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.copy(poi.pos).setY(0.04);
+      townScene.add(ring);
+      poi.ring = ring;
+    }
+
+    // ---- player character ----
+    const playerChar = new THREE.Group();
+    {
+      const person = makePerson('#E8A13C', '#F2D5B8', '#4E3A2A');
+      const hatBrim = cyl(0.24, 0.24, 0.05, '#FFF9EE', 0, 1.44, 0, 14);
+      const hatTop = cyl(0.19, 0.22, 0.24, '#FFF9EE', 0, 1.58, 0, 14);
+      const apron = box(0.36, 0.42, 0.07, '#FFF9EE', 0, 0.56, 0.29);
+      playerChar.add(person, hatBrim, hatTop, apron);
+      playerChar.position.set(0.5, 0, 3.2);
+      townScene.add(playerChar);
+    }
+
+    // ---- town input ----
+    const townKeys = { up: false, down: false, left: false, right: false };
+    let moveTarget = null;
+    let walkPhase = 0;
+    let poiOpen = null;
+    let poiCooldown = 0;
+
+    window.addEventListener('keydown', (e) => {
+      if (gameState !== 'morning' || poiOpen) return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') townKeys.up = true;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') townKeys.down = true;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') townKeys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') townKeys.right = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') townKeys.up = false;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') townKeys.down = false;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') townKeys.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') townKeys.right = false;
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    canvas.addEventListener('pointerdown', (e) => {
+      if (gameState !== 'morning' || poiOpen || phase3D !== 'town') return;
+      const r = canvas.getBoundingClientRect();
+      const nd = new THREE.Vector2(
+        ((e.clientX - r.left) / r.width) * 2 - 1,
+        -(((e.clientY - r.top) / r.height) * 2 - 1)
+      );
+      raycaster.setFromCamera(nd, townCam);
+      const pt = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(groundPlane, pt)) moveTarget = pt;
+    });
+
+    function updateTown(dt) {
+      poiCooldown -= dt;
+      const p = playerChar.position;
+      let dx = 0, dz = 0;
+      if (!poiOpen) {
+        if (townKeys.up) dz -= 1;
+        if (townKeys.down) dz += 1;
+        if (townKeys.left) dx -= 1;
+        if (townKeys.right) dx += 1;
+      }
+      const SPEED = 3.4;
+      let moving = false;
+      if (dx || dz) {
+        moveTarget = null;
+        const len = Math.hypot(dx, dz);
+        p.x += (dx / len) * SPEED * dt;
+        p.z += (dz / len) * SPEED * dt;
+        playerChar.rotation.y = Math.atan2(dx, dz);
+        moving = true;
+      } else if (moveTarget && !poiOpen) {
+        const mx = moveTarget.x - p.x, mz = moveTarget.z - p.z;
+        const d = Math.hypot(mx, mz);
+        if (d > 0.12) {
+          p.x += (mx / d) * Math.min(SPEED * dt, d);
+          p.z += (mz / d) * Math.min(SPEED * dt, d);
+          playerChar.rotation.y = Math.atan2(mx, mz);
+          moving = true;
+        } else {
+          moveTarget = null;
+        }
+      }
+      // bounds
+      p.x = Math.max(-13, Math.min(13, p.x));
+      p.z = Math.max(-11.5, Math.min(8.5, p.z));
+      // walk bob
+      if (moving) {
+        walkPhase += dt * 11;
+        playerChar.position.y = Math.abs(Math.sin(walkPhase)) * 0.07;
+      } else {
+        playerChar.position.y *= 0.8;
+      }
+
+      // dog follows behind
+      const back = new THREE.Vector3(Math.sin(playerChar.rotation.y), 0, Math.cos(playerChar.rotation.y)).multiplyScalar(-1.15);
+      const dogTarget = p.clone().add(back);
+      dogTarget.y = 0;
+      dog.position.lerp(dogTarget, Math.min(1, 4.5 * dt));
+      const ddx = p.x - dog.position.x, ddz = p.z - dog.position.z;
+      if (Math.hypot(ddx, ddz) > 0.2) dog.rotation.y = Math.atan2(ddx, ddz) - Math.PI / 2;
+      dog.position.y = moving ? Math.abs(Math.sin(walkPhase * 1.1)) * 0.06 : 0;
+
+      // doorstep rings pulse
+      for (const poi of POIS) {
+        const s = 1 + Math.sin(time * 3.2) * 0.08;
+        poi.ring.scale.set(s, s, 1);
+      }
+
+      // proximity → open panel
+      if (!poiOpen && poiCooldown <= 0) {
+        for (const poi of POIS) {
+          if (Math.hypot(p.x - poi.pos.x, p.z - poi.pos.z) < 1.35) {
+            openPoi(poi.id);
+            break;
+          }
+        }
+      }
+
+      // follow cam
+      const camTarget = p.clone().add(TOWN_CAM_OFFSET);
+      townCam.position.lerp(camTarget, Math.min(1, 5 * dt));
+      townCam.lookAt(p.x, 1.0, p.z);
+    }
+
+    // ============================================================
     // DOM helpers
     // ============================================================
     const $ = (id) => document.getElementById(id);
@@ -842,11 +1195,22 @@
     // ============================================================
     // Morning phase
     // ============================================================
+    let toastTimer = null;
+    function showToast(html, ms = 5200) {
+      const t = $('toast');
+      t.innerHTML = html;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+    }
+
     function startMorning() {
       gameState = 'morning';
-      $('dayHud').style.display = 'none';
+      phase3D = 'town';
       $('serveBar').style.display = 'none';
       $('eveningPanel').style.display = 'none';
+      $('morningPanel').style.display = 'none';
+      $('townHint').style.display = '';
 
       // expedition return
       let news = '';
@@ -854,28 +1218,95 @@
         const trip = TRIPS.find(t => t.id === tripPlan);
         const n = trip.min + Math.floor(Math.random() * (trip.max - trip.min + 1));
         stock[trip.ing] = (stock[trip.ing] || 0) + n;
-        news = `🐕 황구가 ${trip.name}에서 ${INGREDIENTS[trip.ing].name} ${n}개를 물어왔어요!`;
+        news = `🐕 황구가 ${trip.name}에서 ${INGREDIENTS[trip.ing].name} <b>${n}개</b>를 물어왔어요!`;
         tripPlan = null;
       }
 
       // daily trend
       trendId = RECIPES[Math.floor(Math.random() * RECIPES.length)].id;
       const trend = RECIPES.find(r => r.id === trendId);
-      $('mTrend').innerHTML = `📈 <b>오늘의 트렌드</b> — ${trend.name} <span style="color:var(--cs-ink-soft)">(판매가 +50%, 주문 확률 UP${known.has(trendId) ? '' : ' · 아직 레시피를 몰라요'})</span>`;
 
       // anti-softlock: tiny cheer fund
       if (!bailoutUsed && money < 10 && bakedTotal() === 0 && !anyBakeable()) {
         money += 25;
         bailoutUsed = true;
-        news += (news ? '<br>' : '') + '💌 이웃 할머니가 응원금 🪙25를 놓고 가셨어요. "포기하지 마렴."';
+        news += (news ? '<br>' : '') + '💌 이웃 할머니가 응원금 🪙25를 놓고 가셨어요.';
       }
-      $('mNews').innerHTML = news;
 
-      $('mEyebrow').textContent = `DAY ${String(day).padStart(2, '0')} · MORNING`;
-      updateMorningHeader();
-      renderTab(currentTab);
-      $('morningPanel').style.display = '';
+      // reset town actors
+      playerChar.position.set(0.5, 0, 3.2);
+      playerChar.rotation.y = Math.PI;
+      townScene.add(dog);
+      dog.position.set(1.6, 0, 4.0);
+      dog.rotation.y = Math.PI;
+      moveTarget = null;
+      poiOpen = null;
+      poiCooldown = 1.2;
+      townCam.position.copy(playerChar.position).add(TOWN_CAM_OFFSET);
+      townCam.lookAt(playerChar.position.x, 1.0, playerChar.position.z);
+
+      // town HUD
+      $('dayHud').style.display = '';
+      $('hudDay').textContent = `DAY ${String(day).padStart(2, '0')} · MORNING`;
+      $('hudMoney').textContent = `🪙 ${money}`;
+      $('hudStars').textContent = starStr();
+      $('hudTime').style.width = '0%';
+
+      showToast(`📈 <b>오늘의 트렌드</b> — ${trend.name} (판매가 +50%)${known.has(trendId) ? '' : ' · 아직 모르는 레시피!'}${news ? '<br>' + news : ''}`);
     }
+
+    // ---- POI panels ----
+    const POI_META = {
+      shop:   { title: '우리 쿠키샵', eyebrow: 'MY SHOP',  close: '이따 다시 올게요' },
+      market: { title: '마켓',        eyebrow: 'MARKET',   close: '마켓에서 나가기' },
+      forest: { title: '탐험 숲 입구', eyebrow: 'FOREST',   close: '숲에서 나가기' },
+    };
+
+    function openPoi(id) {
+      poiOpen = id;
+      moveTarget = null;
+      const meta = POI_META[id];
+      $('mEyebrow').textContent = `DAY ${String(day).padStart(2, '0')} · ${meta.eyebrow}`;
+      $('mTitle').textContent = meta.title;
+      $('poiCloseBtn').textContent = meta.close;
+      $('poiTabs').style.display = id === 'shop' ? '' : 'none';
+      $('openBtn').style.display = id === 'shop' ? '' : 'none';
+      const trend = RECIPES.find(r => r.id === trendId);
+      $('mTrend').innerHTML = id === 'shop'
+        ? `📈 오늘의 트렌드 — <b>${trend.name}</b> (판매가 +50%)`
+        : (id === 'market' ? '재료를 사고 팔아요. 🍯 꿀은 탐험 숲에서만!' : '🐕 황구를 보내면 내일 아침 재료를 물어와요.');
+      updateMorningHeader();
+      if (id === 'shop') {
+        currentTab = bakedTotal() > 0 || !anyBakeable() ? currentTab : 'bake';
+        if (currentTab !== 'lab' && currentTab !== 'bake') currentTab = 'lab';
+        window._tab(currentTab);
+      } else if (id === 'market') {
+        renderTab('shop');
+      } else {
+        renderTab('trip');
+      }
+      $('morningPanel').style.display = '';
+      $('townHint').style.display = 'none';
+      if (soundEnabled) sound.playChime();
+    }
+
+    window._closePoi = function () {
+      $('morningPanel').style.display = 'none';
+      $('townHint').style.display = '';
+      if (poiOpen) {
+        const poi = POIS.find(x => x.id === poiOpen);
+        const p = playerChar.position;
+        const away = p.clone().sub(poi.pos).setY(0);
+        if (away.lengthSq() < 0.01) away.set(0, 0, 1);
+        away.normalize().multiplyScalar(1.7);
+        p.add(away);
+      }
+      poiOpen = null;
+      poiCooldown = 0.9;
+      $('hudMoney').textContent = `🪙 ${money}`;
+      $('hudStars').textContent = starStr();
+      if (soundEnabled) sound.playClick();
+    };
 
     function updateMorningHeader() {
       $('mMoney').textContent = `🪙 ${money}`;
@@ -1056,6 +1487,12 @@
     // ============================================================
     window._openShop = function () {
       $('morningPanel').style.display = 'none';
+      $('townHint').style.display = 'none';
+      poiOpen = null;
+      phase3D = 'shop';
+      scene.add(dog);
+      dog.position.set(-4.6, 0, 0.6);
+      dog.rotation.set(0, 0.7, 0);
       startDay();
     };
 
@@ -1305,9 +1742,8 @@
       totalServed = 0;
       totalDiscoveries = 0;
       labSlots = [null, null, null];
-      currentTab = 'shop';
+      currentTab = 'lab';
       customers = [];
-      window._tab('shop');
       startMorning();
     }
 
@@ -1316,13 +1752,17 @@
     // ============================================================
     function update(dt) {
       time += dt;
-      // camera breath
+      const tail = dog.getObjectByName('tail');
+      if (tail) tail.rotation.y = Math.sin(time * 7) * 0.5;
+
+      if (phase3D === 'town') {
+        if (gameState === 'morning') updateTown(dt);
+        return;
+      }
+      // shop scene
       camera.position.x = CAM_BASE.x + Math.sin(time * 0.28) * 0.14;
       camera.position.y = CAM_BASE.y + Math.sin(time * 0.2) * 0.08;
       camera.lookAt(-0.4, 1.0, -0.4);
-      // dog idle
-      const tail = dog.getObjectByName('tail');
-      if (tail) tail.rotation.y = Math.sin(time * 7) * 0.5;
       dog.position.y = Math.abs(Math.sin(time * 2.2)) * 0.02;
 
       if (gameState === 'day') updateDay(dt);
@@ -1330,7 +1770,8 @@
     }
 
     function render() {
-      renderer.render(scene, camera);
+      if (phase3D === 'town') renderer.render(townScene, townCam);
+      else renderer.render(scene, camera);
     }
 
     // ============================================================
