@@ -92,6 +92,21 @@
     const GAME_ID = 'hwanggu';
     window.GAME_ID = GAME_ID;
 
+    // --- player character sprites (uploaded art, background removed & sliced) ---
+    const DOG_SPRITES = {};
+    let dogSpritesReady = false;
+    {
+      const names = ['sit', 'run', 'jump', 'leap', 'throw', 'dizzy'];
+      let loaded = 0;
+      for (const n of names) {
+        const img = new Image();
+        img.onload = () => { if (++loaded === names.length) dogSpritesReady = true; };
+        img.src = 'assets/dog-' + n + '.png';
+        DOG_SPRITES[n] = img;
+      }
+    }
+    let playerThrowT = 0;
+
     // --- Sound (procedural, extends shared manager) ---
     class HwangguSound extends SoundManager {
       playJump() { this.init(); this._tone(300, 0.07, 'square', 0.12); this._tone(460, 0.1, 'square', 0.1); }
@@ -549,11 +564,13 @@
       if (p.y > H + 60) fallDeath();
 
       // throw
+      if (playerThrowT > 0) playerThrowT -= dt;
       if (throwPressed) {
         throwPressed = false;
         if (p.carrying) {
           const kind = p.carrying;
           p.carrying = null;
+          playerThrowT = 0.28;
           projectiles.push({
             x: p.x + p.w / 2 + p.dir * 14, y: p.y + 6,
             w: 18, h: 18,
@@ -1204,6 +1221,29 @@
     function drawPlayer() {
       const p = player;
       if (p.invuln > 0 && gameState === 'playing' && Math.floor(p.invuln * 10) % 2 === 0) return;
+      if (dogSpritesReady) {
+        // pose-mapped sprite (art faces right)
+        let name;
+        if (gameState === 'dead') name = 'dizzy';
+        else if (playerThrowT > 0) name = 'throw';
+        else if (!p.onGround) name = p.vy < -50 ? 'jump' : 'leap';
+        else if (Math.abs(p.vx) > 20) name = 'run';
+        else name = 'sit';
+        const img = DOG_SPRITES[name];
+        const fit = Math.min(58 / img.width, 54 / img.height);
+        const dw = img.width * fit, dh = img.height * fit;
+        const bob = name === 'run' ? Math.abs(Math.sin(p.runPhase)) * 2.5 : 0;
+        ctx.save();
+        ctx.translate(p.x + p.w / 2, p.y + p.h + 3 - bob);
+        if (p.dir < 0) ctx.scale(-1, 1);
+        ctx.drawImage(img, -dw / 2, -dh, dw, dh);
+        ctx.restore();
+        if (p.carrying) {
+          const ix = p.x + p.w / 2, iy = p.y - 16 + Math.sin(time * 5) * 2;
+          drawItemIcon(p.carrying, ix, iy);
+        }
+        return;
+      }
       drawDog(p.x, p.y, p.w + 8, p.h + 6, p.dir, {
         run: p.runPhase,
         air: !p.onGround,
