@@ -20,6 +20,20 @@
       line-height: 1.7;
     }
     canvas { background: #7EC8E3; }
+    .rotate-hint { display: none; }
+    @media (orientation: portrait) and (pointer: coarse) {
+      .rotate-hint {
+        display: block;
+        text-align: center;
+        background: #FFF4D9;
+        color: #7A5A1E;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -28,6 +42,7 @@
       <a href="../../index.html" class="back-btn">&larr; &nbsp;돌아가기</a>
       <button class="sound-btn" onclick="window.toggleSound()">사운드 ON</button>
     </div>
+    <div class="rotate-hint">📱 가로 모드로 돌리면 훨씬 쾌적해요!</div>
     <canvas id="gameCanvas" class="game-canvas" width="800" height="600"></canvas>
   </div>
 
@@ -242,10 +257,10 @@
 
     // --- Touch controls ---
     const touchBtns = {
-      left:  { x: 70,  y: H - 70, r: 42, label: '◀' },
-      right: { x: 180, y: H - 70, r: 42, label: '▶' },
-      jump:  { x: W - 70,  y: H - 70, r: 46, label: 'A' },
-      throw: { x: W - 175, y: H - 70, r: 40, label: 'B' },
+      left:  { x: 78,  y: H - 78, r: 54, label: '◀' },
+      right: { x: 212, y: H - 78, r: 54, label: '▶' },
+      jump:  { x: W - 78,  y: H - 78, r: 58, label: 'A' },
+      throw: { x: W - 210, y: H - 78, r: 50, label: 'B' },
     };
     const activePointers = new Map(); // pointerId -> btn name
 

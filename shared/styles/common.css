@@ -389,3 +389,24 @@ body {
   .hud-score    { font-size: 18px; }
   .btn          { padding: 12px 16px; font-size: 15px; }
 }
+
+/* ── Mobile game ergonomics ── */
+html, body { overscroll-behavior: none; }
+body { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 700px) {
+  .game-wrapper { padding: 4px !important; max-width: 100% !important; }
+  .top-bar { padding: 6px 8px; margin-bottom: 4px; }
+  .back-btn, .sound-btn { font-size: 13px; padding: 7px 10px; }
+  .game-canvas {
+    max-height: calc(100dvh - 76px);
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* phones held sideways: give the canvas nearly the full screen */
+@media (max-height: 500px) and (orientation: landscape) {
+  .game-wrapper { padding: 2px !important; max-width: 100% !important; }
+  .top-bar { position: absolute; top: 2px; left: 2px; right: 2px; z-index: 30; margin: 0; background: transparent; }
+  .game-canvas { max-height: calc(100dvh - 8px); }
+}
