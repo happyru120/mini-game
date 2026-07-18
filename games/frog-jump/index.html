@@ -20,6 +20,12 @@
       line-height: 1.7;
     }
     canvas { background: #BFE3F2; cursor: pointer; }
+    @media (orientation: portrait) and (max-width: 800px) {
+      .game-wrapper { padding: 2px; }
+      canvas.game-canvas { max-height: calc(100dvh - 64px); }
+      .start-overlay h1 { font-size: 32px; }
+      .start-overlay p { font-size: 13.5px; padding: 0 14px; }
+    }
   </style>
 </head>
 <body>
@@ -70,7 +76,12 @@
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const W = 800, H = 600;
+    // portrait-native on phones: tall narrow canvas instead of letterboxed landscape
+    const PORTRAIT = window.matchMedia('(orientation: portrait)').matches && window.innerWidth < 800;
+    const W = PORTRAIT ? 460 : 800;
+    const H = PORTRAIT ? 780 : 600;
+    canvas.width = W;
+    canvas.height = H;
     const GAME_ID = 'frog-jump';
     window.GAME_ID = GAME_ID;
 
@@ -100,10 +111,11 @@
     // ============================================================
     // Constants
     // ============================================================
-    const WALL_L = 130;            // inner face of left wall
-    const WALL_R = 670;            // inner face of right wall
+    const WALL_W = PORTRAIT ? 64 : 130;  // wall thickness
+    const WALL_L = WALL_W;               // inner face of left wall
+    const WALL_R = W - WALL_W;           // inner face of right wall
     const GRAVITY = 1500;
-    const JUMP_VX = 380;
+    const JUMP_VX = PORTRAIT ? 330 : 380;
     const JUMP_VY = 560;
     const AIR_JUMP_VY = 500;
     const MAX_AIR_JUMPS = 2;       // + the wall jump = 3 taps total
