@@ -231,6 +231,20 @@
 
     const heightM = () => Math.max(0, -frog.y / PX_PER_M);
 
+    // --- character sprites (uploaded frog, background removed & sliced) ---
+    const SPRITES = {};
+    let spritesReady = false;
+    {
+      const names = ['sit-side', 'jump-up', 'leap', 'leap2', 'sit-front', 'crouch'];
+      let loaded = 0;
+      for (const n of names) {
+        const img = new Image();
+        img.onload = () => { if (++loaded === names.length) spritesReady = true; };
+        img.src = 'assets/frog-' + n + '.png';
+        SPRITES[n] = img;
+      }
+    }
+
     // ============================================================
     // Input — one button
     // ============================================================
@@ -601,6 +615,22 @@
       const stretch = f.state === 'air' ? Math.min(0.25, Math.abs(f.vy) / 2500) : 0;
       ctx.scale(sxx * (1 - stretch * 0.4), syy * (1 + stretch));
 
+      if (spritesReady) {
+        // pose-mapped sprite rendering (all source art faces right)
+        let name, faceDir = f.dir;
+        if (f.state === 'pad') name = 'sit-front';
+        else if (f.state === 'wall') { name = 'crouch'; faceDir = -f.side; }
+        else if (f.state === 'dead') name = 'sit-side';
+        else name = f.vy < -60 ? 'jump-up' : 'leap';
+        const img = SPRITES[name];
+        const dw = 66, dh = img.height / img.width * 66;
+        if (faceDir < 0) ctx.scale(-1, 1);
+        ctx.drawImage(img, -dw / 2 + (f.state === 'wall' ? 5 : 0), -dh / 2 - 3, dw, dh);
+        ctx.restore();
+        drawTongue(cx, cy);
+        return;
+      }
+
       // legs (cling pose vs air pose)
       ctx.fillStyle = '#5E9E48';
       if (f.state === 'wall') {
@@ -653,24 +683,25 @@
       ctx.arc(0, -2, 5, 0.3, Math.PI - 0.3);
       ctx.stroke();
       ctx.restore();
+      drawTongue(cx, cy);
+    }
 
-      // tongue
-      if (tongue && !tongue.fly.taken) {
-        const t = Math.min(1, tongue.t);
-        const tx = cx + (tongue.fly.x - cx) * t;
-        const ty = sy(f.y) + f.h / 2 + (sy(tongue.fly.y) - cy) * t;
-        ctx.strokeStyle = '#E87A8A';
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(cx, cy + 2);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
-        ctx.fillStyle = '#E87A8A';
-        ctx.beginPath();
-        ctx.arc(tx, ty, 4.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    function drawTongue(cx, cy) {
+      if (!tongue || tongue.fly.taken) return;
+      const t = Math.min(1, tongue.t);
+      const tx = cx + (tongue.fly.x - cx) * t;
+      const ty = cy + (sy(tongue.fly.y) - cy) * t;
+      ctx.strokeStyle = '#E87A8A';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + 2);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.fillStyle = '#E87A8A';
+      ctx.beginPath();
+      ctx.arc(tx, ty, 4.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     function drawObstacle(o) {
