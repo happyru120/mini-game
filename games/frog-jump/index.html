@@ -235,7 +235,7 @@
     const SPRITES = {};
     let spritesReady = false;
     {
-      const names = ['sit-side', 'jump-up', 'leap', 'leap2', 'sit-front', 'crouch'];
+      const names = ['sit-side', 'crouch', 'jump-up', 'leap', 'wall', 'dizzy'];
       let loaded = 0;
       for (const n of names) {
         const img = new Image();
@@ -618,12 +618,13 @@
       if (spritesReady) {
         // pose-mapped sprite rendering (all source art faces right)
         let name, faceDir = f.dir;
-        if (f.state === 'pad') name = 'sit-front';
-        else if (f.state === 'wall') { name = 'crouch'; faceDir = -f.side; }
-        else if (f.state === 'dead') name = 'sit-side';
+        if (f.state === 'pad') name = 'sit-side';
+        else if (f.state === 'wall') { name = 'wall'; faceDir = f.side; } // gripping pose faces the wall
+        else if (f.state === 'dead') name = 'dizzy';
         else name = f.vy < -60 ? 'jump-up' : 'leap';
         const img = SPRITES[name];
-        const dw = 66, dh = img.height / img.width * 66;
+        const fit = Math.min(66 / img.width, 62 / img.height);
+        const dw = img.width * fit, dh = img.height * fit;
         if (faceDir < 0) ctx.scale(-1, 1);
         ctx.drawImage(img, -dw / 2 + (f.state === 'wall' ? 5 : 0), -dh / 2 - 3, dw, dh);
         ctx.restore();
