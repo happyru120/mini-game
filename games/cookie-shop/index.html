@@ -1620,33 +1620,229 @@
       poi.ring = ring;
     }
 
-    // ---- player character: billboard sprite of the selected baker ----
+    // ---- player character: procedural chibi 3D baker (matches the low-poly world) ----
+    const BAKER_STYLE = {
+      butter: { hair: '#F2DC9C', dress: '#6B4A32', shoe: '#8A5A36', ribbon: '#F2C84B', orn: 'flower' },
+      choco:  { hair: '#8A5A36', dress: '#5C4030', shoe: '#4E3220', ribbon: '#6B4A32', orn: 'cookie', chips: true },
+      berry:  { hair: '#F5A8C0', dress: '#F2A0B8', shoe: '#F8C8D8', ribbon: '#E04040', orn: 'strawberry' },
+      matcha: { hair: '#8FB86A', dress: '#7FA858', shoe: '#6E9A4E', ribbon: '#5E8A4E', orn: 'leaf' },
+      honey:  { hair: '#F0B050', dress: '#C08A40', shoe: '#8A5A1E', ribbon: '#8A5A1E', orn: 'honeycomb' },
+      dark:   { hair: '#3E3228', dress: '#2E2830', shoe: '#1E1A20', ribbon: '#FFFFFF', orn: 'oreo' },
+    };
+    const SKIN_C = '#FFE4CE';
+
+    function makeBakerModel(id) {
+      const st = BAKER_STYLE[id];
+      const g = new THREE.Group();
+      const u = g.userData;
+
+      // legs: white tights + shoes (pivot at hip for walk swing)
+      const mkLeg = (x) => {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0.4, 0);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.32, 10), mat('#FFF9EE'));
+        leg.position.y = -0.16;
+        leg.castShadow = true;
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), mat(st.shoe));
+        shoe.scale.set(1, 0.7, 1.3);
+        shoe.position.set(0, -0.36, 0.03);
+        pivot.add(leg, shoe);
+        g.add(pivot);
+        return pivot;
+      };
+      u.legL = mkLeg(-0.1);
+      u.legR = mkLeg(0.1);
+
+      // maid dress (flared) + white apron front + frill hem
+      const dress = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.45, 0.52, 18), mat(st.dress));
+      dress.position.y = 0.62;
+      dress.castShadow = true;
+      const frill = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.045, 8, 20), mat('#FFF9EE'));
+      frill.rotation.x = Math.PI / 2;
+      frill.position.y = 0.38;
+      const apron = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.36, 0.42, 18, 1, false, -0.7, 1.4), mat('#FFF9EE'));
+      apron.position.set(0, 0.6, 0.035);
+      const collar = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8), mat('#FFF9EE'));
+      collar.scale.set(1.25, 0.5, 1.25);
+      collar.position.y = 0.9;
+      // chest ribbon
+      const ribbon = new THREE.Group();
+      for (const s of [-1, 1]) {
+        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.09, 3), mat(st.ribbon));
+        wing.rotation.z = s * Math.PI / 2;
+        wing.position.x = s * 0.05;
+        ribbon.add(wing);
+      }
+      const knot = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), mat(st.ribbon));
+      ribbon.add(knot);
+      ribbon.position.set(0, 0.84, 0.15);
+      g.add(dress, frill, apron, collar, ribbon);
+
+      // arms (pivot at shoulder; forward pose used while serving)
+      const mkArm = (x) => {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0.86, 0);
+        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.2, 4, 8), mat(st.dress));
+        arm.position.y = -0.13;
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), mat(SKIN_C));
+        hand.position.y = -0.26;
+        pivot.add(arm, hand);
+        pivot.rotation.z = x < 0 ? 0.25 : -0.25;
+        g.add(pivot);
+        return pivot;
+      };
+      u.armL = mkArm(-0.22);
+      u.armR = mkArm(0.22);
+
+      // big chibi head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 16), mat(SKIN_C));
+      head.position.y = 1.28;
+      head.castShadow = true;
+      g.add(head);
+      // face: big glossy eyes + blush + smile
+      for (const ex of [-0.13, 0.13]) {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), mat('#FFFFFF'));
+        white.scale.set(1, 1.25, 0.5);
+        white.position.set(ex, 1.3, 0.315);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), mat('#5C3A22'));
+        iris.scale.set(1, 1.3, 0.5);
+        iris.position.set(ex, 1.29, 0.345);
+        const glint = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 6), mat('#FFFFFF', { emissive: '#FFFFFF', emissiveIntensity: 0.6 }));
+        glint.position.set(ex + 0.02, 1.33, 0.375);
+        g.add(white, iris, glint);
+      }
+      for (const bx of [-0.22, 0.22]) {
+        const blush = new THREE.Mesh(new THREE.CircleGeometry(0.05, 10), mat('#F5A0A0'));
+        blush.position.set(bx, 1.19, 0.30);
+        blush.lookAt(bx * 2.6, 1.16, 1.2);
+        g.add(blush);
+      }
+      const smile = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.011, 6, 12, Math.PI), mat('#B0604A'));
+      smile.position.set(0, 1.16, 0.34);
+      smile.rotation.z = Math.PI;
+      g.add(smile);
+
+      // hair: back volume + bangs + side curls
+      const hairMat = mat(st.hair);
+      const back = new THREE.Mesh(new THREE.SphereGeometry(0.4, 18, 14), hairMat);
+      back.position.set(0, 1.33, -0.05);
+      back.scale.set(1.04, 1.02, 0.95);
+      back.castShadow = true;
+      g.add(back);
+      for (let i = 0; i < 5; i++) {
+        const bang = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), hairMat);
+        const a = (i - 2) * 0.32;
+        bang.position.set(Math.sin(a) * 0.3, 1.5 - Math.abs(a) * 0.12, Math.cos(a) * 0.26 + 0.06);
+        g.add(bang);
+      }
+      for (const s of [-1, 1]) {
+        const curl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), hairMat);
+        curl.position.set(s * 0.36, 1.12, 0.02);
+        curl.scale.set(0.8, 1.25, 0.8);
+        g.add(curl);
+      }
+      if (st.chips) {
+        for (const [cx, cy, cz] of [[-0.2, 1.56, 0.12], [0.24, 1.5, 0.16], [0.05, 1.62, -0.1], [-0.3, 1.4, -0.14]]) {
+          const chip = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), mat('#3E2A1A'));
+          chip.position.set(cx, cy, cz);
+          g.add(chip);
+        }
+      }
+
+      // white beret + flavor ornament
+      const beret = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 10), mat('#FFF9EE'));
+      beret.scale.set(1.15, 0.5, 1.15);
+      beret.position.set(-0.04, 1.66, -0.02);
+      beret.rotation.z = 0.12;
+      beret.castShadow = true;
+      g.add(beret);
+      const ornGroup = new THREE.Group();
+      ornGroup.position.set(0.16, 1.76, 0.08);
+      if (st.orn === 'strawberry') {
+        const berry = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat('#E04040'));
+        berry.scale.set(1, 1.15, 1);
+        const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.06, 6), mat('#5E9E48'));
+        leaf.position.y = 0.1;
+        ornGroup.add(berry, leaf);
+      } else if (st.orn === 'cookie') {
+        const ck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.035, 14), mat('#B8834A'));
+        ck.rotation.x = 0.5;
+        ornGroup.add(ck);
+      } else if (st.orn === 'flower') {
+        for (let i = 0; i < 5; i++) {
+          const petal = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), mat('#FFFFFF'));
+          const a = (i / 5) * Math.PI * 2;
+          petal.position.set(Math.cos(a) * 0.055, Math.sin(a) * 0.055, 0);
+          ornGroup.add(petal);
+        }
+        const core = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), mat('#F2C84B'));
+        core.position.z = 0.02;
+        ornGroup.add(core);
+      } else if (st.orn === 'leaf') {
+        for (const s of [-1, 1]) {
+          const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.11, 6), mat('#5E9E48'));
+          leaf.rotation.z = s * 1.1;
+          leaf.position.x = s * 0.05;
+          ornGroup.add(leaf);
+        }
+      } else if (st.orn === 'honeycomb') {
+        const hex = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.035, 6), mat('#F2C84B'));
+        hex.rotation.x = 0.5;
+        ornGroup.add(hex);
+      } else if (st.orn === 'oreo') {
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.02, 14), mat('#2A2220'));
+        const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.014, 14), mat('#FFF9EE'));
+        const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.02, 14), mat('#2A2220'));
+        top.position.y = 0.017; bot.position.y = -0.017;
+        const oreo = new THREE.Group();
+        oreo.add(top, mid, bot);
+        oreo.rotation.x = 0.5;
+        ornGroup.add(oreo);
+      }
+      g.add(ornGroup);
+
+      // serving tray with this flavor's cookies (visible only in serve pose)
+      const tray = new THREE.Group();
+      const board = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.26), mat('#B8834A'));
+      tray.add(board);
+      const flavorColor = (RECIPES.find(r => r.id === (id === 'dark' ? 'signature' : id)) || RECIPES[0]).color;
+      for (const tx of [-0.14, 0, 0.14]) {
+        const ck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.035, 12), mat(flavorColor));
+        ck.position.set(tx, 0.035, 0);
+        tray.add(ck);
+      }
+      tray.position.set(0, 0.72, 0.32);
+      tray.visible = false;
+      u.tray = tray;
+      g.add(tray);
+
+      // soft blob shadow
+      const blob = new THREE.Mesh(
+        new THREE.CircleGeometry(0.4, 20),
+        new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.16 })
+      );
+      blob.rotation.x = -Math.PI / 2;
+      blob.position.y = 0.02;
+      blob.castShadow = false;
+      g.add(blob);
+
+      return g;
+    }
+
     const playerChar = new THREE.Group();
-    const bakerTexCache = {};
-    let playerSprite = null;
-    function setBakerSprite(id, pose = 'stand') {
-      const key = pose + '-' + id;
-      if (!bakerTexCache[key]) {
-        const file = pose === 'serve' ? 'baker-serve-' + id : 'baker-' + id;
-        bakerTexCache[key] = new THREE.TextureLoader().load('assets/' + file + '.png');
-      }
-      if (!playerSprite) {
-        playerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bakerTexCache[key], transparent: true }));
-        playerSprite.center.set(0.5, 0); // anchored at the feet
-        playerSprite.scale.set(1.35, 1.95, 1);
-        playerChar.add(playerSprite);
-        // soft blob shadow under the sprite
-        const blob = new THREE.Mesh(
-          new THREE.CircleGeometry(0.42, 20),
-          new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.18 })
-        );
-        blob.rotation.x = -Math.PI / 2;
-        blob.position.y = 0.02;
-        playerChar.add(blob);
-      } else {
-        playerSprite.material.map = bakerTexCache[key];
-        playerSprite.material.needsUpdate = true;
-      }
+    const bakerModelCache = {};
+    let currentBakerModel = null;
+    function setBakerSprite(id, pose = 'stand') { // (keeps old call sites; now swaps 3D models)
+      if (!bakerModelCache[id]) bakerModelCache[id] = makeBakerModel(id);
+      const model = bakerModelCache[id];
+      if (currentBakerModel && currentBakerModel !== model) playerChar.remove(currentBakerModel);
+      if (currentBakerModel !== model) playerChar.add(model);
+      currentBakerModel = model;
+      Object.assign(playerChar.userData, model.userData);
+      const serving = pose === 'serve';
+      model.userData.tray.visible = serving;
+      model.userData.armL.rotation.set(serving ? -1.15 : 0, 0, 0.25);
+      model.userData.armR.rotation.set(serving ? -1.15 : 0, 0, -0.25);
     }
     setBakerSprite(selectedBaker);
     playerChar.position.set(0.5, 0, 3.2);
@@ -1738,6 +1934,11 @@
           moveTarget = null;
         }
       }
+      if (!moving && !poiOpen) {
+        // idle: settle facing toward the camera
+        const target = Math.atan2(Math.sin(0.2), Math.cos(0.2));
+        playerChar.rotation.y += (target - playerChar.rotation.y) * Math.min(1, 2 * dt);
+      }
       // bounds
       p.x = Math.max(-13, Math.min(13, p.x));
       p.z = Math.max(-11.5, Math.min(8.5, p.z));
@@ -1749,7 +1950,6 @@
         playerChar.position.y *= 0.8;
       }
       animateWalk(playerChar, walkPhase, moving);
-      if (playerSprite) playerSprite.material.rotation = moving ? Math.sin(walkPhase) * 0.06 : 0;
       animateDogWalk(walkPhase * 1.15, moving);
 
       // dog follows behind
@@ -2122,7 +2322,7 @@
         scene.add(playerChar);
         setBakerSprite(selectedBaker, 'serve');
         playerChar.position.set(2.5, 0, -1.35);
-        playerChar.rotation.y = 0;
+        playerChar.rotation.y = 0.5; // angled toward the queue and camera
         startDay();
       });
     };
