@@ -1624,12 +1624,14 @@
     const playerChar = new THREE.Group();
     const bakerTexCache = {};
     let playerSprite = null;
-    function setBakerSprite(id) {
-      if (!bakerTexCache[id]) {
-        bakerTexCache[id] = new THREE.TextureLoader().load('assets/baker-' + id + '.png');
+    function setBakerSprite(id, pose = 'stand') {
+      const key = pose + '-' + id;
+      if (!bakerTexCache[key]) {
+        const file = pose === 'serve' ? 'baker-serve-' + id : 'baker-' + id;
+        bakerTexCache[key] = new THREE.TextureLoader().load('assets/' + file + '.png');
       }
       if (!playerSprite) {
-        playerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bakerTexCache[id], transparent: true }));
+        playerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bakerTexCache[key], transparent: true }));
         playerSprite.center.set(0.5, 0); // anchored at the feet
         playerSprite.scale.set(1.35, 1.95, 1);
         playerChar.add(playerSprite);
@@ -1642,7 +1644,7 @@
         blob.position.y = 0.02;
         playerChar.add(blob);
       } else {
-        playerSprite.material.map = bakerTexCache[id];
+        playerSprite.material.map = bakerTexCache[key];
         playerSprite.material.needsUpdate = true;
       }
     }
@@ -1853,6 +1855,7 @@
 
       // reset town actors
       townScene.add(playerChar);
+      setBakerSprite(selectedBaker, 'stand');
       playerChar.position.set(0.5, 0, 3.2);
       playerChar.rotation.y = Math.PI;
       townScene.add(dog);
@@ -2115,8 +2118,9 @@
         scene.add(dog);
         dog.position.set(-4.6, 0, 0.6);
         dog.rotation.set(0, 0.7, 0);
-        // baker stands at the open end of the counter, fully visible
+        // baker stands at the open end of the counter, tray in hand
         scene.add(playerChar);
+        setBakerSprite(selectedBaker, 'serve');
         playerChar.position.set(2.5, 0, -1.35);
         playerChar.rotation.y = 0;
         startDay();
