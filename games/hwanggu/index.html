@@ -19,7 +19,7 @@
       text-align: center;
       line-height: 1.7;
     }
-    canvas { background: #7EC8E3; }
+    canvas { background: #4FB8F0; }
     .rotate-hint { display: none; }
     @media (orientation: portrait) and (pointer: coarse) {
       .rotate-hint {
@@ -135,7 +135,7 @@
     const MOVE_ACCEL = 2400;
     const MAX_VX = 265;
     const FRICTION = 2000;
-    const JUMP_V = 700;
+    const JUMP_V = 740; // max rise ≈ 144px (3.6 tiles) — every 3-tile step is comfortably reachable
     const COYOTE = 0.09;
     const JUMP_BUFFER = 0.13;
 
@@ -164,22 +164,22 @@
       fillRect(g, 18, 12, 19, 12, '#');
       fillRect(g, 78, 12, 79, 12, '#');
       fillRect(g, 80, 11, 82, 12, '#');
-      // one-way platforms
-      fillRect(g, 29, 9, 33, 9, '-');
-      fillRect(g, 36, 6, 39, 6, '-');
+      // one-way platforms (each hop is at most 3 tiles up — within jump reach)
+      fillRect(g, 29, 10, 33, 10, '-');
+      fillRect(g, 36, 7, 39, 7, '-');
       fillRect(g, 49, 10, 53, 10, '-');
       fillRect(g, 89, 10, 90, 10, '-');
       // spikes
       fillRect(g, 50, 12, 52, 12, '^');
       // bones
       [8, 9, 10, 41, 42, 100, 101, 102, 103, 104].forEach(c => put(g, c, 12, 'o'));
-      [30, 31, 32].forEach(c => put(g, c, 8, 'o'));
-      [37, 38].forEach(c => put(g, c, 5, 'o'));
+      [30, 31, 32].forEach(c => put(g, c, 9, 'o'));
+      [37, 38].forEach(c => put(g, c, 6, 'o'));
       [89, 90].forEach(c => put(g, c, 9, 'o'));
       [80, 81, 82].forEach(c => put(g, c, 10, 'o'));
       // enemies
       [14, 46, 70, 96].forEach(c => put(g, c, 12, 'r'));
-      put(g, 34, 7, 'c'); put(g, 84, 8, 'c');
+      put(g, 34, 8, 'c'); put(g, 84, 8, 'c');
       put(g, 68, 12, 'w');
       // items / flags
       put(g, 44, 12, 'f'); put(g, 64, 12, 'b');
@@ -197,15 +197,15 @@
       // cabins
       for (const [a, b] of [[24, 27], [44, 46], [62, 64], [103, 105]]) fillRect(g, a, 11, b, 12, '#');
       put(g, 2, 12, 'P');
-      // rails (one-way)
-      fillRect(g, 12, 9, 18, 9, '-');
+      // rails (one-way; ≤3 tiles above the deck, or reachable via cabin tops)
+      fillRect(g, 12, 10, 18, 10, '-');
       fillRect(g, 40, 8, 43, 8, '-');
-      fillRect(g, 71, 9, 77, 9, '-');
+      fillRect(g, 71, 10, 77, 10, '-');
       // smokestack spikes
       [30, 50, 90].forEach(c => put(g, c, 12, '^'));
       // bones
       [10, 11, 28, 48, 49, 68, 69, 86, 87, 112, 113, 114].forEach(c => put(g, c, 12, 'o'));
-      [15, 16].forEach(c => put(g, c, 8, 'o'));
+      [15, 16].forEach(c => put(g, c, 9, 'o'));
       [41, 42].forEach(c => put(g, c, 7, 'o'));
       [96, 97, 98].forEach(c => put(g, c, 9, 'o'));
       [25, 26].forEach(c => put(g, c, 10, 'o'));
@@ -227,9 +227,9 @@
       fillRect(g, 0, 13, width - 1, 14, '#');
       fillRect(g, 0, 8, 0, 12, '#');                     // arena walls
       fillRect(g, width - 1, 8, width - 1, 12, '#');
-      fillRect(g, 8, 9, 10, 9, '-');
-      fillRect(g, 15, 9, 17, 9, '-');
-      put(g, 9, 8, 'o'); put(g, 16, 8, 'o');
+      fillRect(g, 8, 10, 10, 10, '-');
+      fillRect(g, 15, 10, 17, 10, '-');
+      put(g, 9, 9, 'o'); put(g, 16, 9, 'o');
       put(g, 3, 12, 'P');
       put(g, 5, 12, 'b'); put(g, 20, 12, 'f');
       put(g, 18, 12, 'X');
@@ -972,16 +972,16 @@
     // ============================================================
     const THEMES = {
       village: {
-        skyTop: '#8ED4F0', skyBottom: '#C9EDF7',
-        tileFill: '#8B5A2B', tileTop: '#5FA83C', tileEdge: '#6E4522',
+        skyTop: '#4FB8F0', skyBottom: '#B8F0DC',
+        tileFill: '#A05E1E', tileTop: '#3FC04A', tileEdge: '#7A4418',
       },
       train: {
-        skyTop: '#6FB7E0', skyBottom: '#BFE3F2',
-        tileFill: '#8A4B3A', tileTop: '#A6553F', tileEdge: '#5E3328',
+        skyTop: '#3F9FE8', skyBottom: '#AEE2F8',
+        tileFill: '#B0442E', tileTop: '#D05038', tileEdge: '#7A2E20',
       },
       boss: {
-        skyTop: '#2A2438', skyBottom: '#5A4A6A',
-        tileFill: '#4A4550', tileTop: '#5E5868', tileEdge: '#332F3A',
+        skyTop: '#2E2050', skyBottom: '#7A4E8E',
+        tileFill: '#4E4860', tileTop: '#6E6484', tileEdge: '#36304A',
       },
     };
 
@@ -995,7 +995,7 @@
 
       if (theme === 'village') {
         // distant hills
-        ctx.fillStyle = 'rgba(110, 170, 90, 0.45)';
+        ctx.fillStyle = 'rgba(70, 195, 110, 0.6)';
         for (let i = -1; i < 5; i++) {
           const hx = i * 300 - (camX * 0.2) % 300;
           ctx.beginPath();
@@ -1003,21 +1003,21 @@
           ctx.fill();
         }
         // huts
-        ctx.fillStyle = 'rgba(160, 120, 80, 0.5)';
+        ctx.fillStyle = 'rgba(230, 150, 95, 0.8)';
         for (let i = -1; i < 4; i++) {
           const hx = i * 420 - (camX * 0.35) % 420 + 100;
           ctx.fillRect(hx, 400, 90, 70);
           ctx.beginPath();
           ctx.moveTo(hx - 12, 400); ctx.lineTo(hx + 45, 355); ctx.lineTo(hx + 102, 400);
           ctx.closePath();
-          ctx.fillStyle = 'rgba(120, 85, 55, 0.5)';
+          ctx.fillStyle = 'rgba(200, 85, 60, 0.85)';
           ctx.fill();
-          ctx.fillStyle = 'rgba(160, 120, 80, 0.5)';
+          ctx.fillStyle = 'rgba(230, 150, 95, 0.8)';
         }
         drawClouds(0.15, 0.9);
       } else if (theme === 'train') {
         // distant mountains
-        ctx.fillStyle = 'rgba(90, 120, 150, 0.4)';
+        ctx.fillStyle = 'rgba(95, 115, 215, 0.45)';
         for (let i = -1; i < 5; i++) {
           const mx = i * 340 - (camX * 0.1) % 340;
           ctx.beginPath();
@@ -1027,7 +1027,7 @@
         }
         drawClouds(0.5, 1.6);
         // rushing ground under the train
-        ctx.fillStyle = '#7A9A5A';
+        ctx.fillStyle = '#54BA4E';
         ctx.fillRect(0, 560, W, 40);
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 2;
@@ -1758,7 +1758,7 @@
         grad.addColorStop(1, '#C9EDF7');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = 'rgba(110, 170, 90, 0.45)';
+        ctx.fillStyle = 'rgba(70, 195, 110, 0.6)';
         for (let i = 0; i < 4; i++) {
           ctx.beginPath();
           ctx.arc(i * 280 + 60, 520, 150, Math.PI, 0);

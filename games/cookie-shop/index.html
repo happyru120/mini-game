@@ -228,10 +228,7 @@
     }
     .serve-card:hover { transform: translateY(-3px); }
     .serve-card.empty { opacity: .4; filter: grayscale(.6); }
-    .serve-card .dot { width: 30px; height: 30px; border-radius: 50%; position: relative; }
-    .serve-card .dot i {
-      position: absolute; width: 5px; height: 5px; border-radius: 50%; background: rgba(59,47,38,.5);
-    }
+    .serve-card .ck-img { width: 36px; height: 36px; object-fit: contain; }
     .serve-card .nm { font-size: 11px; font-weight: 800; color: var(--cs-ink); white-space: nowrap; }
     .serve-card .ct { font-size: 11px; font-weight: 700; color: var(--cs-ink-soft); }
     .serve-card.shake { animation: csShake .3s; }
@@ -319,8 +316,7 @@
       .cs-item .ico { width: 34px; height: 34px; font-size: 18px; }
       .serve-bar { padding: 18px 6px 8px; gap: 5px; }
       .serve-card { min-width: 56px; padding: 6px 5px 5px; border-radius: 12px; }
-      .serve-card .dot { width: 22px; height: 22px; }
-      .serve-card .dot i { width: 4px; height: 4px; }
+      .serve-card .ck-img { width: 26px; height: 26px; }
       .serve-card .nm { font-size: 9.5px; }
       .serve-card .ct { font-size: 10px; }
       .cs-hud { padding: 10px 12px 24px; }
@@ -530,6 +526,14 @@
       { id: 'signature',   name: '시그니처 쿠키', combo: ['choco', 'berry', 'matcha'],  sell: 50, tier: 5, color: '#C9A9D9' },
     ];
 
+    // cookie icon images (uploaded art, one per recipe)
+    const COOKIE_IMGS = {};
+    for (const r of RECIPES) {
+      const img = new Image();
+      img.src = 'assets/cookie-' + r.id + '.png';
+      COOKIE_IMGS[r.id] = img;
+    }
+
     const TRIPS = [
       { id: 'berry',  name: '새콤한 딸기밭',  emoji: '🍓', ing: 'berry',  min: 2, max: 4 },
       { id: 'matcha', name: '초록 찻잎 언덕', emoji: '🍵', ing: 'matcha', min: 2, max: 4 },
@@ -564,7 +568,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.16;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#EFE3D0');
@@ -1050,13 +1054,18 @@
         c.fillStyle = 'rgba(255,253,248,0.97)';
         c.fill();
         // cookie
-        c.fillStyle = r.color;
-        c.beginPath();
-        c.arc(64, 46, 24, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(59,47,38,0.45)';
-        for (const [dx, dy] of [[-8, -6], [7, -2], [-2, 9], [10, 8]]) {
-          c.beginPath(); c.arc(64 + dx, 46 + dy, 3.2, 0, Math.PI * 2); c.fill();
+        const cimg = COOKIE_IMGS[this.order];
+        if (cimg && cimg.complete && cimg.naturalWidth) {
+          c.drawImage(cimg, 64 - 26, 46 - 26, 52, 52);
+        } else {
+          c.fillStyle = r.color;
+          c.beginPath();
+          c.arc(64, 46, 24, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = 'rgba(59,47,38,0.45)';
+          for (const [dx, dy] of [[-8, -6], [7, -2], [-2, 9], [10, 8]]) {
+            c.beginPath(); c.arc(64 + dx, 46 + dy, 3.2, 0, Math.PI * 2); c.fill();
+          }
         }
         // patience ring
         const frac = Math.max(0, this.patience / PATIENCE);
@@ -1144,12 +1153,23 @@
       }
     }
 
-    // flying cookie effect (3D)
+    // flying cookie effect (3D) — textured sprite of the actual cookie art
     const flyers = [];
+    const cookieTexCache = {};
+    function cookieTexture(id) {
+      if (!cookieTexCache[id]) {
+        cookieTexCache[id] = new THREE.TextureLoader().load('assets/cookie-' + id + '.png');
+      }
+      return cookieTexCache[id];
+    }
     function flyCookie(recipe, from, to, done) {
-      const ck = cyl(0.2, 0.2, 0.09, recipe.color, from.x, from.y, from.z, 18);
-      scene.add(ck);
-      flyers.push({ mesh: ck, from: from.clone(), to: to.clone(), t: 0, done });
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: cookieTexture(recipe.id), transparent: true, depthTest: false,
+      }));
+      sp.scale.set(0.55, 0.55, 1);
+      sp.position.copy(from);
+      scene.add(sp);
+      flyers.push({ mesh: sp, from: from.clone(), to: to.clone(), t: 0, done });
     }
     function updateFlyers(dt) {
       for (let i = flyers.length - 1; i >= 0; i--) {
@@ -1158,7 +1178,7 @@
         const t = Math.min(1, f.t);
         f.mesh.position.lerpVectors(f.from, f.to, t);
         f.mesh.position.y += Math.sin(t * Math.PI) * 1.1;
-        f.mesh.rotation.x += dt * 9;
+        f.mesh.material.rotation += dt * 7;
         if (t >= 1) {
           scene.remove(f.mesh);
           flyers.splice(i, 1);
@@ -1890,7 +1910,7 @@
         el.innerHTML = `<div class="cs-list">` + RECIPES.filter(r => known.has(r.id)).map(r => {
           const max = Math.min(...r.combo.map(i => stock[i] || 0));
           return `<div class="cs-item">
-            <div class="ico" style="background:${r.color}22;">🍪</div>
+            <div class="ico" style="background:${r.color}22;"><img src="assets/cookie-${r.id}.png" style="width:28px;height:28px;object-fit:contain;" alt=""></div>
             <div class="body">
               <div class="name">${r.name} ${r.id === trendId ? '📈' : ''}</div>
               <div class="meta">${r.combo.map(i => INGREDIENTS[i].emoji + (stock[i] || 0)).join(' · ')} → 판매 🪙${r.id === trendId ? Math.round(r.sell * 1.5) : r.sell}</div>
@@ -2125,9 +2145,7 @@
       bar.innerHTML = showList.map(r => {
         const n = baked[r.id] || 0;
         return `<div class="serve-card ${n <= 0 ? 'empty' : ''}" id="serve-${r.id}" onclick="window._serve('${r.id}')">
-          <div class="dot" style="background:${r.color};">
-            <i style="left:6px;top:8px;"></i><i style="left:17px;top:14px;"></i><i style="left:10px;top:19px;"></i>
-          </div>
+          <img class="ck-img" src="assets/cookie-${r.id}.png" alt="">
           <div class="nm">${r.name}</div>
           <div class="ct">×${n}</div>
         </div>`;

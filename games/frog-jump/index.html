@@ -19,7 +19,7 @@
       text-align: center;
       line-height: 1.7;
     }
-    canvas { background: #BFE3F2; cursor: pointer; }
+    canvas { background: #8FD4F7; cursor: pointer; }
     @media (orientation: portrait) and (max-width: 800px) {
       .game-wrapper { padding: 2px; }
       canvas.game-canvas { max-height: calc(100dvh - 64px); }
@@ -177,10 +177,10 @@
     }
 
     const ZONES = [
-      { at: 0,   name: '고요한 연못',  top: '#BFE3F2', bottom: '#DFF2E0' },
-      { at: 50,  name: '갈대숲',      top: '#A8D8C8', bottom: '#D8EBC0' },
-      { at: 120, name: '아득한 하늘', top: '#7EB8E8', bottom: '#C8E0F5' },
-      { at: 200, name: '구름 위',     top: '#5E90D8', bottom: '#AACCF0' },
+      { at: 0,   name: '고요한 연못',  top: '#8FD4F7', bottom: '#C2F2C8' },
+      { at: 50,  name: '갈대숲',      top: '#6FCFB0', bottom: '#C6F0A0' },
+      { at: 120, name: '아득한 하늘', top: '#4FA3F0', bottom: '#B0DCFA' },
+      { at: 200, name: '구름 위',     top: '#3F6FE0', bottom: '#9CC4F8' },
     ];
     function zoneAt(m) {
       let z = ZONES[0];
@@ -574,15 +574,15 @@
       for (const side of [-1, 1]) {
         const x0 = side === -1 ? 0 : WALL_R;
         const wWidth = side === -1 ? WALL_L : W - WALL_R;
-        ctx.fillStyle = '#6EA35C';
+        ctx.fillStyle = '#4AA843';
         ctx.fillRect(x0, 0, wWidth, H);
         // bamboo stalks
         const stalkW = 34;
         for (let sx = x0 + 6; sx < x0 + wWidth - 10; sx += stalkW + 8) {
-          ctx.fillStyle = '#7FB56A';
+          ctx.fillStyle = '#63C452';
           ctx.fillRect(sx, 0, stalkW, H);
           // segments
-          ctx.strokeStyle = '#5E8A4E';
+          ctx.strokeStyle = '#3C8A36';
           ctx.lineWidth = 3;
           const segH = 90;
           const off = ((-camTop) % segH + segH) % segH;
@@ -597,7 +597,7 @@
           ctx.fillRect(sx + 4, 0, 6, H);
         }
         // inner edge
-        ctx.fillStyle = '#4E7A40';
+        ctx.fillStyle = '#337A2E';
         ctx.fillRect(side === -1 ? WALL_L - 5 : WALL_R, 0, 5, H);
       }
     }
@@ -837,8 +837,8 @@
       const y = sy(waterY);
       if (y > H + 40) return;
       const grad = ctx.createLinearGradient(0, y, 0, H);
-      grad.addColorStop(0, 'rgba(90, 160, 200, 0.85)');
-      grad.addColorStop(1, 'rgba(40, 90, 140, 0.95)');
+      grad.addColorStop(0, 'rgba(50, 155, 235, 0.85)');
+      grad.addColorStop(1, 'rgba(20, 85, 180, 0.95)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, y, W, H - y + 10);
       // surface wave
