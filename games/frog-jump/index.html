@@ -87,14 +87,48 @@
 
     // --- Sound ---
     class FrogSound extends SoundManager {
-      playBoing() { this.init(); this._tone(280, 0.06, 'square', 0.14); this._tone(430, 0.1, 'square', 0.1); }
-      playAirJump() { this.init(); this._tone(520, 0.07, 'square', 0.12); }
+      // synthesized frog croak: low sawtooth with a guttural amplitude trill,
+      // formant-ish bandpass, and a rise-then-fall pitch bend — "깨굴!"
+      _croak(freq = 120, dur = 0.2, vol = 0.3) {
+        const { ctx } = this;
+        const t0 = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq * 0.85, t0);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.45, t0 + dur * 0.35);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.75, t0 + dur);
+        // guttural trill (fast tremolo on the gain)
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(vol * 0.6, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        const lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 30;
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = vol * 0.42;
+        lfo.connect(lfoGain);
+        lfoGain.connect(gain.gain);
+        // throat resonance
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(freq * 4.5, t0);
+        filter.frequency.exponentialRampToValueAtTime(freq * 2.8, t0 + dur);
+        filter.Q.value = 1.6;
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t0); lfo.start(t0);
+        osc.stop(t0 + dur); lfo.stop(t0 + dur);
+      }
+      playBoing() { this.init(); this._croak(140, 0.13, 0.32); }                                          // 깩! (점프)
+      playAirJump() { this.init(); this._croak(185, 0.1, 0.26); }                                         // 높은 깩 (공중)
+      playCroakCall() { this.init(); this._croak(115, 0.16, 0.3); setTimeout(() => this._croak(90, 0.26, 0.28), 190); } // 깨—굴
       playCling() { this.init(); this._tone(200, 0.05, 'triangle', 0.12); }
-      playSlurp() { this.init(); this._tone(700, 0.05, 'sine', 0.18); setTimeout(() => this._tone(1050, 0.08, 'sine', 0.14), 50); }
+      playSlurp() { this.init(); this._tone(700, 0.05, 'sine', 0.18); setTimeout(() => this._tone(1050, 0.08, 'sine', 0.14), 50); setTimeout(() => this._croak(150, 0.1, 0.18), 140); }
       playWarn() { this.init(); this._tone(880, 0.09, 'square', 0.1); }
       playZap() { this.init(); this._noise(0.25, 2000, 400); this._tone(140, 0.2, 'sawtooth', 0.25); }
       playSplash() { this.init(); this._noise(0.35, 900, 120); this._tone(180, 0.25, 'sine', 0.3); }
-      playMilestone() { this.init(); [659, 784, 988].forEach((f, i) => setTimeout(() => this._tone(f, 0.12, 'sine', 0.18), i * 80)); }
+      playMilestone() { this.init(); [125, 105, 155].forEach((f, i) => setTimeout(() => this._croak(f, 0.18, 0.3), i * 210)); } // 깨굴깨굴!
     }
 
     const sound = new FrogSound();
@@ -177,6 +211,7 @@
         dir: 1,
         airJumps: MAX_AIR_JUMPS,
         squash: 0,
+        wallT: 0,
       };
       camTop = frog.y - H * 0.62;
       waterY = 150;
@@ -216,6 +251,7 @@
         f.vy = -JUMP_VY;
         f.airJumps = MAX_AIR_JUMPS;
         f.squash = 0.25;
+        f.wallT = 0;
         particles.emit(f.x + f.w / 2, f.y + f.h, 6, { colors: ['#B8D89A', '#FFFFFF'], speed: 2.5, decay: 0.05 });
         if (soundEnabled) sound.playBoing();
       } else if (f.state === 'air' && f.airJumps > 0) {
@@ -341,6 +377,11 @@
       if (f.state === 'wall') {
         f.y += d.wallSlide * dt; // slide down — faster the higher you are
         f.x = f.side === -1 ? WALL_L : WALL_R - f.w;
+        f.wallT += dt;
+        if (f.wallT > 2.4) { // idle frog croaks to itself
+          f.wallT = 0;
+          if (soundEnabled) sound.playCroakCall();
+        }
       } else if (f.state === 'air' || f.state === 'pad') {
         if (f.state === 'air') {
           f.vy += GRAVITY * dt;
@@ -354,6 +395,7 @@
             f.vx = 0; f.vy = 0;
             f.airJumps = MAX_AIR_JUMPS;
             f.squash = 0.3;
+            f.wallT = 0;
             if (soundEnabled) sound.playCling();
           } else if (f.x + f.w >= WALL_R && f.vx > 0) {
             f.x = WALL_R - f.w;
@@ -361,6 +403,7 @@
             f.vx = 0; f.vy = 0;
             f.airJumps = MAX_AIR_JUMPS;
             f.squash = 0.3;
+            f.wallT = 0;
             if (soundEnabled) sound.playCling();
           }
         }
@@ -920,6 +963,7 @@
     window.startGame = function () {
       sound.init();
       sound.resume();
+      if (soundEnabled) sound.playCroakCall(); // 깨굴! 출발
       document.getElementById('startScreen').style.display = 'none';
       document.getElementById('gameOverScreen').style.display = 'none';
       if (previewLoop) previewLoop.stop();
