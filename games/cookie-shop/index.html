@@ -343,7 +343,36 @@
     .start-overlay h1 { font-size: 40px; margin-bottom: 8px; letter-spacing: -0.02em; }
     .start-overlay p {
       color: var(--apple-label-secondary);
-      font-size: 15px; margin-bottom: 20px; text-align: center; line-height: 1.75;
+      font-size: 15px; margin-bottom: 14px; text-align: center; line-height: 1.75;
+    }
+    .baker-pick {
+      display: flex; flex-wrap: wrap; gap: 9px; justify-content: center;
+      max-width: 600px; margin: 0 auto 18px;
+    }
+    .baker-card {
+      width: 86px;
+      background: var(--cs-card, #FFFDF8);
+      border: 2px solid var(--cs-line, #E9DFCE);
+      border-radius: 14px;
+      padding: 8px 4px 7px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .12s, border-color .12s, background .12s;
+      font-family: inherit;
+    }
+    .baker-card:hover { transform: translateY(-2px); }
+    .baker-card img { width: 58px; height: 66px; object-fit: contain; display: block; margin: 0 auto 3px; }
+    .baker-card .bn { font-size: 12.5px; font-weight: 800; color: #3B2F26; }
+    .baker-card .bp { font-size: 9.5px; color: #93836F; line-height: 1.35; margin-top: 2px; }
+    .baker-card.sel {
+      border-color: var(--cs-butter, #E8A13C);
+      background: #FBF0DC;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px -10px rgba(200, 127, 27, .6);
+    }
+    @media (max-width: 700px) {
+      .baker-card { width: 30%; max-width: 96px; }
+      .baker-pick { max-width: 96%; }
     }
   </style>
 </head>
@@ -428,10 +457,10 @@
     <h1>🍪 쿠키샵 3D</h1>
     <p>
       골목 끝, 작은 쿠키샵을 물려받았다.<br>
-      재료를 조합해 나만의 레시피를 발견하고, 손님을 사로잡자.<br>
-      <b>30일 안에 별 다섯 개</b>를 모으면 명예의 전당!<br>
-      아침엔 준비, 낮엔 서빙 — 주문에 맞는 쿠키 카드를 탭!
+      <b>베이커를 고르고</b>, 재료를 조합해 레시피를 발견하고, 손님을 사로잡자.<br>
+      <b>30일 안에 별 다섯 개</b>를 모으면 명예의 전당!
     </p>
+    <div class="baker-pick" id="bakerPick"></div>
     <button class="btn btn-primary" onclick="window._showLeaderboard = () => recordSystem.showLeaderboard(GAME_ID);
     window.startGame()">오픈 준비하기</button>
   </div>
@@ -534,6 +563,19 @@
       COOKIE_IMGS[r.id] = img;
     }
 
+    // selectable baker characters (uploaded art) with run perks
+    const BAKERS = [
+      { id: 'butter', name: '버터',   perk: '시작 자금 +25' },
+      { id: 'choco',  name: '초코칩', perk: '초코칩 레시피 보유' },
+      { id: 'berry',  name: '딸기',   perk: '손님 인내심 +2초' },
+      { id: 'matcha', name: '말차',   perk: '탐험 수확 +1개' },
+      { id: 'honey',  name: '허니',   perk: '트렌드가 +70%' },
+      { id: 'dark',   name: '다크',   perk: '딸기·말차 -2원' },
+    ];
+    let selectedBaker = 'butter';
+    let runPatience = 13, trendMult = 1.5, tripBonus = 0, rareDiscount = 0; // set per-run in initGame
+    const priceOf = (id) => Math.max(1, INGREDIENTS[id].price - ((id === 'berry' || id === 'matcha') ? rareDiscount : 0));
+
     const TRIPS = [
       { id: 'berry',  name: '새콤한 딸기밭',  emoji: '🍓', ing: 'berry',  min: 2, max: 4 },
       { id: 'matcha', name: '초록 찻잎 언덕', emoji: '🍵', ing: 'matcha', min: 2, max: 4 },
@@ -575,7 +617,7 @@
     scene.fog = new THREE.Fog('#EFE3D0', 18, 30);
 
     const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 60);
-    const CAM_BASE = new THREE.Vector3(6.4, 5.6, 9.2);
+    const CAM_BASE = new THREE.Vector3(6.4, 4.7, 10.2); // shallower pitch so the billboard baker reads upright
     camera.position.copy(CAM_BASE);
     camera.lookAt(-0.4, 1.0, -0.4);
 
@@ -1001,7 +1043,7 @@
       constructor(orderId) {
         this.order = orderId;
         this.state = 'enter'; // enter, queue, served, sit, leave
-        this.patience = PATIENCE;
+        this.patience = runPatience;
         this.slot = -1;
         this.seat = null;
         this.sitTimer = 0;
@@ -1068,7 +1110,7 @@
           }
         }
         // patience ring
-        const frac = Math.max(0, this.patience / PATIENCE);
+        const frac = Math.max(0, this.patience / runPatience);
         c.strokeStyle = frac > 0.4 ? '#8FA98B' : '#D9704C';
         c.lineWidth = 6;
         c.beginPath();
@@ -1196,7 +1238,7 @@
     townScene.background = new THREE.Color('#DCE9D8');
     townScene.fog = new THREE.Fog('#DCE9D8', 22, 40);
     const townCam = new THREE.PerspectiveCamera(42, W / H, 0.1, 80);
-    const TOWN_CAM_OFFSET = new THREE.Vector3(0.6, 7.6, 8.6);
+    const TOWN_CAM_OFFSET = new THREE.Vector3(0.6, 5.2, 10.2); // shallower angle so the billboard baker reads upright
 
     {
       const hemi2 = new THREE.HemisphereLight('#FFF6E6', '#9BB08A', 0.85);
@@ -1578,18 +1620,52 @@
       poi.ring = ring;
     }
 
-    // ---- player character ----
+    // ---- player character: billboard sprite of the selected baker ----
     const playerChar = new THREE.Group();
-    {
-      const person = makePerson('#E8A13C', '#F2D5B8', '#4E3A2A');
-      Object.assign(playerChar.userData, person.userData); // expose limb pivots for animateWalk
-      const hatBrim = cyl(0.24, 0.24, 0.05, '#FFF9EE', 0, 1.72, 0, 14);
-      const hatTop = cyl(0.19, 0.22, 0.24, '#FFF9EE', 0, 1.86, 0, 14);
-      const apron = box(0.36, 0.42, 0.07, '#FFF9EE', 0, 0.72, 0.28);
-      playerChar.add(person, hatBrim, hatTop, apron);
-      playerChar.position.set(0.5, 0, 3.2);
-      townScene.add(playerChar);
+    const bakerTexCache = {};
+    let playerSprite = null;
+    function setBakerSprite(id) {
+      if (!bakerTexCache[id]) {
+        bakerTexCache[id] = new THREE.TextureLoader().load('assets/baker-' + id + '.png');
+      }
+      if (!playerSprite) {
+        playerSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bakerTexCache[id], transparent: true }));
+        playerSprite.center.set(0.5, 0); // anchored at the feet
+        playerSprite.scale.set(1.35, 1.95, 1);
+        playerChar.add(playerSprite);
+        // soft blob shadow under the sprite
+        const blob = new THREE.Mesh(
+          new THREE.CircleGeometry(0.42, 20),
+          new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.18 })
+        );
+        blob.rotation.x = -Math.PI / 2;
+        blob.position.y = 0.02;
+        playerChar.add(blob);
+      } else {
+        playerSprite.material.map = bakerTexCache[id];
+        playerSprite.material.needsUpdate = true;
+      }
     }
+    setBakerSprite(selectedBaker);
+    playerChar.position.set(0.5, 0, 3.2);
+    townScene.add(playerChar);
+
+    // ---- baker select UI ----
+    function renderBakerPick() {
+      const el = document.getElementById('bakerPick');
+      el.innerHTML = BAKERS.map(b => `
+        <div class="baker-card ${b.id === selectedBaker ? 'sel' : ''}" onclick="window._pickBaker('${b.id}')">
+          <img src="assets/baker-${b.id}.png" alt="${b.name}">
+          <div class="bn">${b.name}</div>
+          <div class="bp">${b.perk}</div>
+        </div>`).join('');
+    }
+    window._pickBaker = function (id) {
+      selectedBaker = id;
+      renderBakerPick();
+      if (soundEnabled) sound.playClick();
+    };
+    renderBakerPick();
 
     // ---- town input ----
     const townKeys = { up: false, down: false, left: false, right: false };
@@ -1671,6 +1747,7 @@
         playerChar.position.y *= 0.8;
       }
       animateWalk(playerChar, walkPhase, moving);
+      if (playerSprite) playerSprite.material.rotation = moving ? Math.sin(walkPhase) * 0.06 : 0;
       animateDogWalk(walkPhase * 1.15, moving);
 
       // dog follows behind
@@ -1757,7 +1834,7 @@
       let news = '';
       if (tripPlan) {
         const trip = TRIPS.find(t => t.id === tripPlan);
-        const n = trip.min + Math.floor(Math.random() * (trip.max - trip.min + 1));
+        const n = trip.min + tripBonus + Math.floor(Math.random() * (trip.max - trip.min + 1));
         stock[trip.ing] = (stock[trip.ing] || 0) + n;
         news = `🐕 황구가 ${trip.name}에서 ${INGREDIENTS[trip.ing].name} <b>${n}개</b>를 물어왔어요!`;
         tripPlan = null;
@@ -1794,7 +1871,7 @@
       $('hudStars').textContent = starStr();
       $('hudTime').style.width = '0%';
 
-      showToast(`📈 <b>오늘의 트렌드</b> — ${trend.name} (판매가 +50%)${known.has(trendId) ? '' : ' · 아직 모르는 레시피!'}${news ? '<br>' + news : ''}`);
+      showToast(`📈 <b>오늘의 트렌드</b> — ${trend.name} (판매가 +${Math.round((trendMult - 1) * 100)}%)${known.has(trendId) ? '' : ' · 아직 모르는 레시피!'}${news ? '<br>' + news : ''}`);
     }
 
     // ---- POI panels ----
@@ -1815,7 +1892,7 @@
       $('openBtn').style.display = id === 'shop' ? '' : 'none';
       const trend = RECIPES.find(r => r.id === trendId);
       $('mTrend').innerHTML = id === 'shop'
-        ? `📈 오늘의 트렌드 — <b>${trend.name}</b> (판매가 +50%)`
+        ? `📈 오늘의 트렌드 — <b>${trend.name}</b> (판매가 +${Math.round((trendMult - 1) * 100)}%)`
         : (id === 'market' ? '재료를 사고 팔아요. 🍯 꿀은 탐험 숲에서만!' : '🐕 황구를 보내면 내일 아침 재료를 물어와요.');
       updateMorningHeader();
       if (id === 'shop') {
@@ -1878,7 +1955,7 @@
             <div class="ico">${v.emoji}</div>
             <div class="body">
               <div class="name">${v.name}</div>
-              <div class="meta">개당 🪙${v.price} · 보유 ${stock[id] || 0}</div>
+              <div class="meta">개당 🪙${priceOf(id)} · 보유 ${stock[id] || 0}</div>
             </div>
             <div class="ctrl">
               <button class="cs-btn tiny" onclick="window._buy('${id}', -1)">−</button>
@@ -1913,7 +1990,7 @@
             <div class="ico" style="background:${r.color}22;"><img src="assets/cookie-${r.id}.png" style="width:28px;height:28px;object-fit:contain;" alt=""></div>
             <div class="body">
               <div class="name">${r.name} ${r.id === trendId ? '📈' : ''}</div>
-              <div class="meta">${r.combo.map(i => INGREDIENTS[i].emoji + (stock[i] || 0)).join(' · ')} → 판매 🪙${r.id === trendId ? Math.round(r.sell * 1.5) : r.sell}</div>
+              <div class="meta">${r.combo.map(i => INGREDIENTS[i].emoji + (stock[i] || 0)).join(' · ')} → 판매 🪙${r.id === trendId ? Math.round(r.sell * trendMult) : r.sell}</div>
             </div>
             <div class="ctrl">
               <button class="cs-btn tiny" onclick="window._bake('${r.id}', -1)">−</button>
@@ -1930,7 +2007,7 @@
               <div class="ico">${t.emoji}</div>
               <div class="body">
                 <div class="name">${t.name}</div>
-                <div class="meta">${INGREDIENTS[t.ing].name} ${t.min}~${t.max}개 획득</div>
+                <div class="meta">${INGREDIENTS[t.ing].name} ${t.min + tripBonus}~${t.max + tripBonus}개 획득</div>
               </div>
               <div class="ctrl">
                 <button class="cs-btn ghost" onclick="window._trip('${t.id}')">${tripPlan === t.id ? '취소' : '보내기'}</button>
@@ -1943,14 +2020,15 @@
     window._buy = function (id, dir) {
       const v = INGREDIENTS[id];
       if (dir > 0) {
-        if (money < v.price) { if (soundEnabled) sound.playFail(); return; }
-        money -= v.price;
+        const cost = priceOf(id);
+        if (money < cost) { if (soundEnabled) sound.playFail(); return; }
+        money -= cost;
         stock[id] = (stock[id] || 0) + 1;
         if (soundEnabled) sound.playCoin();
       } else {
         if ((stock[id] || 0) <= 0) return;
         stock[id]--;
-        money += v.price; // full refund, friendly
+        money += priceOf(id); // full refund, friendly
         if (soundEnabled) sound.playClick();
       }
       updateMorningHeader();
@@ -2037,9 +2115,9 @@
         scene.add(dog);
         dog.position.set(-4.6, 0, 0.6);
         dog.rotation.set(0, 0.7, 0);
-        // baker takes their place behind the counter
+        // baker takes their place behind the counter (clear of the glass case)
         scene.add(playerChar);
-        playerChar.position.set(-0.9, 0, -2.55);
+        playerChar.position.set(0.35, 0, -2.5);
         playerChar.rotation.y = 0;
         startDay();
       });
@@ -2173,7 +2251,7 @@
       }
       baked[id]--;
       const r = RECIPES.find(x => x.id === id);
-      const price = id === trendId ? Math.round(r.sell * 1.5) : r.sell;
+      const price = id === trendId ? Math.round(r.sell * trendMult) : r.sell;
 
       c.state = 'served';
       c.sitTimer = 0.55;
@@ -2286,6 +2364,18 @@
       stock = { flour: 6, butter: 4, sugar: 4 };
       baked = {};
       known = new Set(['butter']);
+      // baker perks
+      runPatience = PATIENCE;
+      trendMult = 1.5;
+      tripBonus = 0;
+      rareDiscount = 0;
+      if (selectedBaker === 'butter') money += 25;
+      if (selectedBaker === 'choco') known.add('choco');
+      if (selectedBaker === 'berry') runPatience = PATIENCE + 2;
+      if (selectedBaker === 'matcha') tripBonus = 1;
+      if (selectedBaker === 'honey') trendMult = 1.7;
+      if (selectedBaker === 'dark') rareDiscount = 2;
+      setBakerSprite(selectedBaker);
       trendId = null;
       tripPlan = null;
       bailoutUsed = false;
@@ -2317,13 +2407,13 @@
       animateDogWalk(0, false);
       updateEmotes(dt);
 
-      // baker idle / serve flourish behind the counter
+      // baker idle / serve hop behind the counter
       if (gameState === 'day' || gameState === 'evening') {
         if (playerServeT > 0) {
           playerServeT -= dt;
-          playerChar.userData.armR.rotation.x = -1.25;
+          playerChar.position.y = Math.abs(Math.sin(playerServeT * 16)) * 0.14;
         } else {
-          animateWalk(playerChar, 0, false);
+          playerChar.position.y *= 0.8;
         }
       }
 
