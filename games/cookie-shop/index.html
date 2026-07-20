@@ -480,8 +480,12 @@
     </div>
   </div>
 
+  <script type="importmap">
+    { "imports": { "three": "../../shared/vendor/three.module.min.js" } }
+  </script>
   <script type="module">
-    import * as THREE from '../../shared/vendor/three.module.min.js';
+    import * as THREE from 'three';
+    import { GLTFLoader } from '../../shared/vendor/GLTFLoader.js';
     import { GameLoop } from '../../shared/engine/GameLoop.js';
     import { SoundManager } from '../../shared/engine/SoundManager.js';
     import { ScoreManager } from '../../shared/engine/ScoreManager.js';
@@ -1832,17 +1836,63 @@
     const playerChar = new THREE.Group();
     const bakerModelCache = {};
     let currentBakerModel = null;
+    // AI-converted true-to-art models (from the uploaded 2D art via image-to-3D)
+    const BAKER_GLB = { berry: 'assets/baker3d-berry.glb' };
+    const gltfLoader = new GLTFLoader();
+
     function setBakerSprite(id, pose = 'stand') { // (keeps old call sites; now swaps 3D models)
-      if (!bakerModelCache[id]) bakerModelCache[id] = makeBakerModel(id);
-      const model = bakerModelCache[id];
+      const useGlb = !!BAKER_GLB[id];
+      const cacheKey = useGlb ? 'glb-' + id : id;
+      if (!bakerModelCache[cacheKey]) {
+        if (useGlb) {
+          // placeholder group, filled when the GLB arrives
+          const holder = new THREE.Group();
+          holder.userData.isGlb = true;
+          bakerModelCache[cacheKey] = holder;
+          gltfLoader.load(BAKER_GLB[id], (gltf) => {
+            const model = gltf.scene;
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const s = 1.72 / size.y; // normalize height
+            model.scale.setScalar(s);
+            const box2 = new THREE.Box3().setFromObject(model);
+            model.position.y -= box2.min.y;          // feet on the ground
+            model.position.x -= (box2.min.x + box2.max.x) / 2;
+            model.position.z -= (box2.min.z + box2.max.z) / 2;
+            model.traverse((o) => {
+              if (o.isMesh) {
+                o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.02 });
+                o.castShadow = true;
+              }
+            });
+            holder.add(model);
+            // blob shadow
+            const blob = new THREE.Mesh(
+              new THREE.CircleGeometry(0.4, 20),
+              new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.16 })
+            );
+            blob.rotation.x = -Math.PI / 2;
+            blob.position.y = 0.02;
+            holder.add(blob);
+          });
+        } else {
+          bakerModelCache[cacheKey] = makeBakerModel(id);
+        }
+      }
+      const model = bakerModelCache[cacheKey];
       if (currentBakerModel && currentBakerModel !== model) playerChar.remove(currentBakerModel);
       if (currentBakerModel !== model) playerChar.add(model);
       currentBakerModel = model;
-      Object.assign(playerChar.userData, model.userData);
-      const serving = pose === 'serve';
-      model.userData.tray.visible = serving;
-      model.userData.armL.rotation.set(serving ? -1.15 : 0, 0, 0.25);
-      model.userData.armR.rotation.set(serving ? -1.15 : 0, 0, -0.25);
+      playerChar.userData.legL = model.userData.legL || null;
+      playerChar.userData.legR = model.userData.legR || null;
+      playerChar.userData.armL = model.userData.armL || null;
+      playerChar.userData.armR = model.userData.armR || null;
+      if (!model.userData.isGlb) {
+        const serving = pose === 'serve';
+        model.userData.tray.visible = serving;
+        model.userData.armL.rotation.set(serving ? -1.15 : 0, 0, 0.25);
+        model.userData.armR.rotation.set(serving ? -1.15 : 0, 0, -0.25);
+      }
     }
     setBakerSprite(selectedBaker);
     playerChar.position.set(0.5, 0, 3.2);
