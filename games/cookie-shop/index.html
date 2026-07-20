@@ -1049,6 +1049,73 @@
       u.armR.rotation.x += ((s * 0.5) - u.armR.rotation.x) * ease;
     }
 
+    // Runtime auto-rig: builds a simple 7-bone skeleton + smooth skin weights
+    // for an unrigged character mesh so limbs can actually bend (no Mixamo needed).
+    function buildRiggedBaker(srcGeo) {
+      const geo = srcGeo;
+      geo.computeBoundingBox();
+      const bb = geo.boundingBox;
+      const minY = bb.min.y, h = bb.max.y - bb.min.y;
+      const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+      const pos = geo.attributes.position;
+      const n = pos.count;
+      // torso-band half width (head/hair excluded) → where the arms start
+      let wBand = 0;
+      for (let i = 0; i < n; i++) {
+        const yn = (pos.getY(i) - minY) / h;
+        if (yn > 0.18 && yn < 0.48) wBand = Math.max(wBand, Math.abs(pos.getX(i) - cx));
+      }
+      const armX = wBand * 0.58;
+      const sm = (a, b, v) => Math.min(1, Math.max(0, (v - a) / (b - a)));
+      const hipY = minY + 0.20 * h, spineY = minY + 0.32 * h,
+            shoulderY = minY + 0.42 * h, headY = minY + 0.48 * h;
+      // bones: 0 hips, 1 spine, 2 head, 3 armL, 4 armR, 5 legL, 6 legR
+      const idx = new Uint16Array(n * 4), wgt = new Float32Array(n * 4);
+      const w = [0, 0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < n; i++) {
+        const x = pos.getX(i) - cx;
+        const yn = (pos.getY(i) - minY) / h, ax = Math.abs(x);
+        w.fill(0);
+        const wHead = sm(0.42, 0.50, yn);
+        const wLeg = (1 - sm(0.16, 0.24, yn)) * (1 - wHead);
+        let wArm = 0;
+        if (yn > 0.20 && yn < 0.52) wArm = sm(armX, armX + wBand * 0.16, ax) * 0.9 * (1 - wHead);
+        w[2] = wHead;
+        w[x < 0 ? 5 : 6] = wLeg;
+        w[x < 0 ? 3 : 4] = wArm;
+        const rest = Math.max(0, 1 - wHead - wLeg - wArm);
+        const tSpine = sm(0.22, 0.36, yn);
+        w[0] = rest * (1 - tSpine); w[1] = rest * tSpine;
+        const order = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => w[b] - w[a]);
+        let s = 0;
+        for (let k = 0; k < 4; k++) s += w[order[k]];
+        for (let k = 0; k < 4; k++) {
+          idx[i * 4 + k] = order[k];
+          wgt[i * 4 + k] = s > 0 ? w[order[k]] / s : (k === 0 ? 1 : 0);
+        }
+      }
+      geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+      geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wgt, 4));
+      const mk = (x, y, z) => { const b = new THREE.Bone(); b.position.set(x, y, z); return b; };
+      const hips = mk(cx, hipY, cz);
+      const spine = mk(0, spineY - hipY, 0); hips.add(spine);
+      const head = mk(0, headY - spineY, 0); spine.add(head);
+      const armL = mk(-armX * 0.9, shoulderY - spineY, 0); spine.add(armL);
+      const armR = mk(armX * 0.9, shoulderY - spineY, 0); spine.add(armR);
+      const legL = mk(-0.06 * h, 0, 0); hips.add(legL);
+      const legR = mk(0.06 * h, 0, 0); hips.add(legR);
+      const bones = [hips, spine, head, armL, armR, legL, legR];
+      const mesh = new THREE.SkinnedMesh(
+        geo,
+        new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.02 })
+      );
+      mesh.castShadow = true;
+      mesh.add(hips);
+      mesh.updateMatrixWorld(true);
+      mesh.bind(new THREE.Skeleton(bones));
+      return { mesh, bones: { hips, spine, head, armL, armR, legL, legR } };
+    }
+
     function makeBubbleTexture() {
       const cv = document.createElement('canvas');
       cv.width = 128; cv.height = 128;
@@ -1875,22 +1942,36 @@
           holder.userData.isGlb = true;
           bakerModelCache[cacheKey] = holder;
           gltfLoader.load(BAKER_GLB[id], (gltf) => {
-            const model = gltf.scene;
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const s = 1.72 / size.y; // normalize height
+            gltf.scene.updateMatrixWorld(true);
+            let srcMesh = null;
+            gltf.scene.traverse((o) => { if (o.isMesh && !srcMesh) srcMesh = o; });
+            const geo = srcMesh.geometry.clone().applyMatrix4(srcMesh.matrixWorld);
+            const rig = buildRiggedBaker(geo);
+            const bb = geo.boundingBox;
+            const s = 1.72 / (bb.max.y - bb.min.y); // normalize height
+            const model = new THREE.Group();
+            model.add(rig.mesh);
             model.scale.setScalar(s);
-            const box2 = new THREE.Box3().setFromObject(model);
-            model.position.y -= box2.min.y;          // feet on the ground
-            model.position.x -= (box2.min.x + box2.max.x) / 2;
-            model.position.z -= (box2.min.z + box2.max.z) / 2;
-            model.traverse((o) => {
-              if (o.isMesh) {
-                o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.02 });
-                o.castShadow = true;
-              }
-            });
+            model.position.set(
+              -((bb.min.x + bb.max.x) / 2) * s,
+              -bb.min.y * s,                        // feet on the ground
+              -((bb.min.z + bb.max.z) / 2) * s
+            );
             holder.add(model);
+            Object.assign(holder.userData, {
+              rig: true,
+              legL: rig.bones.legL, legR: rig.bones.legR,
+              armL: rig.bones.armL, armR: rig.bones.armR,
+              head: rig.bones.head,
+            });
+            if (currentBakerModel === holder) {
+              Object.assign(playerChar.userData, {
+                rig: true,
+                legL: rig.bones.legL, legR: rig.bones.legR,
+                armL: rig.bones.armL, armR: rig.bones.armR,
+                head: rig.bones.head,
+              });
+            }
             // blob shadow
             const blob = new THREE.Mesh(
               new THREE.CircleGeometry(0.4, 20),
@@ -1912,6 +1993,8 @@
       playerChar.userData.legR = model.userData.legR || null;
       playerChar.userData.armL = model.userData.armL || null;
       playerChar.userData.armR = model.userData.armR || null;
+      playerChar.userData.head = model.userData.head || null;
+      playerChar.userData.rig = !!model.userData.rig;
       if (!model.userData.isGlb) {
         const serving = pose === 'serve';
         model.userData.tray.visible = serving;
@@ -1944,6 +2027,7 @@
     const townKeys = { up: false, down: false, left: false, right: false };
     let moveTarget = null;
     let walkPhase = 0;
+    let idleT = 0;
     let poiOpen = null;
     let poiCooldown = 0;
     let playerServeT = 0;
@@ -2025,6 +2109,16 @@
         playerChar.position.y *= 0.8;
       }
       animateWalk(playerChar, walkPhase, moving);
+      // rigged model extras: idle wave + gentle head sway
+      const ru = playerChar.userData;
+      if (ru.rig && ru.armR) {
+        idleT += dt;
+        const wp = idleT % 7;
+        const env = (!moving && wp < 1.6) ? Math.sin((wp / 1.6) * Math.PI) : 0;
+        const tz = env * (1.9 + Math.sin(idleT * 13) * 0.3);
+        ru.armR.rotation.z += (tz - ru.armR.rotation.z) * Math.min(1, 8 * dt);
+        ru.head.rotation.z = Math.sin(idleT * 1.4) * 0.05;
+      }
       animateDogWalk(walkPhase * 1.15, moving);
 
       // dog follows behind
@@ -2693,6 +2787,14 @@
           playerChar.position.y = Math.abs(Math.sin(playerServeT * 16)) * 0.14;
         } else {
           playerChar.position.y *= 0.8;
+        }
+        const su = playerChar.userData;
+        if (su.rig && su.armR) {
+          // raise the arm forward while handing a cookie over, relax after
+          const target = playerServeT > 0 ? -1.5 : 0;
+          su.armR.rotation.x += (target - su.armR.rotation.x) * Math.min(1, 10 * dt);
+          su.armL.rotation.x += (target * 0.5 - su.armL.rotation.x) * Math.min(1, 10 * dt);
+          su.head.rotation.z = Math.sin(time * 1.2) * 0.04;
         }
       }
 
