@@ -298,6 +298,17 @@
       box-shadow: 0 4px 14px rgba(60, 40, 20, 0.22);
     }
     .atk-btn:active { transform: scale(0.9); }
+    .forest-hud {
+      position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+      background: rgba(59, 47, 38, 0.6);
+      color: #FFF6E6;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px; font-weight: 700;
+      z-index: 10; white-space: nowrap;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
     .cs-btn.close {
       background: var(--cs-cream);
       color: var(--cs-ink);
@@ -468,6 +479,7 @@
       <div class="cs-toast" id="toast"></div>
       <div class="town-hint" id="townHint" style="display:none;">🚶 방향키·WASD 또는 화면 탭으로 이동 · 건물 앞에 서면 들어가요</div>
       <div class="atk-btn" id="atkBtn" style="display:none;">⚔️</div>
+      <div class="forest-hud" id="forestHud" style="display:none;"></div>
       <div class="scene-fade" id="sceneFade"></div>
 
       <div class="float-layer" id="floatLayer"></div>
@@ -2172,14 +2184,44 @@
     let forestBuilt = false;
     const forestFX = { fireflies: [], exitRing: null };
     const slimes = [];
-    const SLIME_KINDS = [
-      { ing: 'honey', color: '#E8B84B', face: '#8A5A1E' },
-      { ing: 'honey', color: '#E8B84B', face: '#8A5A1E' },
-      { ing: 'choco', color: '#8B5E3C', face: '#4E3220' },
-      { ing: 'berry', color: '#E8798F', face: '#A63A52' },
-    ];
-    const KILL_CAP = 10;
-    let forestKills = 0, forestDone = false;
+    const loots = [];
+    // monster tiers: tougher = rarer loot. drops() returns [type, id, amount][]
+    const SLIME_TIERS = {
+      normal: {
+        hp: 1, xp: 1, scale: 1, count: 5,
+        skins: [
+          { color: '#8B5E3C', face: '#4E3220' },
+          { color: '#E8798F', face: '#A63A52' },
+          { color: '#F2E8DC', face: '#8A7A66' },
+        ],
+        drops: () => {
+          const roll = Math.random();
+          if (roll < 0.12) return [['ing', 'honey', 1]];
+          if (roll < 0.44) return [['ing', 'choco', 1]];
+          if (roll < 0.76) return [['ing', 'berry', 1]];
+          return [['ing', 'milk', 1]];
+        },
+      },
+      spiky: {
+        hp: 3, xp: 3, scale: 1.35, count: 3,
+        skins: [{ color: '#7E93AD', face: '#3E4E62' }],
+        drops: () => {
+          const out = [['ing', 'matcha', 1], ['coin', null, 2 + Math.floor(Math.random() * 3)]];
+          if (Math.random() < 0.5) out.push(['ing', Math.random() < 0.5 ? 'choco' : 'berry', 1]);
+          return out;
+        },
+      },
+      king: {
+        hp: 6, xp: 8, scale: 2.1, count: 1,
+        skins: [{ color: '#E3B23C', face: '#7A5610' }],
+        drops: () => [['ing', 'honey', 2], ['ing', 'matcha', 1], ['coin', null, 6 + Math.floor(Math.random() * 5)]],
+      },
+    };
+    let forestKills = 0, forestDone = false, kingDownToday = false;
+    let forestLv = 1, forestXp = 0;
+    const xpNeed = () => 4 + forestLv * 3;
+    const swordDmg = () => 1 + Math.floor((forestLv - 1) / 2);
+    const killCap = () => 8 + forestLv * 2;
     let sword = null, swingT = 0, swingHit = false;
     const SWING_DUR = 0.34;
     // fan-shaped slash flash so the swing reads from every camera angle
@@ -2208,20 +2250,96 @@
       return t;
     }
 
-    function makeSlime(kind) {
+    function makeSlime(tierName, skin) {
       const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), mat(kind.color, { roughness: 0.55 }));
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), mat(skin.color, { roughness: 0.55 }));
       body.scale.y = 0.78;
       body.position.y = 0.27;
       body.castShadow = true;
       g.add(body);
       for (const sx of [-0.12, 0.12]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: kind.face }));
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: skin.face }));
         eye.position.set(sx, 0.33, 0.28);
         g.add(eye);
       }
+      if (tierName === 'spiky') {
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.17, 6), mat('#55677E'));
+          spike.position.set(Math.sin(a) * 0.17, 0.52, Math.cos(a) * 0.17);
+          g.add(spike);
+        }
+      }
+      if (tierName === 'king') {
+        const crown = new THREE.Group();
+        crown.add(cyl(0.15, 0.17, 0.1, '#FFD34D', 0, 0, 0, 10));
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2;
+          const pt = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.13, 6), mat('#FFD34D'));
+          pt.position.set(Math.sin(a) * 0.12, 0.1, Math.cos(a) * 0.12);
+          crown.add(pt);
+        }
+        crown.position.y = 0.6;
+        g.add(crown);
+      }
       return g;
     }
+
+    // emoji sprites for loot that pops out of monsters
+    const emojiTexCache = {};
+    function emojiSprite(emoji) {
+      if (!emojiTexCache[emoji]) {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 64;
+        const c = cv.getContext('2d');
+        c.font = '48px sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(emoji, 32, 36);
+        emojiTexCache[emoji] = new THREE.CanvasTexture(cv);
+      }
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTexCache[emoji], transparent: true, depthTest: false }));
+      sp.scale.set(0.52, 0.52, 1);
+      return sp;
+    }
+
+    function dropLoot(s) {
+      for (const [type, id, n] of s.def.drops()) {
+        const pieces = type === 'coin' ? 1 : n;
+        for (let i = 0; i < pieces; i++) {
+          const sp = emojiSprite(type === 'coin' ? '🪙' : INGREDIENTS[id].emoji);
+          sp.position.copy(s.g.position).setY(0.4);
+          forestScene.add(sp);
+          const a = Math.random() * Math.PI * 2;
+          loots.push({ sp, type, id, n: type === 'coin' ? n : 1, t: 0,
+                       vx: Math.sin(a) * 1.5, vz: Math.cos(a) * 1.5, vy: 3 + Math.random() * 1.5 });
+        }
+      }
+    }
+
+    function updateForestHud() {
+      $('forestHud').textContent = `⚔️ Lv.${forestLv} (공격력 ${swordDmg()}) · ✨ ${forestXp}/${xpNeed()} · 🎯 오늘 ${forestKills}/${killCap()}`;
+    }
+
+    let levelFlash = 0;
+    function gainXp(n) {
+      forestXp += n;
+      while (forestXp >= xpNeed()) {
+        forestXp -= xpNeed();
+        forestLv++;
+        levelFlash = 1;
+        showToast(`🆙 <b>레벨 업! Lv.${forestLv}</b> — 공격력 ${swordDmg()} · 하루 사냥 한도 ${killCap()}마리`);
+        if (soundEnabled) sound.playDiscover();
+      }
+      updateForestHud();
+    }
+    const levelFX = new THREE.Mesh(
+      new THREE.RingGeometry(0.25, 0.5, 26),
+      new THREE.MeshBasicMaterial({ color: '#FFD34D', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+    );
+    levelFX.rotation.x = -Math.PI / 2;
+    levelFX.position.y = 0.12;
+    levelFX.visible = false;
+    playerChar.add(levelFX);
 
     function makeSword() {
       const g = new THREE.Group();
@@ -2249,8 +2367,9 @@
       s.g.position.x = Math.max(-11, Math.min(11, s.g.position.x));
       s.g.position.z = Math.max(-9.5, Math.min(4.5, s.g.position.z));
       s.alive = true; s.dead = 0;
+      s.hp = s.def.hp;
       s.g.visible = true;
-      s.g.scale.set(1, 1, 1);
+      s.g.scale.setScalar(s.base);
     }
 
     function buildForest() {
@@ -2316,14 +2435,18 @@
       exitLabel.position.set(FOREST_ENTRY.x, 2.2, FOREST_ENTRY.z);
       forestScene.add(exitLabel);
 
-      // slimes
-      for (let i = 0; i < 8; i++) {
-        const kind = SLIME_KINDS[i % SLIME_KINDS.length];
-        const g = makeSlime(kind);
-        const s = { g, kind, alive: true, dead: 0, respawn: 0, phase: Math.random() * 6.28, sp: Math.random(), wt: 0, vx: 0, vz: 0 };
-        respawnSlime(s);
-        forestScene.add(g);
-        slimes.push(s);
+      // monsters, per tier
+      for (const [tierName, def] of Object.entries(SLIME_TIERS)) {
+        for (let i = 0; i < def.count; i++) {
+          const skin = def.skins[i % def.skins.length];
+          const g = makeSlime(tierName, skin);
+          const s = { g, tier: tierName, def, hp: def.hp, base: def.scale, bodyMat: g.children[0].material,
+                      alive: true, dead: 0, respawn: 0, flash: 0,
+                      phase: Math.random() * 6.28, sp: Math.random(), wt: 0, vx: 0, vz: 0 };
+          respawnSlime(s);
+          forestScene.add(g);
+          slimes.push(s);
+        }
       }
     }
 
@@ -2342,7 +2465,12 @@
       poiCooldown = 999;
       fadeTransition(() => {
         if (!forestBuilt) buildForest();
-        if (!forestDone) for (const s of slimes) if (!s.alive && s.dead >= 1) respawnSlime(s);
+        if (!forestDone) {
+          for (const s of slimes) {
+            if (s.tier === 'king' && kingDownToday) continue; // the king stays down for the day
+            if (!s.alive && s.dead >= 1) respawnSlime(s);
+          }
+        }
         phase3D = 'forest';
         poiCooldown = 2; // grace period to step off the exit ring
         forestScene.add(playerChar);
@@ -2350,9 +2478,11 @@
         playerChar.rotation.y = Math.PI;
         moveTarget = null;
         if (!sword) sword = makeSword();
-        $('townHint').innerHTML = '⚔️ <b>스페이스</b>(모바일: 칼 버튼)로 공격 · 슬라임이 재료를 떨어뜨려요 · 빛나는 링에 서면 마을로';
+        $('townHint').innerHTML = '⚔️ <b>스페이스</b>(모바일: 칼 버튼)로 공격 · 몬스터가 아이템을 떨어뜨려요 · 👑 킹슬라임은 비싼 재료를! · 링에 서면 마을로';
         $('townHint').style.display = '';
         $('atkBtn').style.display = 'flex';
+        $('forestHud').style.display = '';
+        updateForestHud();
         if (soundEnabled) sound.playChime();
       });
     };
@@ -2369,6 +2499,7 @@
         if (sword && sword.parent) sword.parent.remove(sword);
         $('townHint').innerHTML = TOWN_HINT_DEFAULT;
         $('atkBtn').style.display = 'none';
+        $('forestHud').style.display = 'none';
       });
     }
 
@@ -2428,50 +2559,118 @@
             if (!s.alive) continue;
             const sx = s.g.position.x - p.x, sz = s.g.position.z - p.z;
             const d = Math.hypot(sx, sz);
-            if (d > 2.0) continue;
+            if (d > (s.tier === 'king' ? 2.5 : 2.0)) continue;
             if ((sx * fx + sz * fz) / (d || 1) < 0.25) continue; // front arc only
-            s.alive = false; s.dead = 0; s.respawn = 9;
             hit++;
-            forestKills++;
-            stock[s.kind.ing] = (stock[s.kind.ing] || 0) + 1;
-            floatText(s.g.position.clone().setY(0.9), `+1 ${INGREDIENTS[s.kind.ing].emoji}`, '#FFE1A8', townCam);
+            s.hp -= swordDmg();
+            s.flash = 0.2;
+            if (s.hp <= 0) {
+              s.alive = false; s.dead = 0;
+              s.respawn = s.tier === 'king' ? Infinity : 9; // the king returns tomorrow
+              forestKills++;
+              dropLoot(s);
+              gainXp(s.def.xp);
+              if (s.tier === 'king') { kingDownToday = true; showToast('👑 <b>킹슬라임 처치!</b> 왕의 보물이 쏟아졌어요'); }
+            } else {
+              // knockback with a hurt squeak
+              s.g.position.x += (sx / (d || 1)) * 0.55;
+              s.g.position.z += (sz / (d || 1)) * 0.55;
+              floatText(s.g.position.clone().setY(0.9), `-${swordDmg()}`, '#FFB0A0', townCam);
+            }
           }
-          if (hit && soundEnabled) sound.playCoin();
-          if (forestKills >= KILL_CAP && !forestDone) {
+          if (hit && soundEnabled) sound.playServe();
+          if (forestKills >= killCap() && !forestDone) {
             forestDone = true;
             for (const s of slimes) if (s.alive) { s.alive = false; s.dead = 0; s.respawn = Infinity; }
-            showToast('🌙 슬라임들이 전부 숨어버렸어요! 내일 아침 다시 나온대요.');
+            showToast('🌙 몬스터들이 전부 숨어버렸어요! 내일 아침 다시 나온대요. (렙업하면 하루 한도가 늘어요)');
           }
+          updateForestHud();
         }
       } else {
         slashFX.visible = false;
         if (u.rig && u.armR && !moving) u.armR.rotation.x *= 0.85; // settle after a swing
       }
 
-      // slimes: bounce, wander, death squash, respawn
+      // slimes: bounce, wander/chase, hit flash, death squash, respawn
       for (const s of slimes) {
+        const b = s.base;
         if (s.alive) {
-          s.phase += dt * (3 + s.sp || 3.4);
+          s.phase += dt * (3 + s.sp);
           const hop = Math.abs(Math.sin(s.phase));
-          s.g.position.y = hop * 0.16;
-          s.g.scale.set(1 + (1 - hop) * 0.12, 1 - (1 - hop) * 0.18, 1 + (1 - hop) * 0.12);
-          s.wt -= dt;
-          if (s.wt <= 0) {
-            s.wt = 1.5 + Math.random() * 2.5;
-            const a = Math.random() * Math.PI * 2;
-            const sp = Math.random() < 0.3 ? 0 : 0.5 + Math.random() * 0.5;
-            s.vx = Math.sin(a) * sp; s.vz = Math.cos(a) * sp;
+          s.g.position.y = hop * 0.16 * b;
+          s.g.scale.set(b * (1 + (1 - hop) * 0.12), b * (1 - (1 - hop) * 0.18), b * (1 + (1 - hop) * 0.12));
+          if (s.flash > 0) {
+            s.flash -= dt;
+            s.bodyMat.emissive.setScalar(Math.max(0, s.flash) * 3);
+          }
+          if (s.tier === 'king') {
+            // the king slowly stalks the baker
+            const cx = p.x - s.g.position.x, cz = p.z - s.g.position.z;
+            const cd = Math.hypot(cx, cz);
+            if (cd > 1.3) { s.vx = (cx / cd) * 0.55; s.vz = (cz / cd) * 0.55; }
+            else { s.vx = 0; s.vz = 0; }
+          } else {
+            s.wt -= dt;
+            if (s.wt <= 0) {
+              s.wt = 1.5 + Math.random() * 2.5;
+              const a = Math.random() * Math.PI * 2;
+              const sp = Math.random() < 0.3 ? 0 : 0.5 + Math.random() * 0.5;
+              s.vx = Math.sin(a) * sp; s.vz = Math.cos(a) * sp;
+            }
           }
           s.g.position.x = Math.max(-11, Math.min(11, s.g.position.x + s.vx * dt));
           s.g.position.z = Math.max(-9.5, Math.min(5, s.g.position.z + s.vz * dt));
           if (s.vx || s.vz) s.g.rotation.y = Math.atan2(s.vx, s.vz);
         } else if (s.dead < 1) {
           s.dead = Math.min(1, s.dead + dt * 3);
-          s.g.scale.set(1 + s.dead * 0.8, Math.max(0.01, 1 - s.dead), 1 + s.dead * 0.8);
+          s.g.scale.set(b * (1 + s.dead * 0.8), Math.max(0.01, b * (1 - s.dead)), b * (1 + s.dead * 0.8));
           if (s.dead >= 1) s.g.visible = false;
         } else if (!forestDone && (s.respawn -= dt) <= 0) {
           respawnSlime(s);
         }
+      }
+
+      // loot: pops out of the monster, then magnets to the baker
+      for (let i = loots.length - 1; i >= 0; i--) {
+        const L = loots[i];
+        L.t += dt;
+        if (L.t < 0.45) {
+          L.vy -= 12 * dt;
+          L.sp.position.x += L.vx * dt;
+          L.sp.position.z += L.vz * dt;
+          L.sp.position.y = Math.max(0.3, L.sp.position.y + L.vy * dt);
+        } else {
+          const dxl = p.x - L.sp.position.x, dzl = p.z - L.sp.position.z;
+          const dl = Math.hypot(dxl, dzl);
+          const pull = 5 + L.t * 7;
+          L.sp.position.x += (dxl / (dl || 1)) * pull * dt;
+          L.sp.position.z += (dzl / (dl || 1)) * pull * dt;
+          L.sp.position.y += (0.7 - L.sp.position.y) * Math.min(1, 6 * dt);
+          if (dl < 0.55) {
+            if (L.type === 'coin') {
+              money += L.n;
+              $('hudMoney').textContent = `🪙 ${money}`;
+              floatText(p.clone().setY(1.4), `+${L.n} 🪙`, '#FFE1A8', townCam);
+            } else {
+              stock[L.id] = (stock[L.id] || 0) + 1;
+              floatText(p.clone().setY(1.4), `+1 ${INGREDIENTS[L.id].emoji}`, '#DFF7C8', townCam);
+            }
+            if (soundEnabled) sound.playCoin();
+            forestScene.remove(L.sp);
+            loots.splice(i, 1);
+          }
+        }
+      }
+
+      // golden level-up ring burst
+      if (levelFlash > 0) {
+        levelFlash -= dt / 0.8;
+        const q = 1 - Math.max(0, levelFlash);
+        levelFX.visible = true;
+        levelFX.scale.setScalar(1 + q * 4);
+        levelFX.material.opacity = Math.max(0, levelFlash) * 0.9;
+      } else {
+        levelFX.visible = false;
       }
 
       // ambience
@@ -2544,9 +2743,11 @@
       phase3D = 'town';
       forestKills = 0;
       forestDone = false;
+      kingDownToday = false;
       townScene.add(playerChar); // in case yesterday ended inside the forest
       if (sword && sword.parent) sword.parent.remove(sword);
       $('atkBtn').style.display = 'none';
+      $('forestHud').style.display = 'none';
       $('townHint').innerHTML = TOWN_HINT_DEFAULT;
       $('serveBar').style.display = 'none';
       $('eveningPanel').style.display = 'none';
@@ -2620,8 +2821,9 @@
         : (id === 'market'
           ? '재료를 사고 팔아요. 🍯 꿀은 탐험 숲에서만!'
           : `🐕 황구를 보내면 내일 아침 재료를 물어와요.<br>
+             ⚔️ 직접 사냥: 가시슬라임은 🍵말차, 👑킹슬라임은 🍯꿀·🪙코인을 떨어뜨려요! 잡을수록 렙업!<br>
              <button class="cs-btn primary" style="margin-top:10px;width:100%;" onclick="window._enterForest()">
-               ⚔️ 직접 탐험하러 가기 ${forestDone ? '(오늘은 슬라임이 다 숨었어요)' : ''}
+               ⚔️ 직접 탐험하러 가기 (Lv.${forestLv}) ${forestDone ? '· 오늘은 몬스터가 다 숨었어요' : ''}
              </button>`);
       updateMorningHeader();
       if (id === 'shop') {
