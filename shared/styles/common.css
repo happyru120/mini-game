@@ -410,3 +410,14 @@ body { -webkit-tap-highlight-color: transparent; }
   .top-bar { position: absolute; top: 2px; left: 2px; right: 2px; z-index: 30; margin: 0; background: transparent; }
   .game-canvas { max-height: calc(100dvh - 8px); }
 }
+
+/* ── Desktop: let games fill the screen height ── */
+@media (min-width: 701px) {
+  .game-wrapper {
+    max-width: min(96vw, calc((100dvh - 92px) * 1.3333)) !important;
+  }
+  .game-canvas {
+    width: 100%;
+    max-height: calc(100dvh - 92px);
+  }
+}
