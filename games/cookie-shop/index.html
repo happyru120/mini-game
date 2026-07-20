@@ -298,6 +298,11 @@
       box-shadow: 0 4px 14px rgba(60, 40, 20, 0.22);
     }
     .atk-btn:active { transform: scale(0.9); }
+    .hurt-flash {
+      position: absolute; inset: 0; z-index: 25; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(220, 60, 50, 0.55) 100%);
+      opacity: 0; transition: opacity 0.25s;
+    }
     .forest-hud {
       position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
       background: rgba(59, 47, 38, 0.6);
@@ -480,6 +485,7 @@
       <div class="town-hint" id="townHint" style="display:none;">🚶 방향키·WASD 또는 화면 탭으로 이동 · 건물 앞에 서면 들어가요</div>
       <div class="atk-btn" id="atkBtn" style="display:none;">⚔️</div>
       <div class="forest-hud" id="forestHud" style="display:none;"></div>
+      <div class="hurt-flash" id="hurtFlash"></div>
       <div class="scene-fade" id="sceneFade"></div>
 
       <div class="float-layer" id="floatLayer"></div>
@@ -2208,17 +2214,19 @@
         drops: () => {
           const out = [['ing', 'matcha', 1], ['coin', null, 2 + Math.floor(Math.random() * 3)]];
           if (Math.random() < 0.5) out.push(['ing', Math.random() < 0.5 ? 'choco' : 'berry', 1]);
+          if (Math.random() < 0.25) out.push(['potion', null, 1]);
           return out;
         },
       },
       king: {
         hp: 6, xp: 8, scale: 2.1, count: 1,
         skins: [{ color: '#E3B23C', face: '#7A5610' }],
-        drops: () => [['ing', 'honey', 2], ['ing', 'matcha', 1], ['coin', null, 6 + Math.floor(Math.random() * 5)]],
+        drops: () => [['ing', 'honey', 2], ['ing', 'matcha', 1], ['potion', null, 1], ['coin', null, 6 + Math.floor(Math.random() * 5)]],
       },
     };
     let forestKills = 0, forestDone = false, kingDownToday = false;
     let forestLv = 1, forestXp = 0;
+    let heroMaxHp = 4, heroHp = 4, hurtT = 0;
     const xpNeed = () => 4 + forestLv * 3;
     const swordDmg = () => 1 + Math.floor((forestLv - 1) / 2);
     const killCap = () => 8 + forestLv * 2;
@@ -2306,7 +2314,7 @@
       for (const [type, id, n] of s.def.drops()) {
         const pieces = type === 'coin' ? 1 : n;
         for (let i = 0; i < pieces; i++) {
-          const sp = emojiSprite(type === 'coin' ? '🪙' : INGREDIENTS[id].emoji);
+          const sp = emojiSprite(type === 'coin' ? '🪙' : type === 'potion' ? '🧪' : INGREDIENTS[id].emoji);
           sp.position.copy(s.g.position).setY(0.4);
           forestScene.add(sp);
           const a = Math.random() * Math.PI * 2;
@@ -2317,7 +2325,8 @@
     }
 
     function updateForestHud() {
-      $('forestHud').textContent = `⚔️ Lv.${forestLv} (공격력 ${swordDmg()}) · ✨ ${forestXp}/${xpNeed()} · 🎯 오늘 ${forestKills}/${killCap()}`;
+      const hearts = '❤️'.repeat(heroHp) + '🖤'.repeat(Math.max(0, heroMaxHp - heroHp));
+      $('forestHud').textContent = `${hearts} · ⚔️ Lv.${forestLv} (공격력 ${swordDmg()}) · ✨ ${forestXp}/${xpNeed()} · 🎯 ${forestKills}/${killCap()}`;
     }
 
     let levelFlash = 0;
@@ -2327,10 +2336,50 @@
         forestXp -= xpNeed();
         forestLv++;
         levelFlash = 1;
-        showToast(`🆙 <b>레벨 업! Lv.${forestLv}</b> — 공격력 ${swordDmg()} · 하루 사냥 한도 ${killCap()}마리`);
+        // level rewards: coins, bigger heart pool + full heal, every 3rd level a free recipe
+        const rewards = [];
+        const bonus = forestLv * 5;
+        money += bonus;
+        $('hudMoney').textContent = `🪙 ${money}`;
+        rewards.push(`🪙 +${bonus}`);
+        const newMax = 4 + Math.floor(forestLv / 2);
+        if (newMax > heroMaxHp) { heroMaxHp = newMax; rewards.push('최대 ❤️ +1'); }
+        heroHp = heroMaxHp;
+        rewards.push('❤️ 전부 회복');
+        if (forestLv % 3 === 0) {
+          const unknown = RECIPES.filter(r => !known.has(r.id));
+          if (unknown.length) {
+            const r = unknown[Math.floor(Math.random() * unknown.length)];
+            known.add(r.id);
+            rewards.push(`📜 숲의 요정이 <b>${r.name}</b> 레시피를 알려줬어요!`);
+          }
+        }
+        showToast(`🆙 <b>레벨 업! Lv.${forestLv}</b> (공격력 ${swordDmg()} · 한도 ${killCap()})<br>${rewards.join(' · ')}`);
         if (soundEnabled) sound.playDiscover();
       }
       updateForestHud();
+    }
+
+    function hurtHero(fromX, fromZ) {
+      if (hurtT > 0 || phase3D !== 'forest') return;
+      hurtT = 1.2;
+      heroHp--;
+      const p = playerChar.position;
+      const kx = p.x - fromX, kz = p.z - fromZ;
+      const kd = Math.hypot(kx, kz) || 1;
+      p.x = Math.max(-10.5, Math.min(10.5, p.x + (kx / kd) * 1.2));
+      p.z = Math.max(-9, Math.min(8.4, p.z + (kz / kd) * 1.2));
+      floatText(p.clone().setY(1.5), '-1 ❤️', '#FF9090', townCam);
+      const fl = $('hurtFlash');
+      fl.style.opacity = 0.5;
+      setTimeout(() => { fl.style.opacity = 0; }, 140);
+      if (soundEnabled) sound.playAngry();
+      updateForestHud();
+      if (heroHp <= 0) {
+        showToast('😵 <b>쓰러졌어요…</b> 황구가 마을까지 데려다줬어요. 산딸기나 물약으로 체력을 챙기세요!');
+        poiCooldown = 999;
+        exitForest();
+      }
     }
     const levelFX = new THREE.Mesh(
       new THREE.RingGeometry(0.25, 0.5, 26),
@@ -2415,6 +2464,26 @@
         m.position.set(-10 + Math.random() * 20, 0, -9 + Math.random() * 13);
         forestScene.add(m);
       }
+      // wild raspberry bushes — walk up and munch to heal
+      forestFX.bushes = [];
+      for (const [bx, bz] of [[-7.5, -3], [6, -6.5], [-3.5, -8], [8.5, 2.5]]) {
+        const g = new THREE.Group();
+        const mound = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat('#4F7A4A'));
+        mound.castShadow = true;
+        g.add(mound);
+        const berries = new THREE.Group();
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), mat('#D9455F', { roughness: 0.4 }));
+          b.position.set(Math.sin(a) * 0.26, 0.28 + (i % 2) * 0.1, Math.cos(a) * 0.26);
+          berries.add(b);
+        }
+        g.add(berries);
+        g.position.set(bx, 0, bz);
+        forestScene.add(g);
+        forestFX.bushes.push({ g, berries, ready: true, t: 0 });
+      }
+
       // fireflies
       for (let i = 0; i < 18; i++) {
         const f = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), new THREE.MeshBasicMaterial({ color: '#FFEFA8' }));
@@ -2473,6 +2542,8 @@
         }
         phase3D = 'forest';
         poiCooldown = 2; // grace period to step off the exit ring
+        heroHp = heroMaxHp; // fresh legs on every trip in
+        hurtT = 0;
         forestScene.add(playerChar);
         playerChar.position.copy(FOREST_ENTRY);
         playerChar.rotation.y = Math.PI;
@@ -2630,6 +2701,42 @@
         }
       }
 
+      // contact damage from spiky & king slimes (with i-frames)
+      if (hurtT > 0) hurtT -= dt;
+      else {
+        for (const s of slimes) {
+          if (!s.alive || s.tier === 'normal') continue;
+          const cd = Math.hypot(s.g.position.x - p.x, s.g.position.z - p.z);
+          if (cd < (s.tier === 'king' ? 1.05 : 0.7)) {
+            hurtHero(s.g.position.x, s.g.position.z);
+            break;
+          }
+        }
+      }
+
+      // raspberry bushes: munch to heal, they regrow after a while
+      for (const B of (forestFX.bushes || [])) {
+        if (B.ready) {
+          if (Math.hypot(B.g.position.x - p.x, B.g.position.z - p.z) < 0.95) {
+            B.ready = false;
+            B.t = 22;
+            B.berries.visible = false;
+            if (heroHp < heroMaxHp) {
+              heroHp++;
+              floatText(p.clone().setY(1.4), '+1 ❤️ 냠냠', '#FFB0C0', townCam);
+            } else {
+              stock.berry = (stock.berry || 0) + 1;
+              floatText(p.clone().setY(1.4), '+1 🍓', '#DFF7C8', townCam);
+            }
+            if (soundEnabled) sound.playBake();
+            updateForestHud();
+          }
+        } else if ((B.t -= dt) <= 0) {
+          B.ready = true;
+          B.berries.visible = true;
+        }
+      }
+
       // loot: pops out of the monster, then magnets to the baker
       for (let i = loots.length - 1; i >= 0; i--) {
         const L = loots[i];
@@ -2651,6 +2758,16 @@
               money += L.n;
               $('hudMoney').textContent = `🪙 ${money}`;
               floatText(p.clone().setY(1.4), `+${L.n} 🪙`, '#FFE1A8', townCam);
+            } else if (L.type === 'potion') {
+              if (heroHp < heroMaxHp) {
+                heroHp = Math.min(heroMaxHp, heroHp + 2);
+                floatText(p.clone().setY(1.4), '🧪 +2 ❤️', '#FFB0C0', townCam);
+              } else {
+                money += 3;
+                $('hudMoney').textContent = `🪙 ${money}`;
+                floatText(p.clone().setY(1.4), '🧪→+3 🪙', '#FFE1A8', townCam);
+              }
+              updateForestHud();
             } else {
               stock[L.id] = (stock[L.id] || 0) + 1;
               floatText(p.clone().setY(1.4), `+1 ${INGREDIENTS[L.id].emoji}`, '#DFF7C8', townCam);
